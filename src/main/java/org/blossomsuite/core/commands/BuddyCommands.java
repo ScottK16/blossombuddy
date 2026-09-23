@@ -347,7 +347,8 @@ public final class BuddyCommands {
 
    /**
     * {@code /buddy cooldown add <key> <seconds> [trigger]}, {@code addheld <seconds> [trigger]}, {@code remove <key>},
-    * {@code list}: player-added cooldown rules, layered on top of whatever cooldowns.json already has.
+    * {@code removeheld}, {@code list}: player-added cooldown rules, layered on top of whatever cooldowns.json already
+    * has.
     */
    private static LiteralArgumentBuilder<FabricClientCommandSource> cooldown() {
       return ClientCommandManager.literal("cooldown")
@@ -381,6 +382,7 @@ public final class BuddyCommands {
                )
          )
          .then(ClientCommandManager.literal("remove").then(ClientCommandManager.argument("key", StringArgumentType.word()).executes(ctx -> removeCooldown(StringArgumentType.getString(ctx, "key")))))
+         .then(ClientCommandManager.literal("removeheld").executes(ctx -> removeHeldCooldown()))
          .then(ClientCommandManager.literal("list").executes(ctx -> listCooldowns()));
    }
 
@@ -393,7 +395,9 @@ public final class BuddyCommands {
 
       CustomCooldownStore.add(key, seconds * 1000L, trigger);
       CooldownRules.loadLocalFile();
-      ChatOutput.info("Added a " + seconds + "s cooldown for '" + key + "' (" + trigger.name().toLowerCase(Locale.ROOT) + "). /buddy cooldown remove " + key + " to undo.");
+      ChatOutput.info(
+         "Added a " + seconds + "s cooldown for '" + key + "' (" + trigger.name().toLowerCase(Locale.ROOT) + "). Undo with /buddy cooldown remove " + key + ", or /buddy cooldown removeheld while holding it."
+      );
       return 1;
    }
 
@@ -421,6 +425,21 @@ public final class BuddyCommands {
       }
 
       return 1;
+   }
+
+   private static int removeHeldCooldown() {
+      MinecraftClient mc = MinecraftClient.getInstance();
+      if (mc.player == null) {
+         return 1;
+      }
+
+      ItemStack stack = mc.player.getMainHandStack();
+      if (stack.isEmpty()) {
+         ChatOutput.info("Hold the item you want to remove a cooldown from first, or use /buddy cooldown remove <key>.");
+         return 1;
+      }
+
+      return removeCooldown(SuiteItemIdUtil.getBestId(stack));
    }
 
    private static int listCooldowns() {
