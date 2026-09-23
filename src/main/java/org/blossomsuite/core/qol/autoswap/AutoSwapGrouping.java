@@ -1,0 +1,32 @@
+package org.blossomsuite.core.qol.autoswap;
+
+public enum AutoSwapGrouping {
+   ORES,
+   LOGS,
+   PLANKS,
+   SHOVEL_MINEABLE,
+   PICKAXE_MINEABLE,
+   AXE_MINEABLE,
+   HOE_MINEABLE,
+   SHEARS_MINEABLE,
+   SWORD_EFFICIENT,
+   LEAVES,
+   MUSHROOMS,
+   SPAWNERS,
+   DIRT_LIKE,
+   SAND_LIKE,
+   GLASS,
+   WOOL,
+   SAPLINGS,
+   CROPS,
+   FLOWERS,
+   SMALL_FLOWERS,
+   AMETHYST,
+   LIGHT_EMITTING,
+   DECORATIVE_LIGHTS,
+   TERRACOTTA,
+   CONCRETE,
+   ICE,
+   RAILS,
+   REDSTONE_COMPONENTS;
+}

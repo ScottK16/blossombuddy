@@ -1,0 +1,32 @@
+{
+  "required": true,
+  "package": "org.blossomsuite.core.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "BossBarHudMixin",
+    "BossBarMixin",
+    "DropProtectionMixin",
+    "ChatHudLineVisibleMixin",
+    "ChatHudTimestampMixin",
+    "ChatScreenMixin",
+    "ClientPlayNetworkHandlerMixin",
+    "ClientPlayerInteractionManagerMixin",
+    "HandledScreenMixin",
+    "HeldItemHandsMixin",
+    "HeldItemRendererMixin",
+    "InGameHudMixin",
+    "KeyboardMixin",
+    "MouseMixin",
+    "MinecraftClientMixin",
+    "PlayerListHudMixin",
+    "PlayerEntityModelMixin",
+    "PlayerEntityRenderStateMixin",
+    "PlayerEntityRendererMixin",
+    "ScoreboardSidebarMixin",
+    "SlotClickProtectionMixin",
+    "WorldRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

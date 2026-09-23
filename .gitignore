@@ -1,0 +1,22 @@
+# Gradle / Loom
+.gradle/
+build/
+run/
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Reference material used while forking (original jars + decompiled source).
+# Not part of the project; never commit.
+_reference/
+
+# Backend (relay + website): kept in a separate, private repo - this one is just the mod.
+relay/
+site/
+
+# Gradle/build logs
+logs/

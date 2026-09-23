@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "blossombuddy",
+  "version": "${version}",
+  "name": "BlossomBuddy",
+  "description": "Item cooldowns, job XP / money tracking (with Jobs Reborn overflow XP) and quality-of-life tools for BlossomCraft.",
+  "authors": [
+    "IrishScotty"
+  ],
+  "contributors": [
+    "Zodancy (original BlossomSuite)",
+    "Stephen Willis (original BlossomSuite, MIT copyright holder)",
+    "Mills (Jobs Overflow XP)"
+  ],
+  "license": "MIT",
+  "icon": "assets/blossombuddy/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "org.blossomsuite.BlossomBuddy"
+    ],
+    "client": [
+      "org.blossomsuite.BlossomBuddyClient"
+    ],
+    "modmenu": [
+      "org.blossomsuite.core.integration.SuiteModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "blossombuddy.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.17.2",
+    "minecraft": "~1.21.8",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "breaks": {
+    "blossomsuite": "*",
+    "blossomsuite2": "*"
+  }
+}
