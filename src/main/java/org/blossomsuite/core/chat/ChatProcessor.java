@@ -51,9 +51,19 @@ public final class ChatProcessor {
          }
       }
 
+      return true;
+   }
+
+   /**
+    * Learns channel/staff/vanish state from a message, independent of whatever a secondary-chat window or other
+    * filter later decides to do with it - so e.g. the marry-chat toggle confirmation still updates the tracked
+    * channel even though its own text is exactly what the Marry secondary-chat filter matches and diverts away
+    * from main chat. Must run before that filtering gets a look at the message, not after.
+    */
+   public static void observeState(Text message) {
       String text = message.getString();
       if (isSuiteMessage(text)) {
-         return true;
+         return;
       }
 
       if (text != null && StaffChatState.trackingEnabled() && text.contains("---[Online Staff]---")) {
@@ -61,7 +71,6 @@ public final class ChatProcessor {
       }
 
       observeChatToggleMessage(text);
-      return true;
    }
 
    private static boolean isSuiteMessage(String text) {
@@ -162,11 +171,13 @@ public final class ChatProcessor {
                PartyChatState.setPartyChatEnabled(partyChatEnabled);
                PublicChatSendState.onPartyChatToggled(partyChatEnabled);
                ConfigIO.saveIfDirty();
-            } else if (StaffChatState.isStaffTrackingActive() && text.contains("[Staff] updated staff chat toggle to on.")) {
+            } else if (StaffChatState.trackingEnabled() && text.contains("[Staff] updated staff chat toggle to on.")) {
+               StaffChatState.observeStaffChatState(true); // seeing this message at all is proof you're staff
                ChatModeProbe.onStaffToggleLine(true);
                PublicChatSendState.onStaffChatToggled(true);
                ConfigIO.saveIfDirty();
-            } else if (StaffChatState.isStaffTrackingActive() && text.contains("[Staff] updated staff chat toggle to off.")) {
+            } else if (StaffChatState.trackingEnabled() && text.contains("[Staff] updated staff chat toggle to off.")) {
+               StaffChatState.observeStaffChatState(false);
                ChatModeProbe.onStaffToggleLine(false);
                PublicChatSendState.onStaffChatToggled(false);
                ConfigIO.saveIfDirty();

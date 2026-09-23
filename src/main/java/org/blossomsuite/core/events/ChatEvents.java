@@ -17,6 +17,11 @@ public final class ChatEvents {
             return true;
          }
 
+         // before any secondary-chat filter gets a chance to divert/hide the line, so state is learned either way
+         if (!overlay) {
+            ChatProcessor.observeState(message);
+         }
+
          if (!overlay && SecondaryChat.INSTANCE.onMessage(message)) {
             return false;
          }
