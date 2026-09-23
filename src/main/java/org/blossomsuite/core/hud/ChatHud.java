@@ -244,7 +244,8 @@ public final class ChatHud {
             lines++;
          }
 
-         return 12 + lines * 10 + 4;
+         // each row in renderNormal advances y by 12, not 10 - the box has to match that or the last row spills out
+         return 12 + lines * 12 + 4;
       }
    }
 
