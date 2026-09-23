@@ -34,7 +34,7 @@ Cross-realm chat, the player list, vote sharing and map art all talk to a small 
 
 ## License
 
-MIT - see [LICENSE](LICENSE) and [NOTICE](NOTICE) for the licenses this project builds on.
+Source-available, not fully open source: read it, build it, send pull requests - but redistributing, rebranding, or running your own public copy needs permission first. The framework this was built on (the original BlossomSuite and Jobs Overflow XP) stays MIT, since that permission was already granted by their authors. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for the full split.
 
 ## Support
 

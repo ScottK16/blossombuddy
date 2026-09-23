@@ -12,7 +12,7 @@
     "Stephen Willis (original BlossomSuite, MIT copyright holder)",
     "Mills (Jobs Overflow XP)"
   ],
-  "license": "MIT",
+  "license": "See LICENSE",
   "icon": "assets/blossombuddy/icon.png",
   "environment": "client",
   "entrypoints": {

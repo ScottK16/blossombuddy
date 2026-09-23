@@ -1,7 +1,26 @@
+BlossomBuddy is source-available, not fully open source: you're welcome to
+read this code, build it yourself, and submit fixes back via pull request -
+but redistributing, rebranding, or running your own public copy of
+BlossomBuddy (modified or not) needs permission first. Ask on Discord or
+message IrishScotty directly.
+
+That applies to BlossomBuddy's own code, Copyright (c) 2026 IrishScotty,
+all rights reserved beyond what's granted above.
+
+Parts of this project were reconstructed from, or are directly based on,
+two MIT-licensed projects, and that permission was already granted and
+can't be taken back - those parts remain available under the MIT terms
+below regardless of anything said above:
+
+  - BlossomSuite by Zodancy (Copyright (c) 2026 Stephen Willis)
+  - Jobs Overflow XP by Mills (Copyright (c) 2026 Mills)
+
+--------------------------------------------------------------------------
+
 MIT License
 
 Copyright (c) 2026 Stephen Willis
-Copyright (c) 2026 IrishScotty (BlossomBuddy modifications)
+Copyright (c) 2026 Mills
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
