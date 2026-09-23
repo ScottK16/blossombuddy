@@ -20,17 +20,25 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.net.URI;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.chat.SecondaryChat;
 import org.blossomsuite.core.config.FeatureConfig;
+import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.cooldowns.CooldownRules;
+import org.blossomsuite.core.cooldowns.CooldownSoundStore;
 import org.blossomsuite.core.cooldowns.CustomCooldownStore;
 import org.blossomsuite.core.hud.ScoreboardHud;
 import org.blossomsuite.core.jobs.JobXpTracker;
@@ -347,8 +355,10 @@ public final class BuddyCommands {
 
    /**
     * {@code /buddy cooldown add <key> <seconds> [trigger]}, {@code addheld <seconds> [trigger]}, {@code remove <key>},
-    * {@code removeheld}, {@code list}: player-added cooldown rules, layered on top of whatever cooldowns.json already
-    * has.
+    * {@code removeheld}, {@code sound <key> <sound id|default>}, {@code soundheld <sound id|default>}, {@code list}:
+    * player-added cooldown rules, layered on top of whatever cooldowns.json already has. The sound subcommands work
+    * on any item that has a cooldown, not just ones added here - it's a separate per-item override on top of
+    * whatever timer the item already uses.
     */
    private static LiteralArgumentBuilder<FabricClientCommandSource> cooldown() {
       return ClientCommandManager.literal("cooldown")
@@ -383,6 +393,23 @@ public final class BuddyCommands {
          )
          .then(ClientCommandManager.literal("remove").then(ClientCommandManager.argument("key", StringArgumentType.word()).executes(ctx -> removeCooldown(StringArgumentType.getString(ctx, "key")))))
          .then(ClientCommandManager.literal("removeheld").executes(ctx -> removeHeldCooldown()))
+         .then(
+            ClientCommandManager.literal("sound")
+               .then(
+                  ClientCommandManager.argument("key", StringArgumentType.word())
+                     .then(
+                        ClientCommandManager.argument("sound", StringArgumentType.greedyString())
+                           .executes(ctx -> setCooldownSound(StringArgumentType.getString(ctx, "key"), StringArgumentType.getString(ctx, "sound")))
+                     )
+               )
+         )
+         .then(
+            ClientCommandManager.literal("soundheld")
+               .then(
+                  ClientCommandManager.argument("sound", StringArgumentType.greedyString())
+                     .executes(ctx -> setHeldCooldownSound(StringArgumentType.getString(ctx, "sound")))
+               )
+         )
          .then(ClientCommandManager.literal("list").executes(ctx -> listCooldowns()));
    }
 
@@ -446,15 +473,77 @@ public final class BuddyCommands {
       List<CustomCooldownStore.Entry> entries = CustomCooldownStore.entries();
       if (entries.isEmpty()) {
          ChatOutput.info("No custom cooldown rules yet. /buddy cooldown addheld <seconds> uses whatever's in your hand, or add <key> <seconds> for a specific item key.");
-         return 1;
+      } else {
+         ChatOutput.info("Your custom cooldown rules:");
+         for (CustomCooldownStore.Entry e : entries) {
+            ChatOutput.info("  " + e.id() + " - " + e.ms() / 1000L + "s (" + e.trigger().toLowerCase(Locale.ROOT) + ")");
+         }
       }
 
-      ChatOutput.info("Your custom cooldown rules:");
-      for (CustomCooldownStore.Entry e : entries) {
-         ChatOutput.info("  " + e.id() + " - " + e.ms() / 1000L + "s (" + e.trigger().toLowerCase(Locale.ROOT) + ")");
+      Map<String, String> sounds = CooldownSoundStore.entries();
+      if (!sounds.isEmpty()) {
+         ChatOutput.info("Custom ready sounds:");
+         for (Map.Entry<String, String> e : sounds.entrySet()) {
+            ChatOutput.info("  " + e.getKey() + " -> " + e.getValue());
+         }
       }
 
       return 1;
+   }
+
+   /**
+    * Sets or clears which sound plays when a specific item's cooldown ends - works on any item with a cooldown,
+    * not just ones added with {@code /buddy cooldown add}. "default" or "clear" removes the override.
+    */
+   private static int setCooldownSound(String key, String soundId) {
+      if (soundId.equalsIgnoreCase("default") || soundId.equalsIgnoreCase("clear")) {
+         if (CooldownSoundStore.clear(key)) {
+            ChatOutput.info("'" + key + "' is back to the default ready jingle.");
+         } else {
+            ChatOutput.info("'" + key + "' didn't have a custom sound set.");
+         }
+
+         return 1;
+      }
+
+      String normalized = soundId.contains(":") ? soundId : "minecraft:" + soundId;
+      Identifier id;
+      try {
+         id = Identifier.of(normalized);
+      } catch (Exception e) {
+         ChatOutput.info("'" + soundId + "' isn't a valid sound id.");
+         return 1;
+      }
+
+      SoundEvent sound = Registries.SOUND_EVENT.get(id);
+      if (sound == null || sound == SoundEvents.INTENTIONALLY_EMPTY) {
+         ChatOutput.info("No sound called '" + normalized + "'. Try something like block.note_block.bell or entity.experience_orb.pickup.");
+         return 1;
+      }
+
+      CooldownSoundStore.set(key, normalized);
+      MinecraftClient mc = MinecraftClient.getInstance();
+      if (mc.player != null && mc.world != null) {
+         mc.world.playSound(mc.player, mc.player.getX(), mc.player.getY(), mc.player.getZ(), sound, SoundCategory.MASTER, SuiteConfig.INSTANCE.CooldownsConfig.completeSoundVolume, 1.0F);
+      }
+
+      ChatOutput.info("'" + key + "' now plays " + normalized + " when it's ready. /buddy cooldown sound " + key + " default to undo.");
+      return 1;
+   }
+
+   private static int setHeldCooldownSound(String soundId) {
+      MinecraftClient mc = MinecraftClient.getInstance();
+      if (mc.player == null) {
+         return 1;
+      }
+
+      ItemStack stack = mc.player.getMainHandStack();
+      if (stack.isEmpty()) {
+         ChatOutput.info("Hold the item you want to set a sound for first, or use /buddy cooldown sound <key> <sound>.");
+         return 1;
+      }
+
+      return setCooldownSound(SuiteItemIdUtil.getBestId(stack), soundId);
    }
 
    private static CooldownRules.Trigger parseTrigger(String name) {

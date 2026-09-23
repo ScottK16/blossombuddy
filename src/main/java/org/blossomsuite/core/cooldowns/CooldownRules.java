@@ -131,6 +131,7 @@ public final class CooldownRules {
 
    public static void init() {
       CustomCooldownStore.load();
+      CooldownSoundStore.load();
       loadLocalFile();
    }
 

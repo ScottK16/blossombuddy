@@ -10,9 +10,14 @@ import java.util.Set;
 import java.util.Map.Entry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 
 public final class CooldownNotifier {
    private static final int READY_NOTICE_RGB = 5635925;
@@ -52,19 +57,39 @@ public final class CooldownNotifier {
 
    private static void playDoneSound(MinecraftClient client, ItemStack stack, CooldownRules.CooldownRule rule) {
       SuiteConfig cfg = SuiteConfig.INSTANCE;
-      if (stack != null && !stack.isEmpty()) {
-         stack.getName().getString();
-      } else {
-         rule.id();
-      }
-
       if (cfg.CooldownsConfig.completeSound) {
-         CooldownJingle.enqueueReadyJingle(System.currentTimeMillis());
+         String override = rule.id() == null ? null : CooldownSoundStore.get(rule.id());
+         boolean playedOverride = override != null && playCustomReadySound(client, override, cfg.CooldownsConfig.completeSoundVolume);
+         if (!playedOverride) {
+            CooldownJingle.enqueueReadyJingle(System.currentTimeMillis());
+         }
       }
 
       if (cfg.CooldownsConfig.completeMessage) {
          sendReadyMessage(client, stack, rule, false, "");
       }
+   }
+
+   /** True if a per-item sound override ({@code /buddy cooldown sound}) played instead of the default ready jingle. */
+   private static boolean playCustomReadySound(MinecraftClient client, String soundId, float volume) {
+      if (client.world == null || client.player == null) {
+         return false;
+      }
+
+      Identifier id;
+      try {
+         id = Identifier.of(soundId);
+      } catch (Exception e) {
+         return false;
+      }
+
+      SoundEvent sound = Registries.SOUND_EVENT.get(id);
+      if (sound == null || sound == SoundEvents.INTENTIONALLY_EMPTY) {
+         return false;
+      }
+
+      client.world.playSound(client.player, client.player.getX(), client.player.getY(), client.player.getZ(), sound, SoundCategory.MASTER, volume, 1.0F);
+      return true;
    }
 
    private static void sendReadyMessage(MinecraftClient client, ItemStack stack, CooldownRules.CooldownRule rule, boolean isAlt, String altName) {
