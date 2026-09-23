@@ -3,18 +3,10 @@ package org.blossomsuite.core.mapart;
 import java.util.ArrayList;
 import java.util.List;
 
-/** The JSON the mod exchanges with the relay's /v1/mapart/get endpoint (see relay/mapart.js). The mod never creates a
- * project - that only ever happens on the public website - so there is no request model for that here. */
+/** The JSON a design file downloaded from the public website holds (see site/mapart-app.js's download()). Read-only: the
+ * mod never writes one of these, only the website does, when a player exports a finished design. */
 public final class MapArtModels {
    private MapArtModels() {
-   }
-
-   public static final class GetRequest {
-      public String code;
-
-      public GetRequest(String code) {
-         this.code = code;
-      }
    }
 
    public static final class Material {
@@ -26,7 +18,6 @@ public final class MapArtModels {
    }
 
    public static final class Project {
-      public String code;
       public String name;
       public int width;
       public int height;
@@ -34,10 +25,5 @@ public final class MapArtModels {
       public List<Material> materials = new ArrayList<>();
       /** A small "data:image/png;base64,..." preview, or empty if the site could not attach one. */
       public String thumbnail;
-      public long createdAt;
-   }
-
-   public static final class Error {
-      public String error;
    }
 }

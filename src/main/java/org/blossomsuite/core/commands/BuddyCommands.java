@@ -258,7 +258,7 @@ public final class BuddyCommands {
          }));
    }
 
-   /** {@code /buddy mapart [<code>]}: opens the map art screen, looking up a design by its code if one was given. */
+   /** {@code /buddy mapart [<file>]}: opens the map art screen, opening a design by file name if one was given. */
    private static LiteralArgumentBuilder<FabricClientCommandSource> mapart() {
       return ClientCommandManager.literal("mapart")
          .executes(ctx -> {
@@ -266,10 +266,10 @@ public final class BuddyCommands {
             mc.send(() -> mc.setScreen(new MapArtScreen(mc.currentScreen, "")));
             return 1;
          })
-         .then(ClientCommandManager.argument("code", StringArgumentType.word()).executes(ctx -> {
-            String code = StringArgumentType.getString(ctx, "code");
+         .then(ClientCommandManager.argument("file", StringArgumentType.greedyString()).executes(ctx -> {
+            String file = StringArgumentType.getString(ctx, "file");
             MinecraftClient mc = MinecraftClient.getInstance();
-            mc.send(() -> mc.setScreen(new MapArtScreen(mc.currentScreen, code)));
+            mc.send(() -> mc.setScreen(new MapArtScreen(mc.currentScreen, file)));
             return 1;
          }));
    }

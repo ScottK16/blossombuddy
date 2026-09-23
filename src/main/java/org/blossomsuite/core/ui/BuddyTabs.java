@@ -354,17 +354,17 @@ public final class BuddyTabs {
          y = UiRows.note(screen, x, w, y, "Emotes need the player list to be connected. Walking, jumping or attacking ends yours.");
 
          FeatureConfig.MapArt mapart = FeatureConfig.INSTANCE.mapart;
-         y = UiRows.toggle(screen, x, w, y, "Show map art preview on screen", mapart.showPreview, "The picture of whatever design /buddy mapart <code> last found. Move it in /buddy editmode.", () -> {
+         y = UiRows.toggle(screen, x, w, y, "Show map art preview on screen", mapart.showPreview, "The picture of whatever design /buddy mapart last opened. Move it in /buddy editmode.", () -> {
             mapart.showPreview = !mapart.showPreview;
             FeatureConfig.markDirty();
             screen.rebuildPreserveScroll();
          });
-         y = UiRows.toggle(screen, x, w, y, "Show map art block list on screen", mapart.showList, "The block list of whatever design /buddy mapart <code> last found. Move it in /buddy editmode.", () -> {
+         y = UiRows.toggle(screen, x, w, y, "Show map art block list on screen", mapart.showList, "The block list of whatever design /buddy mapart last opened. Move it in /buddy editmode.", () -> {
             mapart.showList = !mapart.showList;
             FeatureConfig.markDirty();
             screen.rebuildPreserveScroll();
          });
-         UiRows.note(screen, x, w, y, "Look up a design first with /buddy mapart <code>, or from the map art website.");
+         UiRows.note(screen, x, w, y, "Open a design first with /buddy mapart, downloaded from the map art website.");
       }
    }
 

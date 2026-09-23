@@ -12,7 +12,7 @@ import org.blossomsuite.core.mapart.MapArtModels;
 import org.blossomsuite.core.mapart.MapArtState;
 import org.blossomsuite.core.util.HudStyleUtil;
 
-/** The block list of the currently looked-up map art design ({@code /buddy mapart <code>}), movable like any other HUD panel. */
+/** The block list of the currently open map art design ({@code /buddy mapart}), movable like any other HUD panel. */
 public final class MapArtListHud extends PanelHud {
    public static final MapArtListHud INSTANCE = new MapArtListHud();
    private static final int WIDTH = 170;

@@ -11,7 +11,7 @@ import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.mapart.MapArtState;
 import org.blossomsuite.core.util.HudStyleUtil;
 
-/** The picture of the currently looked-up map art design ({@code /buddy mapart <code>}), movable like any other HUD panel. */
+/** The picture of the currently open map art design ({@code /buddy mapart}), movable like any other HUD panel. */
 public final class MapArtPreviewHud extends PanelHud {
    public static final MapArtPreviewHud INSTANCE = new MapArtPreviewHud();
    private static final int SIZE = 100;

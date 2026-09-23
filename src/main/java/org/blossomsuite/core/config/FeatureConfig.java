@@ -42,7 +42,7 @@ public final class FeatureConfig {
    /** Cooldown rules the player has switched off, by item id (or item name when a rule has no id). */
    public List<String> disabledCooldownItems = new ArrayList<>();
 
-   /** On-screen HUDs for whatever map art design {@code /buddy mapart <code>} last found - both off until turned on. */
+   /** On-screen HUDs for whatever map art design {@code /buddy mapart} last opened - both off until turned on. */
    public static final class MapArt {
       public boolean showPreview = false;
       public boolean showList = false;

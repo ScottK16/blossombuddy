@@ -69,6 +69,7 @@ class RelayEmoteIntegrationTest {
          @Override public void setNoticeShown(boolean shown) { }
          @Override public boolean canRun() { return true; }
          @Override public String realm() { return realm; }
+         @Override public boolean vanished() { return false; }
       };
    }
 

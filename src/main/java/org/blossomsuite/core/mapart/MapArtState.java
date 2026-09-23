@@ -8,16 +8,16 @@ import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.util.Identifier;
 
 /**
- * The one map art design currently "loaded" - set whenever {@code /buddy mapart <code>} finds one, read by both
+ * The one map art design currently "loaded" - set whenever {@code /buddy mapart} loads one off disk, read by both
  * {@link org.blossomsuite.core.ui.MapArtScreen} and the on-screen preview/materials HUDs, so those keep showing the
- * last thing you looked up even after you close the screen. Owns the uploaded thumbnail texture, so there is exactly
- * one GPU upload per lookup no matter how many places show it, and exactly one place responsible for freeing it.
+ * last thing you opened even after you close the screen. Owns the uploaded thumbnail texture, so there is exactly
+ * one GPU upload per load no matter how many places show it, and exactly one place responsible for freeing it.
  */
 public final class MapArtState {
    public static final MapArtState INSTANCE = new MapArtState();
    private static final AtomicInteger TEXTURE_SEQUENCE = new AtomicInteger();
 
-   private volatile String code = "";
+   private volatile String fileName = "";
    private volatile MapArtModels.Project project;
    private volatile Identifier thumbnailId;
    private volatile int thumbnailWidth;
@@ -27,9 +27,9 @@ public final class MapArtState {
    }
 
    /** Must be called on the render thread (the texture upload needs it). */
-   public void load(String code, MapArtModels.Project project) {
+   public void load(String fileName, MapArtModels.Project project) {
       this.releaseThumbnail();
-      this.code = code == null ? "" : code;
+      this.fileName = fileName == null ? "" : fileName;
       this.project = project;
       if (project != null) {
          this.uploadThumbnail(project.thumbnail);
@@ -38,12 +38,12 @@ public final class MapArtState {
 
    public void clear() {
       this.releaseThumbnail();
-      this.code = "";
+      this.fileName = "";
       this.project = null;
    }
 
-   public String code() {
-      return this.code;
+   public String fileName() {
+      return this.fileName;
    }
 
    public MapArtModels.Project project() {

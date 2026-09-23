@@ -19,7 +19,6 @@ public final class SuiteHttp {
    private static final String STATS_PREFIX = "/v1/stats/";
    private static final String PRESENCE_PREFIX = "/v1/presence/";
    private static final String EMOTE_PREFIX = "/v1/emote/";
-   private static final String MAPART_PREFIX = "/v1/mapart/";
    private final String ingestKey;
    private final String ingestHeaderName;
 
@@ -41,13 +40,13 @@ public final class SuiteHttp {
    }
 
    /**
-    * The only requests this mod will ever send to a relay: vote-party sync, cross-realm chat, the usage counts, the player list, emotes,
-    * and looking up a map art project by its code (the mod only ever reads one by code; saving a design happens on the website, never
-    * from the mod). Everything else the original mod talked to its server about (donations, dungeon runs, cooldown sharing, ...) is
-    * refused here, so it cannot leak to a relay even by mistake.
+    * The only requests this mod will ever send to a relay: vote-party sync, cross-realm chat, the usage counts, the player list, and
+    * emotes. Map art never touches a relay at all - a design is downloaded from the website and read straight off disk. Everything else
+    * the original mod talked to its server about (donations, dungeon runs, cooldown sharing, ...) is refused here, so it cannot leak to
+    * a relay even by mistake.
     */
    public static boolean isAllowedPath(String path) {
-      return path != null && (path.startsWith(VOTE_PREFIX) || path.startsWith(CHAT_PREFIX) || path.startsWith(STATS_PREFIX) || path.startsWith(PRESENCE_PREFIX) || path.startsWith(EMOTE_PREFIX) || path.startsWith(MAPART_PREFIX));
+      return path != null && (path.startsWith(VOTE_PREFIX) || path.startsWith(CHAT_PREFIX) || path.startsWith(STATS_PREFIX) || path.startsWith(PRESENCE_PREFIX) || path.startsWith(EMOTE_PREFIX));
    }
 
    private static CompletableFuture<HttpResponse<String>> disabled() {
