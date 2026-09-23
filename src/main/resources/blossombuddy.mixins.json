@@ -16,6 +16,7 @@
     "HeldItemRendererMixin",
     "InGameHudMixin",
     "KeyboardMixin",
+    "LightmapTextureManagerMixin",
     "MouseMixin",
     "MinecraftClientMixin",
     "PlayerListHudMixin",

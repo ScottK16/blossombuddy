@@ -372,7 +372,7 @@ public class ChatTab extends NestedSuiteTab {
          int w = screen.contentW();
          int y = screen.bodyContentY() - screen.scrollOffset() + contentTopOffset;
          y = ChatTab.this.addToggleRow(
-            screen, x, w, y, 20, "Show Tracked Channel", cfg.showTrackedChannelHud, "Shows and tracks the current chat channel in the chat HUD.", () -> {
+            screen, x, w, y, 20, "Show Tracked Channel", cfg.showTrackedChannelHud, "Shows Main/Marry/XC chat status in the chat HUD - green means whatever you type goes there right now.", () -> {
                cfg.showTrackedChannelHud = !cfg.showTrackedChannelHud;
                SuiteConfig.INSTANCE.markDirty();
                if (cfg.showTrackedChannelHud) {

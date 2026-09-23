@@ -39,6 +39,7 @@ public final class FeatureConfig {
    public Emotes emotes = new Emotes();
    public Chat chat = new Chat();
    public MapArt mapart = new MapArt();
+   public Render render = new Render();
    /** Cooldown rules the player has switched off, by item id (or item name when a rule has no id). */
    public List<String> disabledCooldownItems = new ArrayList<>();
 
@@ -96,6 +97,11 @@ public final class FeatureConfig {
       /** How many extra rows sit above the hotbar: 1 = double hotbar, 2 = triple. */
       public int extraRows = 1;
       public Panel panel = new Panel();
+   }
+
+   public static final class Render {
+      /** Every light level renders as fully lit - lava, water and dark caves all show at max brightness. */
+      public boolean fullBright = false;
    }
 
    /** Vote-party sharing between realms: automatic, anonymous, and switchable. Off until the player opts in. */

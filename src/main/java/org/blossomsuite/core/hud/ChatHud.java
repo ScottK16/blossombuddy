@@ -2,12 +2,12 @@ package org.blossomsuite.core.hud;
 
 import org.blossomsuite.core.chat.AdvertisementState;
 import org.blossomsuite.core.chat.ChatChannel;
-import org.blossomsuite.core.chat.PartyChatState;
 import org.blossomsuite.core.chat.StaffChatState;
 import org.blossomsuite.core.config.ChatConfig;
 import org.blossomsuite.core.config.ConfigIO;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.util.HudStyleUtil;
+import org.blossomsuite.core.xchat.XChatMode;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import org.joml.Matrix3x2fStack;
@@ -187,6 +187,9 @@ public final class ChatHud {
       }
    }
 
+   /** Main, Marry and XC each get their own row when the tracked-channel board is shown. */
+   private static final int TRACKED_LINES = 3;
+
    public static int getBaseWidth() {
       ChatConfig cfg = SuiteConfig.INSTANCE.ChatConfig;
       boolean showTracked = cfg.showTrackedChannelHud;
@@ -215,7 +218,7 @@ public final class ChatHud {
       if (compact) {
          int lines = 0;
          if (showTracked) {
-            lines++;
+            lines += TRACKED_LINES;
          }
 
          if (showStaff) {
@@ -230,7 +233,7 @@ public final class ChatHud {
       } else {
          int lines = 0;
          if (showTracked) {
-            lines++;
+            lines += TRACKED_LINES;
          }
 
          if (showStaff) {
@@ -245,38 +248,38 @@ public final class ChatHud {
       }
    }
 
-   private static String getDisplayText(ChatChannel channel) {
-      if (channel == null) {
-         channel = ChatChannel.UNKNOWN;
-      }
-      return switch (channel) {
-         case PUBLIC -> "PUBLIC";
-         case MARRY -> "PRIVATE";
-         case PARTY -> "PARTY";
-         case STAFF -> "PUBLIC";
-         case UNKNOWN -> "UNKNOWN";
-      };
+   private static final int GREEN = -8585317;
+   private static final int RED = -37266;
+
+   /**
+    * Which of Main/Marry/XC is your message actually going to right now: Staff (its own separate HUD line) always wins
+    * when it's on, XC mode redirects everything typed to cross-realm chat, and otherwise it follows your tracked base
+    * channel (public or marry).
+    */
+   private static boolean isMainOn(ChatChannel channel) {
+      return !StaffChatState.staffChatEnabled && !XChatMode.active() && channel == ChatChannel.PUBLIC;
    }
 
-   private static int getChannelColor(ChatChannel channel) {
-      if (channel == null) {
-         channel = ChatChannel.UNKNOWN;
-      }
-      return switch (channel) {
-         case PUBLIC -> -8585317;
-         case MARRY -> -11410;
-         case PARTY -> -8859649;
-         case STAFF -> -8585317;
-         case UNKNOWN -> -4208683;
-      };
+   private static boolean isMarryOn(ChatChannel channel) {
+      return channel == ChatChannel.MARRY;
    }
 
-   private static ChatChannel effectiveTrackedChannel(ChatChannel channel) {
-      return PartyChatState.partyChatEnabled ? ChatChannel.PARTY : channel;
+   private static boolean isXcOn() {
+      return XChatMode.active();
+   }
+
+   private static int onOff(boolean on) {
+      return on ? GREEN : RED;
    }
 
    private static int getStaffColor() {
-      return StaffChatState.staffChatEnabled ? -8585317 : -37266;
+      return StaffChatState.staffChatEnabled ? GREEN : RED;
+   }
+
+   private static void drawCompactCentered(DrawContext ctx, MinecraftClient client, String text, int color, int baseW, int y) {
+      int textW = client.textRenderer.getWidth(text);
+      int textX = Math.max(2, (baseW - textW) / 2);
+      ctx.drawTextWithShadow(client.textRenderer, text, textX, y, color);
    }
 
    private static boolean showStaffHud(ChatConfig cfg) {
@@ -306,14 +309,16 @@ public final class ChatHud {
       ChatConfig cfg = SuiteConfig.INSTANCE.ChatConfig;
       boolean showStaff = showStaffHud(cfg);
       if (showTracked) {
-         ChatChannel channel = effectiveTrackedChannel(SuiteConfig.INSTANCE.ChatConfig.trackedChannel);
+         ChatChannel channel = SuiteConfig.INSTANCE.ChatConfig.trackedChannel;
          if (channel == null) {
             channel = ChatChannel.UNKNOWN;
          }
 
-         String text = "Channel: " + getDisplayText(channel);
-         int color = getChannelColor(channel);
-         ctx.drawTextWithShadow(client.textRenderer, text, 6, y, color);
+         ctx.drawTextWithShadow(client.textRenderer, "Main", 6, y, onOff(isMainOn(channel)));
+         y += 12;
+         ctx.drawTextWithShadow(client.textRenderer, "Marry", 6, y, onOff(isMarryOn(channel)));
+         y += 12;
+         ctx.drawTextWithShadow(client.textRenderer, "XC", 6, y, onOff(isXcOn()));
          y += 12;
       }
 
@@ -337,17 +342,17 @@ public final class ChatHud {
       ChatConfig cfg = SuiteConfig.INSTANCE.ChatConfig;
       boolean showStaff = showStaffHud(cfg);
       if (showTracked) {
-         ChatChannel channel = effectiveTrackedChannel(SuiteConfig.INSTANCE.ChatConfig.trackedChannel);
+         ChatChannel channel = SuiteConfig.INSTANCE.ChatConfig.trackedChannel;
          if (channel == null) {
             channel = ChatChannel.UNKNOWN;
          }
 
-         String text = getDisplayText(channel);
-         int color = getChannelColor(channel);
-         int textW = client.textRenderer.getWidth(text);
-         int textX = Math.max(2, (baseW - textW) / 2);
-         ctx.drawTextWithShadow(client.textRenderer, text, textX, y, color);
-         y += !showStaff && !showAd ? 0 : 10;
+         drawCompactCentered(ctx, client, "MAIN", onOff(isMainOn(channel)), baseW, y);
+         y += 10;
+         drawCompactCentered(ctx, client, "MARRY", onOff(isMarryOn(channel)), baseW, y);
+         y += 10;
+         drawCompactCentered(ctx, client, "XC", onOff(isXcOn()), baseW, y);
+         y += showStaff || showAd ? 10 : 0;
       }
 
       if (showStaff) {

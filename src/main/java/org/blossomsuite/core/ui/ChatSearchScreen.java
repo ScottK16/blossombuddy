@@ -7,27 +7,28 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import org.blossomsuite.core.chat.ChatSearchHighlight;
 import org.blossomsuite.core.chat.ChatTimestampFormat;
 import org.blossomsuite.core.chat.MainChatLog;
 import org.lwjgl.glfw.GLFW;
 
 /**
  * Find a player's name or any word across everything that has shown up in main chat since you joined, and copy it out. Type in the box
- * to filter as you go; click a line to copy just that one, or use the buttons to copy everything currently shown or the last 200 lines.
+ * to filter as you go. Each result is a real selectable text field - click to place the cursor, shift-click or drag to select part of
+ * it, Ctrl+C to copy just that; right-click a line to copy the whole thing at once. Use the buttons to copy everything shown or the
+ * last 200 lines.
  */
 public final class ChatSearchScreen extends Screen {
-   private static final int ROW_H = 11;
+   private static final int ROW_H = 12;
    private static final int TOP = 40;
-   private static final int BOTTOM_MARGIN = 32;
+   private static final int BOTTOM_MARGIN = 44;
    private static final int LIST_WIDTH = 520;
 
    private final Screen parent;
    private final String initialQuery;
    private TextFieldWidget field;
+   private TextFieldWidget[] rowFields = new TextFieldWidget[0];
    private List<MainChatLog.Line> results = List.of();
    private int scroll = 0;
    private long copiedAt = -1L;
@@ -52,10 +53,28 @@ public final class ChatSearchScreen extends Screen {
       this.field.setChangedListener(s -> {
          this.results = MainChatLog.INSTANCE.search(s);
          this.scroll = 0;
+         this.refreshRowFields();
       });
       this.addDrawableChild(this.field);
       this.setInitialFocus(this.field);
       this.results = MainChatLog.INSTANCE.search(this.initialQuery);
+
+      int rows = this.maxRows();
+      int x = this.listX();
+      int w = this.listWidth();
+      this.rowFields = new TextFieldWidget[rows];
+      for (int i = 0; i < rows; i++) {
+         TextFieldWidget rowField = new TextFieldWidget(this.textRenderer, x, TOP + i * ROW_H, w, ROW_H - 1, Text.empty());
+         rowField.setDrawsBackground(false);
+         rowField.setEditableColor(0xFFC9BFD8);
+         rowField.setMaxLength(4000);
+         rowField.setTextPredicate(s -> s.equals(rowField.getText())); // selectable and copyable, but never actually editable
+         rowField.setVisible(false);
+         this.addDrawableChild(rowField);
+         this.rowFields[i] = rowField;
+      }
+
+      this.refreshRowFields();
 
       int by = this.height - 24;
       this.addDrawableChild(StyledButton.of(Text.literal("Copy shown"), b -> this.copyShown()).dimensions(this.width / 2 - 214, by, 140, 20).build());
@@ -85,6 +104,22 @@ public final class ChatSearchScreen extends Screen {
 
    private int listWidth() {
       return Math.min(this.width - 16, LIST_WIDTH);
+   }
+
+   /** Fills the visible row fields from the current results/scroll, hiding whichever rows have nothing to show. */
+   private void refreshRowFields() {
+      this.scroll = Math.max(0, Math.min(this.scroll, Math.max(0, this.results.size() - this.rowFields.length)));
+      for (int i = 0; i < this.rowFields.length; i++) {
+         TextFieldWidget rowField = this.rowFields[i];
+         int index = this.scroll + i;
+         if (index < this.results.size()) {
+            rowField.setText(this.results.get(index).plain());
+            rowField.setVisible(true);
+         } else {
+            rowField.setText("");
+            rowField.setVisible(false);
+         }
+      }
    }
 
    private void copyToClipboard(String text, String what) {
@@ -121,21 +156,16 @@ public final class ChatSearchScreen extends Screen {
          : this.results.size() + (this.results.size() == 1 ? " match" : " matches") + (this.results.size() >= MainChatLog.MAX_RESULTS ? " (showing the newest " + MainChatLog.MAX_RESULTS + ")" : "");
       ctx.drawCenteredTextWithShadow(tr, Text.literal(count).formatted(Formatting.GRAY), this.width / 2, TOP - 12, -1);
 
-      int rows = this.maxRows();
-      this.scroll = Math.max(0, Math.min(this.scroll, Math.max(0, this.results.size() - rows)));
       int x = this.listX();
       int w = this.listWidth();
       MainChatLog.Line hoveredLine = null;
-      for (int i = 0; i < rows && this.scroll + i < this.results.size(); i++) {
-         MainChatLog.Line line = this.results.get(this.scroll + i);
+      for (int i = 0; i < this.rowFields.length && this.scroll + i < this.results.size(); i++) {
          int y = TOP + i * ROW_H;
          boolean hovered = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + ROW_H;
          if (hovered) {
             ctx.fill(x - 2, y - 1, x + w, y + ROW_H - 1, 0x33FFFFFF);
-            hoveredLine = line;
+            hoveredLine = this.results.get(this.scroll + i);
          }
-
-         ctx.drawText(tr, this.highlighted(line.plain(), query), x, y, hovered ? -1 : 0xFFC9BFD8, false);
       }
 
       if (hoveredLine != null) {
@@ -146,30 +176,23 @@ public final class ChatSearchScreen extends Screen {
          ctx.drawCenteredTextWithShadow(tr, Text.literal("Nothing found. Only chat you've already seen since joining can be searched.").formatted(Formatting.DARK_GRAY), this.width / 2, TOP + 8, -1);
       }
 
-      if (this.copiedAt > 0 && System.currentTimeMillis() - this.copiedAt < 1500L) {
-         ctx.drawCenteredTextWithShadow(tr, Text.literal("Copied " + this.copiedWhat + " to the clipboard.").formatted(Formatting.GREEN), this.width / 2, this.height - 44, -1);
+      boolean showingCopied = this.copiedAt > 0 && System.currentTimeMillis() - this.copiedAt < 1500L;
+      if (showingCopied) {
+         ctx.drawCenteredTextWithShadow(tr, Text.literal("Copied " + this.copiedWhat + " to the clipboard.").formatted(Formatting.GREEN), this.width / 2, this.height - 40, -1);
+      } else if (!this.results.isEmpty()) {
+         ctx.drawCenteredTextWithShadow(
+            tr, Text.literal("Click to place the cursor, shift-click or drag to select, Ctrl+C to copy - right-click a line to copy all of it.").formatted(Formatting.DARK_GRAY),
+            this.width / 2, this.height - 40, -1
+         );
       }
-   }
-
-   private Text highlighted(String plain, String query) {
-      ChatSearchHighlight.Parts p = ChatSearchHighlight.split(plain, query);
-      if (p.match().isEmpty()) {
-         return Text.literal(p.before());
-      }
-
-      MutableText out = Text.literal(p.before());
-      out.append(Text.literal(p.match()).formatted(Formatting.YELLOW, Formatting.BOLD));
-      out.append(Text.literal(p.after()));
-      return out;
    }
 
    @Override
    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-      if (button == 0) {
-         int rows = this.maxRows();
+      if (button == 1) {
          int x = this.listX();
          int w = this.listWidth();
-         for (int i = 0; i < rows && this.scroll + i < this.results.size(); i++) {
+         for (int i = 0; i < this.rowFields.length && this.scroll + i < this.results.size(); i++) {
             int y = TOP + i * ROW_H;
             if (mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + ROW_H) {
                this.copyToClipboard(this.results.get(this.scroll + i).plain(), "1 line");
@@ -184,7 +207,8 @@ public final class ChatSearchScreen extends Screen {
    @Override
    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
       if (verticalAmount != 0.0D) {
-         this.scroll = Math.max(0, this.scroll - (int)Math.signum(verticalAmount) * 3);
+         this.scroll = Math.max(0, this.scroll - (int) Math.signum(verticalAmount) * 3);
+         this.refreshRowFields();
          return true;
       }
 

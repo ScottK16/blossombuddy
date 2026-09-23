@@ -130,6 +130,7 @@ public final class CooldownRules {
    }
 
    public static void init() {
+      CustomCooldownStore.load();
       loadLocalFile();
    }
 
@@ -241,12 +242,14 @@ public final class CooldownRules {
       Path file = FabricLoader.getInstance().getConfigDir().resolve(SuiteRuntime.profile().modId()).resolve("cooldowns.json");
       if (!Files.isRegularFile(file)) {
          SuiteLog.logger().info("[cooldowns] no {} - the cooldown HUD has no rules until one is added", file);
+         applyCustomRules(); // still apply the player's own rules even with no cooldowns.json at all
          return -1;
       }
 
       try {
          String json = Files.readString(file);
          applyFromJson(json);
+         applyCustomRules();
          JsonArray rules = JsonParser.parseString(json).getAsJsonObject().getAsJsonArray("rules");
          int count = rules == null ? 0 : rules.size();
          SuiteLog.logger().info("[cooldowns] loaded {} rules from {}", count, file.getFileName());
@@ -254,6 +257,16 @@ public final class CooldownRules {
       } catch (Exception e) {
          SuiteLog.logger().warn("[cooldowns] could not read {}: {}", file, e.toString());
          return -1;
+      }
+   }
+
+   /**
+    * Layers the player's own cooldown rules ({@code /buddy cooldown add}) on top of whatever cooldowns.json just
+    * loaded - additive, so it never needs cooldowns.json to know about them.
+    */
+   public static void applyCustomRules() {
+      for (CustomCooldownStore.Entry e : CustomCooldownStore.entries()) {
+         addRule(new CooldownRules.CooldownRule(CustomCooldownStore.triggerOf(e), e.ms(), e.id(), null, CooldownRules.SlotKind.MAINHAND, -1, CooldownRules.ArmorSlot.ANY, CooldownRules.BreakBlockKind.ANY));
       }
    }
 
@@ -627,22 +640,17 @@ public final class CooldownRules {
    }
 
    private static void addRule(CooldownRules.CooldownRule r) {
-      if (r.id() != null) {
-         BY_ID.computeIfAbsent(r.trigger(), t -> new HashMap<>()).put(r.id(), r);
-         byId.put(r.id, r);
-      }
+      synchronized (CooldownRules.class) {
+         if (r.id() != null) {
+            BY_ID.computeIfAbsent(r.trigger(), t -> new HashMap<>()).put(r.id(), r);
+            byId.put(r.id, r);
+         }
 
-      if (r.fallback != null) {
-         BY_FALLBACK.computeIfAbsent(r.trigger(), t -> new ArrayList<>()).add(r);
-         byFallback.put(r.fallback, r);
+         if (r.fallback != null) {
+            BY_FALLBACK.computeIfAbsent(r.trigger(), t -> new ArrayList<>()).add(r);
+            byFallback.put(r.fallback, r);
+         }
       }
-   }
-
-   private static void clearAll() {
-      BY_ID.clear();
-      BY_FALLBACK.clear();
-      byId.clear();
-      byFallback.clear();
    }
 
    private static String optString(JsonObject o, String key, String def) {

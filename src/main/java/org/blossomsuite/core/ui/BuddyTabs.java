@@ -131,7 +131,7 @@ public final class BuddyTabs {
 
       @Override
       int height(SuiteSettingsScreen screen) {
-         return UiRows.ROW * 3 + UiRows.SLIDER_ROW + 12;
+         return UiRows.ROW * 4 + UiRows.SLIDER_ROW + 18 + 12;
       }
 
       @Override
@@ -154,11 +154,19 @@ public final class BuddyTabs {
             FeatureConfig.markDirty();
             screen.rebuildPreserveScroll();
          });
-         UiRows.toggle(screen, x, w, y, "No equip movement", h.freezeEquip, "The item doesn't slide up when you switch to it.", () -> {
+         y = UiRows.toggle(screen, x, w, y, "No equip movement", h.freezeEquip, "The item doesn't slide up when you switch to it.", () -> {
             h.freezeEquip = !h.freezeEquip;
             FeatureConfig.markDirty();
             screen.rebuildPreserveScroll();
          });
+
+         FeatureConfig.Render render = FeatureConfig.INSTANCE.render;
+         y = UiRows.toggle(screen, x, w, y, "Full bright", render.fullBright, "Everything renders fully lit - dark caves, lava and water all become clearer to see.", () -> {
+            render.fullBright = !render.fullBright;
+            FeatureConfig.markDirty();
+            screen.rebuildPreserveScroll();
+         });
+         UiRows.note(screen, x, w, y, "A visual tweak only - it doesn't reveal anything hidden, just brightens what's already there.");
       }
    }
 

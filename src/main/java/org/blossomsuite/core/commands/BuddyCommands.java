@@ -14,12 +14,15 @@ import org.blossomsuite.core.xchat.XChatMode;
 
 import com.mojang.brigadier.CommandDispatcher;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.net.URI;
 import java.util.List;
+import java.util.Locale;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.minecraft.item.ItemStack;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Text;
@@ -27,9 +30,12 @@ import net.minecraft.util.Formatting;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.chat.SecondaryChat;
 import org.blossomsuite.core.config.FeatureConfig;
+import org.blossomsuite.core.cooldowns.CooldownRules;
+import org.blossomsuite.core.cooldowns.CustomCooldownStore;
 import org.blossomsuite.core.hud.ScoreboardHud;
 import org.blossomsuite.core.jobs.JobXpTracker;
 import org.blossomsuite.core.state.SuiteState;
+import org.blossomsuite.core.util.SuiteItemIdUtil;
 
 /** Subcommands for the BlossomBuddy features, attached under the main command (/buddy, /bb, /bsuite). */
 public final class BuddyCommands {
@@ -39,7 +45,7 @@ public final class BuddyCommands {
    }
 
    public static List<LiteralArgumentBuilder<FabricClientCommandSource>> subcommands() {
-      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy());
+      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown());
    }
 
    public static final String DISCORD_INVITE = "https://discord.gg/EA4WwSdGTj";
@@ -337,6 +343,124 @@ public final class BuddyCommands {
       FeatureConfig.markDirty();
       ChatOutput.info(on ? "Sharing your realm's vote-party count with other realms (anonymous)." : "Vote-party sharing is off. You won't get other realms' alerts either.");
       return 1;
+   }
+
+   /**
+    * {@code /buddy cooldown add <key> <seconds> [trigger]}, {@code addheld <seconds> [trigger]}, {@code remove <key>},
+    * {@code list}: player-added cooldown rules, layered on top of whatever cooldowns.json already has.
+    */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> cooldown() {
+      return ClientCommandManager.literal("cooldown")
+         .then(
+            ClientCommandManager.literal("add")
+               .then(
+                  ClientCommandManager.argument("key", StringArgumentType.word())
+                     .then(
+                        ClientCommandManager.argument("seconds", IntegerArgumentType.integer(1))
+                           .executes(ctx -> addCooldown(StringArgumentType.getString(ctx, "key"), IntegerArgumentType.getInteger(ctx, "seconds"), null))
+                           .then(
+                              ClientCommandManager.argument("trigger", StringArgumentType.word())
+                                 .executes(
+                                    ctx -> addCooldown(
+                                       StringArgumentType.getString(ctx, "key"), IntegerArgumentType.getInteger(ctx, "seconds"), StringArgumentType.getString(ctx, "trigger")
+                                    )
+                                 )
+                           )
+                     )
+               )
+         )
+         .then(
+            ClientCommandManager.literal("addheld")
+               .then(
+                  ClientCommandManager.argument("seconds", IntegerArgumentType.integer(1))
+                     .executes(ctx -> addHeldCooldown(IntegerArgumentType.getInteger(ctx, "seconds"), null))
+                     .then(
+                        ClientCommandManager.argument("trigger", StringArgumentType.word())
+                           .executes(ctx -> addHeldCooldown(IntegerArgumentType.getInteger(ctx, "seconds"), StringArgumentType.getString(ctx, "trigger")))
+                     )
+               )
+         )
+         .then(ClientCommandManager.literal("remove").then(ClientCommandManager.argument("key", StringArgumentType.word()).executes(ctx -> removeCooldown(StringArgumentType.getString(ctx, "key")))))
+         .then(ClientCommandManager.literal("list").executes(ctx -> listCooldowns()));
+   }
+
+   private static int addCooldown(String key, int seconds, String triggerName) {
+      CooldownRules.Trigger trigger = parseTrigger(triggerName);
+      if (trigger == null) {
+         ChatOutput.info("Unknown trigger '" + triggerName + "'. Try one of: " + triggerNames() + ".");
+         return 1;
+      }
+
+      CustomCooldownStore.add(key, seconds * 1000L, trigger);
+      CooldownRules.loadLocalFile();
+      ChatOutput.info("Added a " + seconds + "s cooldown for '" + key + "' (" + trigger.name().toLowerCase(Locale.ROOT) + "). /buddy cooldown remove " + key + " to undo.");
+      return 1;
+   }
+
+   private static int addHeldCooldown(int seconds, String triggerName) {
+      MinecraftClient mc = MinecraftClient.getInstance();
+      if (mc.player == null) {
+         return 1;
+      }
+
+      ItemStack stack = mc.player.getMainHandStack();
+      if (stack.isEmpty()) {
+         ChatOutput.info("Hold the item you want a cooldown on first, or use /buddy cooldown add <key> <seconds>.");
+         return 1;
+      }
+
+      return addCooldown(SuiteItemIdUtil.getBestId(stack), seconds, triggerName);
+   }
+
+   private static int removeCooldown(String key) {
+      if (CustomCooldownStore.remove(key)) {
+         CooldownRules.loadLocalFile();
+         ChatOutput.info("Removed the cooldown rule for '" + key + "'.");
+      } else {
+         ChatOutput.info("No custom cooldown rule for '" + key + "'. Check /buddy cooldown list.");
+      }
+
+      return 1;
+   }
+
+   private static int listCooldowns() {
+      List<CustomCooldownStore.Entry> entries = CustomCooldownStore.entries();
+      if (entries.isEmpty()) {
+         ChatOutput.info("No custom cooldown rules yet. /buddy cooldown addheld <seconds> uses whatever's in your hand, or add <key> <seconds> for a specific item key.");
+         return 1;
+      }
+
+      ChatOutput.info("Your custom cooldown rules:");
+      for (CustomCooldownStore.Entry e : entries) {
+         ChatOutput.info("  " + e.id() + " - " + e.ms() / 1000L + "s (" + e.trigger().toLowerCase(Locale.ROOT) + ")");
+      }
+
+      return 1;
+   }
+
+   private static CooldownRules.Trigger parseTrigger(String name) {
+      if (name == null || name.isBlank()) {
+         return CooldownRules.Trigger.RIGHT_CLICK;
+      }
+
+      try {
+         return CooldownRules.Trigger.valueOf(name.trim().toUpperCase(Locale.ROOT));
+      } catch (IllegalArgumentException e) {
+         return null;
+      }
+   }
+
+   private static String triggerNames() {
+      StringBuilder sb = new StringBuilder();
+      for (CooldownRules.Trigger t : CooldownRules.Trigger.values()) {
+         if (sb.length() > 0) {
+            sb.append(", ");
+         }
+
+         sb.append(t.name().toLowerCase(Locale.ROOT));
+      }
+
+      return sb.toString();
    }
 
    private static int setHidden(boolean hidden) {
