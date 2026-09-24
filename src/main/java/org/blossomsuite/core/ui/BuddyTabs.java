@@ -313,13 +313,13 @@ public final class BuddyTabs {
 
       @Override
       int height(SuiteSettingsScreen screen) {
-         return UiRows.ROW * 8 + 18 * 10 + 24;
+         return UiRows.ROW * 8 + 18 * 11 + 24;
       }
 
       @Override
       void rows(SuiteSettingsScreen screen, int x, int w, int y) {
          FeatureConfig.XChat xc = FeatureConfig.INSTANCE.xchat;
-         y = UiRows.toggle(screen, x, w, y, "Cross-realm chat", xc.enabled, "Talk to BlossomBuddy players on every realm. Off until you turn it on.", () -> {
+         y = UiRows.toggle(screen, x, w, y, "Cross-realm chat", xc.enabled, "Talk to BlossomBuddy players on every realm. Messages are also posted to the BlossomBuddy Discord. Off until you turn it on.", () -> {
             xc.enabled = !xc.enabled;
             FeatureConfig.markDirty();
             if (xc.enabled) {
@@ -329,6 +329,7 @@ public final class BuddyTabs {
             screen.rebuildPreserveScroll();
          });
          y = UiRows.note(screen, x, w, y, "Send with /xc <message>. Everyone using BlossomBuddy sees it, on any realm.");
+         y = UiRows.note(screen, x, w, y, "Your /xc messages are also posted to a channel in the BlossomBuddy Discord, where Discord keeps them.");
          y = UiRows.note(screen, x, w, y, "It shows in the secondary chat's Realms tab (or the main chat if that window is off).");
          y = UiRows.note(screen, x, w, y, "Your name is proven with Mojang's login check, so nobody can pose as you.");
          y = UiRows.note(screen, x, w, y, "Mute someone: /buddy xchat mute <name>.");

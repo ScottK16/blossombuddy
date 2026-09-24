@@ -99,7 +99,7 @@ public final class BuddyCommands {
       ChatOutput.info(
          Text.literal("Cross-realm chat, the player list and vote-party sharing are ").formatted(Formatting.GRAY)
             .append(Text.literal("opt-in").formatted(Formatting.AQUA))
-            .append(Text.literal(" (the player list is on by default with a notice first) and held in memory only, never written to disk.").formatted(Formatting.GRAY))
+            .append(Text.literal(" (the player list is on by default with a notice first). The relay keeps them in memory only, but /xc messages are also posted to a BlossomBuddy Discord channel, where Discord keeps them.").formatted(Formatting.GRAY))
       );
       ChatOutput.info(
          Text.literal("Usage stats are a random ID and the mod version by default; sharing your username is opt-in (").formatted(Formatting.GRAY)
@@ -206,6 +206,7 @@ public final class BuddyCommands {
       if (on) {
          XChatClient.INSTANCE.wake();
          ChatOutput.info("Cross-realm chat is ON. Send with /xc <message>. Messages show in the secondary chat's Realms tab (or in this chat if that window is off).");
+         ChatOutput.info("Note: /xc messages are also posted to a channel in the BlossomBuddy Discord, where Discord keeps them. See /buddy privacy.");
          if (SuiteState.INSTANCE.http == null || !SuiteState.INSTANCE.http.enabled()) {
             ChatOutput.info("No relay address is set yet, so it can't connect.");
          }
