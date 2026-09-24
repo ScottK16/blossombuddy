@@ -1,6 +1,6 @@
 # BlossomBuddy
 
-A Fabric client mod for the BlossomCraft server, continuing on from the abandoned BlossomSuite mod, with Jobs Overflow XP tracking folded in as a native feature.
+A Fabric client mod for the BlossomCraft server, continuing on from the still existing BlossomSuite mod, with Jobs Overflow XP tracking folded in as a native feature.
 
 ## What's in it
 
