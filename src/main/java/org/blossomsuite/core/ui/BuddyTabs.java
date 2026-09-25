@@ -313,7 +313,7 @@ public final class BuddyTabs {
 
       @Override
       int height(SuiteSettingsScreen screen) {
-         return UiRows.ROW * 9 + 18 * 11 + 24;
+         return UiRows.ROW * 10 + 18 * 11 + 24;
       }
 
       @Override
@@ -352,6 +352,7 @@ public final class BuddyTabs {
             EmoteClient.INSTANCE.setEnabled(!em.enabled);
             screen.rebuildPreserveScroll();
          });
+         y = UiRows.button(screen, x, w, y, "   Hotkeys (emote menu, stop, staff chat...)", "Set keys", "Set the BlossomBuddy keys here, even if your game's controls menu doesn't list them.", () -> MinecraftClient.getInstance().setScreen(new BuddyKeysScreen(screen)));
          y = UiRows.toggle(screen, x, w, y, "   Show other players' emotes", em.showOthers, "Plays other BlossomBuddy players' emotes on their characters.", () -> {
             EmoteClient.INSTANCE.setShowOthers(!em.showOthers);
             screen.rebuildPreserveScroll();

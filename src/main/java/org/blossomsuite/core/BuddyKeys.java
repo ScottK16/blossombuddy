@@ -41,6 +41,14 @@ public final class BuddyKeys {
    private BuddyKeys() {
    }
 
+   /** Every BlossomBuddy key, for the in-mod keys screen (some clients don't list mod keys in their own controls menu). */
+   public static java.util.List<KeyBinding> all() {
+      return java.util.List.of(
+         emoteWheel, emoteStop, closeStaffChat, searchChat, xchatMode, playerList, chatFilter,
+         toggleScoreboard, hotbarUp, hotbarDown, hotbarSwap1, hotbarSwap2
+      );
+   }
+
    public static void init() {
       toggleScoreboard = register("toggle_scoreboard");
       hotbarUp = register("hotbar_up");

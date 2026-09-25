@@ -5,6 +5,7 @@ import org.blossomsuite.core.presence.PresenceClient;
 import org.blossomsuite.core.stats.StatsClient;
 import org.blossomsuite.core.emote.Emote;
 import org.blossomsuite.core.emote.EmoteClient;
+import org.blossomsuite.core.ui.BuddyKeysScreen;
 import org.blossomsuite.core.ui.ChatSearchScreen;
 import org.blossomsuite.core.ui.EmoteWheelScreen;
 import org.blossomsuite.core.ui.MapArtScreen;
@@ -54,7 +55,7 @@ public final class BuddyCommands {
    }
 
    public static List<LiteralArgumentBuilder<FabricClientCommandSource>> subcommands() {
-      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify());
+      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys());
    }
 
    public static final String DISCORD_INVITE = "https://discord.gg/EA4WwSdGTj";
@@ -571,6 +572,15 @@ public final class BuddyCommands {
       }
 
       return sb.toString();
+   }
+
+   /** {@code /buddy keys}: set the BlossomBuddy keys without needing the game's own controls menu. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> keys() {
+      return ClientCommandManager.literal("keys").executes(ctx -> {
+         MinecraftClient mc = MinecraftClient.getInstance();
+         mc.send(() -> mc.setScreen(new BuddyKeysScreen(mc.currentScreen)));
+         return 1;
+      });
    }
 
    /** {@code /buddy verify [remove]}: link (or unlink) your Discord account to your Minecraft name with a one-time code. */
