@@ -44,6 +44,7 @@ import org.blossomsuite.core.hud.ScoreboardHud;
 import org.blossomsuite.core.jobs.JobXpTracker;
 import org.blossomsuite.core.state.SuiteState;
 import org.blossomsuite.core.util.SuiteItemIdUtil;
+import org.blossomsuite.core.verify.VerifyClient;
 
 /** Subcommands for the BlossomBuddy features, attached under the main command (/buddy, /bb, /bsuite). */
 public final class BuddyCommands {
@@ -53,7 +54,7 @@ public final class BuddyCommands {
    }
 
    public static List<LiteralArgumentBuilder<FabricClientCommandSource>> subcommands() {
-      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown());
+      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify());
    }
 
    public static final String DISCORD_INVITE = "https://discord.gg/EA4WwSdGTj";
@@ -570,6 +571,24 @@ public final class BuddyCommands {
       }
 
       return sb.toString();
+   }
+
+   /** {@code /buddy verify [remove]}: link (or unlink) your Discord account to your Minecraft name with a one-time code. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> verify() {
+      return ClientCommandManager.literal("verify")
+         .executes(ctx -> {
+            ChatOutput.info("Checking your account with Mojang...");
+            VerifyClient.INSTANCE.startAsync(BuddyCommands::tellVerify);
+            return 1;
+         })
+         .then(ClientCommandManager.literal("remove").executes(ctx -> {
+            VerifyClient.INSTANCE.removeAsync(BuddyCommands::tellVerify);
+            return 1;
+         }));
+   }
+
+   private static void tellVerify(VerifyClient.Result result) {
+      MinecraftClient.getInstance().execute(() -> ChatOutput.info(result.message()));
    }
 
    private static int setHidden(boolean hidden) {
