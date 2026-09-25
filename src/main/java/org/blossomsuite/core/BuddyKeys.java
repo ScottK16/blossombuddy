@@ -32,6 +32,7 @@ public final class BuddyKeys {
    private static KeyBinding playerList;
    private static KeyBinding xchatMode;
    private static KeyBinding emoteWheel;
+   private static KeyBinding emoteStop;
    private static KeyBinding searchChat;
 
    private BuddyKeys() {
@@ -46,13 +47,18 @@ public final class BuddyKeys {
       chatFilter = register("chat_filter");
       playerList = register("player_list");
       xchatMode = register("xchat_mode");
-      emoteWheel = register("emote_wheel");
+      emoteWheel = register("emote_wheel", GLFW.GLFW_KEY_B); // only for people who haven't got this key set yet; anyone's own choice wins
+      emoteStop = register("emote_stop");
       searchChat = register("search_chat");
       ClientTickEvents.END_CLIENT_TICK.register(BuddyKeys::tick);
    }
 
    private static KeyBinding register(String id) {
-      return KeyBindingHelper.registerKeyBinding(new KeyBinding("key.suitecore." + id, InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+      return register(id, GLFW.GLFW_KEY_UNKNOWN);
+   }
+
+   private static KeyBinding register(String id, int defaultKey) {
+      return KeyBindingHelper.registerKeyBinding(new KeyBinding("key.suitecore." + id, InputUtil.Type.KEYSYM, defaultKey, CATEGORY));
    }
 
    private static void tick(MinecraftClient client) {
@@ -87,10 +93,14 @@ public final class BuddyKeys {
          HotbarCycler.swapWithRow(client, 2);
       }
 
-      EmoteClient.INSTANCE.clientTick(); // moving ends your own emote
+      EmoteClient.INSTANCE.clientTick(); // moving only ends the sitting/lying emotes
 
       while (emoteWheel.wasPressed()) {
          client.setScreen(new EmoteWheelScreen());
+      }
+
+      while (emoteStop.wasPressed()) {
+         EmoteClient.INSTANCE.stop();
       }
 
       while (searchChat.wasPressed()) {

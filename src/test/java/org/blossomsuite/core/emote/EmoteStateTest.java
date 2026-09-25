@@ -62,6 +62,19 @@ class EmoteStateTest {
    }
 
    @Test
+   void aLoopingEmoteKeepsGoingUntilStoppedButNotForever() {
+      EmoteState s = new EmoteState();
+      s.startLooping(ALICE, Emote.WAVE, 0L);
+      long wellPast = (long)(Emote.WAVE.durationSeconds() * 1000L) * 20L;
+      assertTrue(s.isActive(ALICE, wellPast));
+      assertNotNull(s.poseFor(ALICE, wellPast));
+      assertFalse(s.isActive(ALICE, (long)(EmoteState.LOOP_CAP_SECONDS * 1000L) + 1L), "someone who vanished without a stop must not dance forever");
+      s.startLooping(BOB, Emote.WAVE, 0L);
+      s.stop(BOB);
+      assertFalse(s.isActive(BOB, 100L));
+   }
+
+   @Test
    void clearForgetsEveryone() {
       EmoteState s = new EmoteState();
       s.start(ALICE, Emote.WAVE, 0L);

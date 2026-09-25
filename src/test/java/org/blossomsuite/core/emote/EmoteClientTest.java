@@ -197,8 +197,39 @@ class EmoteClientTest {
    }
 
    @Test
-   void walkingEndsYourEmoteButNotInTheFirstMoments() {
+   void walkingDoesNotEndAnEmoteYouCanDoOnTheMove() {
       this.client.play("dance");
+      this.env.moving = true;
+      this.client.clientTick(T + EmoteClient.MOVE_GRACE_MS + 50L);
+      assertTrue(this.state.isActive(ME, T + 1000L));
+      this.client.clientTick(T + 60_000L);
+      assertTrue(this.state.isActive(ME, T + 60_000L), "and it is still going a minute later, well past its own length");
+   }
+
+   @Test
+   void yourEmoteLoopsUntilYouStopIt() {
+      this.client.play("wave");
+      long wellPastItsLength = T + (long)(Emote.WAVE.durationSeconds() * 1000L) * 10L;
+      assertTrue(this.state.isActive(ME, wellPastItsLength));
+      this.client.stop();
+      assertFalse(this.state.isActive(ME, wellPastItsLength));
+   }
+
+   @Test
+   void pickingTheEmoteThatIsPlayingTurnsItOffButPickingAnotherSwitchesToIt() {
+      this.client.toggle(Emote.DANCE);
+      assertTrue(this.state.isActive(ME, T));
+      this.client.toggle(Emote.WAVE);
+      assertEquals(Emote.WAVE, this.state.activeFor(ME, T).emote());
+      this.relay.calls.clear();
+      this.client.toggle(Emote.WAVE);
+      assertFalse(this.state.isActive(ME, T));
+      assertEquals("stop", this.relay.lastBody("/v1/emote/play").get("emote").getAsString());
+   }
+
+   @Test
+   void walkingEndsTheSittingAndLyingEmotesButNotInTheFirstMoments() {
+      this.client.play("feetup");
       this.env.moving = true;
       this.client.clientTick(T + 100L);
       assertTrue(this.state.isActive(ME, T + 100L), "the grace period, so opening the wheel with a key held doesn't cancel it");

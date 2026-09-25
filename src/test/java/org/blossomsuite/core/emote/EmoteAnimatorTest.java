@@ -45,6 +45,31 @@ class EmoteAnimatorTest {
    }
 
    @Test
+   void aLoopingEmoteNeverEndsAndStaysSaneForAsLongAsItRuns() {
+      for (Emote e : Emote.ALL) {
+         for (float t = 0.0F; t < 600.0F; t += 7.3F) {
+            EmotePose p = EmoteAnimator.pose(e, t, true);
+            assertNotNull(p, e.id() + " at " + t);
+            assertSane(p.head, e.id() + " head");
+            assertSane(p.rightArm, e.id() + " right arm");
+            assertSane(p.leftArm, e.id() + " left arm");
+            assertSane(p.rightLeg, e.id() + " right leg");
+            assertSane(p.leftLeg, e.id() + " left leg");
+            assertTrue(p.prone >= 0.0F && p.prone <= 1.0F, e.id() + " prone " + p.prone);
+         }
+
+         assertNull(EmoteAnimator.pose(e, -0.1F, true), "not started");
+      }
+   }
+
+   @Test
+   void aLoopingSpinKeepsTurningInsteadOfStoppingAfterTwoTurns() {
+      float early = EmoteAnimator.pose(Emote.SPIN, 10.0F, true).bodyYawDegrees;
+      float later = EmoteAnimator.pose(Emote.SPIN, 20.0F, true).bodyYawDegrees;
+      assertTrue(later > early + 100.0F, "still turning: " + early + " -> " + later);
+   }
+
+   @Test
    void everyEmoteHasAMovementForItsWholeDurationAndNoneBeyond() {
       for (Emote e : Emote.ALL) {
          for (float t = 0.0F; t < e.durationSeconds(); t += 0.1F) {

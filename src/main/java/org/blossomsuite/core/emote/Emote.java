@@ -34,6 +34,14 @@ public record Emote(String id, String label, float durationSeconds) {
     */
    public static final List<Emote> ALL = List.of(WAVE, DANCE, CHEER, CLAP, FLOSS, ROBOT, SPIN, HEADBANG, CHICKEN, JACKS, DISCO, SALUTE, SHRUG, FEETUP, TWERK, DAB, TPOSE, ZOMBIE, SPRINKLER, MARCH, KICKBACK, WIGGLE);
 
+   /**
+    * Sitting or lying down can't carry on while you walk around, so these two still end when you start moving; every other emote keeps
+    * going while you move (and until you stop it).
+    */
+   public boolean endsWhenYouMove() {
+      return this.id.equals("feetup") || this.id.equals("kickback");
+   }
+
    /** The emote with this id (any case), or null. */
    public static Emote byId(String id) {
       if (id == null) {

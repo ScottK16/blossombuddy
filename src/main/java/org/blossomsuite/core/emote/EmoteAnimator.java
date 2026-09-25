@@ -20,11 +20,21 @@ public final class EmoteAnimator {
 
    /** The pose {@code t} seconds into the emote, or null when it has not started or is over. */
    public static EmotePose pose(Emote emote, float t) {
-      if (emote == null || t < 0.0F || t >= emote.durationSeconds()) {
+      return pose(emote, t, false);
+   }
+
+   /**
+    * As above, but a looping emote never ends: it eases in once and then keeps going. Every movement is a sine of the time, so it
+    * carries on smoothly however long it runs; only the spin needs to be told it is looping, since it is a fixed number of turns
+    * otherwise.
+    */
+   public static EmotePose pose(Emote emote, float t, boolean looping) {
+      if (emote == null || t < 0.0F || (!looping && t >= emote.durationSeconds())) {
          return null;
       }
 
-      float k = envelope(t, emote.durationSeconds());
+      float duration = looping ? 1.0E9F : emote.durationSeconds();
+      float k = envelope(t, duration);
       return switch (emote.id()) {
          case "wave" -> wave(t, k);
          case "dance" -> dance(t, k);
@@ -32,7 +42,7 @@ public final class EmoteAnimator {
          case "clap" -> clap(t, k);
          case "floss" -> floss(t, k);
          case "robot" -> robot(t, k);
-         case "spin" -> spin(t, k, emote.durationSeconds());
+         case "spin" -> spin(t, k, duration, looping);
          case "headbang" -> headbang(t, k);
          case "chicken" -> chicken(t, k);
          case "jacks" -> jacks(t, k);
@@ -46,7 +56,7 @@ public final class EmoteAnimator {
          case "zombie" -> zombie(t, k);
          case "sprinkler" -> sprinkler(t, k);
          case "march" -> march(t, k);
-         case "kickback" -> kickback(t, emote.durationSeconds());
+         case "kickback" -> kickback(t, duration);
          case "wiggle" -> wiggle(t, k);
          default -> null;
       };
@@ -156,10 +166,10 @@ public final class EmoteAnimator {
    }
 
    /** Arms out to the sides while the whole character spins round twice. */
-   private static EmotePose spin(float t, float k, float duration) {
+   private static EmotePose spin(float t, float k, float duration, boolean looping) {
       float[] right = blend(RIGHT_ARM_REST, new float[]{0.0F, 0.0F, 1.5F}, k);
       float[] left = blend(LEFT_ARM_REST, new float[]{0.0F, 0.0F, -1.5F}, k);
-      float turns = 2.0F * smooth(t / duration);
+      float turns = looping ? t / 2.0F : 2.0F * smooth(t / duration); // looping: a full turn every two seconds, for as long as it runs
       return new EmotePose(null, right, left, null, null).withBody(360.0F * turns, 0.0F);
    }
 

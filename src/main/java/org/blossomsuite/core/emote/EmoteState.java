@@ -8,15 +8,29 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class EmoteState {
    public static final EmoteState INSTANCE = new EmoteState();
 
-   /** An emote that started at {@code startMs}. */
-   public record Active(Emote emote, long startMs) {
+   /**
+    * A looping emote plays until it is stopped, but never longer than this: someone who crashes or leaves without a "stop" reaching
+    * the people watching must not dance on their screens forever.
+    */
+   public static final float LOOP_CAP_SECONDS = 15.0F * 60.0F;
+
+   /** An emote that started at {@code startMs}; a looping one keeps going until stopped. */
+   public record Active(Emote emote, long startMs, boolean loop) {
    }
 
    private final Map<UUID, Active> active = new ConcurrentHashMap<>();
 
+   /** Plays once, then ends by itself. */
    public void start(UUID player, Emote emote, long nowMs) {
       if (player != null && emote != null) {
-         this.active.put(player, new Active(emote, nowMs));
+         this.active.put(player, new Active(emote, nowMs, false));
+      }
+   }
+
+   /** Plays over and over until {@link #stop} (or the safety cap). */
+   public void startLooping(UUID player, Emote emote, long nowMs) {
+      if (player != null && emote != null) {
+         this.active.put(player, new Active(emote, nowMs, true));
       }
    }
 
@@ -37,7 +51,8 @@ public final class EmoteState {
          return null;
       }
 
-      if ((nowMs - a.startMs()) / 1000.0F >= a.emote().durationSeconds()) {
+      float limit = a.loop() ? LOOP_CAP_SECONDS : a.emote().durationSeconds();
+      if ((nowMs - a.startMs()) / 1000.0F >= limit) {
          this.active.remove(player, a);
          return null;
       }
@@ -52,6 +67,6 @@ public final class EmoteState {
    /** The pose to draw this player in right now, or null to draw them as normal. */
    public EmotePose poseFor(UUID player, long nowMs) {
       Active a = this.activeFor(player, nowMs);
-      return a == null ? null : EmoteAnimator.pose(a.emote(), (nowMs - a.startMs()) / 1000.0F);
+      return a == null ? null : EmoteAnimator.pose(a.emote(), (nowMs - a.startMs()) / 1000.0F, a.loop());
    }
 }

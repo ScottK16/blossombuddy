@@ -128,12 +128,24 @@ public final class EmoteClient {
          return false;
       }
 
-      this.state.start(me, emote, this.clock.getAsLong());
+      this.state.startLooping(me, emote, this.clock.getAsLong());
       if (this.env.share()) {
          this.send(emote.id(), me);
       }
 
       return true;
+   }
+
+   /** Picking the emote that is already playing turns it off; anything else starts it. */
+   public boolean toggle(Emote emote) {
+      UUID me = this.env.selfId();
+      EmoteState.Active mine = me == null ? null : this.state.activeFor(me, this.clock.getAsLong());
+      if (mine != null && mine.emote().equals(emote)) {
+         this.stop();
+         return false;
+      }
+
+      return this.play(emote);
    }
 
    /** Ends your emote, for you and for everyone who was watching. */
@@ -147,7 +159,7 @@ public final class EmoteClient {
       }
    }
 
-   /** Each game tick: moving, jumping or attacking ends your own emote. */
+   /** Each game tick: moving ends your emote only if it is one you can't do on the move (sitting or lying down). */
    public void clientTick() {
       this.clientTick(this.clock.getAsLong());
    }
@@ -155,7 +167,7 @@ public final class EmoteClient {
    void clientTick(long now) {
       UUID me = this.env.selfId();
       EmoteState.Active mine = me == null ? null : this.state.activeFor(me, now);
-      if (mine != null && now - mine.startMs() > MOVE_GRACE_MS && this.env.wantsToMove()) {
+      if (mine != null && mine.emote().endsWhenYouMove() && now - mine.startMs() > MOVE_GRACE_MS && this.env.wantsToMove()) {
          this.stop();
       }
    }
@@ -285,7 +297,7 @@ public final class EmoteClient {
       } else if ("play".equals(w.type)) {
          Emote emote = Emote.byId(w.emote);
          if (emote != null) {
-            this.state.start(who, emote, now);
+            this.state.startLooping(who, emote, now);
          }
       }
    }
