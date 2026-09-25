@@ -1,5 +1,8 @@
 package org.blossomsuite.core.emote;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,6 +61,29 @@ public final class EmoteState {
       }
 
       return a;
+   }
+
+   /** Everyone emoting right now, longest first. */
+   public List<Map.Entry<UUID, Active>> allActive(long nowMs) {
+      List<Map.Entry<UUID, Active>> out = new ArrayList<>();
+      for (UUID player : this.active.keySet()) {
+         Active a = this.activeFor(player, nowMs);
+         if (a != null) {
+            out.add(Map.entry(player, a));
+         }
+      }
+
+      out.sort(Comparator.comparingLong(e -> e.getValue().startMs()));
+      return out;
+   }
+
+   /** "1:05" for a minute and five seconds; hours only when there are some ("1:02:03"). */
+   public static String formatElapsed(long ms) {
+      long total = Math.max(0L, ms / 1000L);
+      long h = total / 3600L;
+      long m = (total % 3600L) / 60L;
+      long s = total % 60L;
+      return h > 0 ? String.format("%d:%02d:%02d", h, m, s) : String.format("%d:%02d", m, s);
    }
 
    public boolean isActive(UUID player, long nowMs) {

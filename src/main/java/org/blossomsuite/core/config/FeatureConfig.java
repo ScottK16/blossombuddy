@@ -164,6 +164,9 @@ public final class FeatureConfig {
       public boolean showOthers = true;
       /** Tell the relay about your own emotes so others can see them. */
       public boolean share = true;
+      /** A small panel listing who is emoting right now and for how long. */
+      public boolean showTimers = true;
+      public Panel timerPanel = new Panel();
    }
 
    /** Cross-realm chat. Off until the player turns it on. */

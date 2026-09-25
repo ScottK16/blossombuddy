@@ -39,6 +39,7 @@ public final class HudCallbacks {
                      }
                      MapArtPreviewHud.INSTANCE.render(ctx, client);
                      MapArtListHud.INSTANCE.render(ctx, client);
+                     EmoteTimerHud.INSTANCE.render(ctx, client);
                   }
                }
             }

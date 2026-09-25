@@ -7,6 +7,8 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.chat.SecondaryChat;
+import org.blossomsuite.core.chat.StaffChatState;
+import org.blossomsuite.core.util.WorldGate;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.hud.HotbarCycler;
@@ -19,7 +21,7 @@ import org.lwjgl.glfw.GLFW;
 
 /**
  * Hotkeys for the BlossomBuddy features. These are ordinary Minecraft key bindings, so they appear in
- * Options > Controls under "BlossomBuddy" and are rebound there. All start unbound.
+ * Options > Controls under "BlossomBuddy" and are rebound there. All start unbound, except the emote menu (B).
  */
 public final class BuddyKeys {
    private static final String CATEGORY = "category.suitecore";
@@ -33,6 +35,7 @@ public final class BuddyKeys {
    private static KeyBinding xchatMode;
    private static KeyBinding emoteWheel;
    private static KeyBinding emoteStop;
+   private static KeyBinding closeStaffChat;
    private static KeyBinding searchChat;
 
    private BuddyKeys() {
@@ -49,6 +52,7 @@ public final class BuddyKeys {
       xchatMode = register("xchat_mode");
       emoteWheel = register("emote_wheel", GLFW.GLFW_KEY_B); // only for people who haven't got this key set yet; anyone's own choice wins
       emoteStop = register("emote_stop");
+      closeStaffChat = register("close_staff_chat");
       searchChat = register("search_chat");
       ClientTickEvents.END_CLIENT_TICK.register(BuddyKeys::tick);
    }
@@ -59,6 +63,23 @@ public final class BuddyKeys {
 
    private static KeyBinding register(String id, int defaultKey) {
       return KeyBindingHelper.registerKeyBinding(new KeyBinding("key.suitecore." + id, InputUtil.Type.KEYSYM, defaultKey, CATEGORY));
+   }
+
+   /** Switches staff chat off if it is on. Unlike the toggle key, pressing it again never turns it back on. */
+   private static void closeStaffChat(MinecraftClient client) {
+      if (!StaffChatState.isStaffTrackingActive()) {
+         ChatOutput.info("Staff chat isn't detected for you yet - toggle it once, or check Options > Chat > Staff Chat.");
+         return;
+      }
+
+      if (!StaffChatState.staffChatEnabled) {
+         ChatOutput.info("Staff chat is already off.");
+         return;
+      }
+
+      if (client.getNetworkHandler() != null && WorldGate.isActive()) {
+         client.getNetworkHandler().sendChatCommand("sch toggle");
+      }
    }
 
    private static void tick(MinecraftClient client) {
@@ -101,6 +122,10 @@ public final class BuddyKeys {
 
       while (emoteStop.wasPressed()) {
          EmoteClient.INSTANCE.stop();
+      }
+
+      while (closeStaffChat.wasPressed()) {
+         closeStaffChat(client);
       }
 
       while (searchChat.wasPressed()) {

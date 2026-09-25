@@ -58,6 +58,7 @@ public final class EmoteAnimator {
          case "march" -> march(t, k);
          case "kickback" -> kickback(t, duration);
          case "wiggle" -> wiggle(t, k);
+         case "money" -> money(t, k);
          default -> null;
       };
    }
@@ -302,6 +303,19 @@ public final class EmoteAnimator {
     * Lying face down on the ground with the hands up by the chin, kicking the feet up behind, one after the other. The character is laid
     * down slowly (the game's own swimming tilt does the turning; see PlayerEntityRendererMixin), so this eases in over most of a second.
     */
+   /** Make it rain: both arms held out in front, each flicking outward and down in turn, like peeling bills off a wad and throwing them. */
+   private static EmotePose money(float t, float k) {
+      float p = t * 7.0F;
+      float a = sin(p);
+      float b = sin(p + PI);
+      float[] right = blend(RIGHT_ARM_REST, new float[]{-1.35F + 0.45F * a, 0.0F, 0.25F + 0.75F * Math.max(0.0F, a)}, k);
+      float[] left = blend(LEFT_ARM_REST, new float[]{-1.35F + 0.45F * b, 0.0F, -0.25F - 0.75F * Math.max(0.0F, b)}, k);
+      float[] head = scaled(new float[]{0.15F, 0.3F * sin(p * 0.5F), 0.0F}, k);
+      float[] rightLeg = blend(LEG_REST, new float[]{0.12F * a, 0.0F, 0.04F}, k);
+      float[] leftLeg = blend(LEG_REST, new float[]{0.12F * b, 0.0F, -0.04F}, k);
+      return new EmotePose(head, right, left, rightLeg, leftLeg).withTorso(scaled(new float[]{0.14F, 0.12F * a, 0.0F}, k));
+   }
+
    private static EmotePose kickback(float t, float duration) {
       float prone = Math.min(smooth(t / 0.8F), smooth((duration - t) / 0.8F));
       float s = sin(t * 7.0F);

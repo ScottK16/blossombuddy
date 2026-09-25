@@ -48,7 +48,8 @@ public final class HudEditScreen extends Screen {
       ChatWindowHud.WINDOWS[2],
       ChatWindowHud.WINDOWS[3],
       MapArtPreviewHud.INSTANCE,
-      MapArtListHud.INSTANCE
+      MapArtListHud.INSTANCE,
+      EmoteTimerHud.INSTANCE
    );
 
    public HudEditScreen() {
@@ -81,6 +82,7 @@ public final class HudEditScreen extends Screen {
       }
       MapArtPreviewHud.INSTANCE.render(ctx, MinecraftClient.getInstance());
       MapArtListHud.INSTANCE.render(ctx, MinecraftClient.getInstance());
+      EmoteTimerHud.INSTANCE.render(ctx, MinecraftClient.getInstance());
 
 
       for (DraggableHud p : this.panels) {

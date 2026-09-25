@@ -289,6 +289,6 @@ class EmoteAnimatorTest {
          assertTrue(e.label().length() <= 9, "fits a slot: " + e.label());
       }
 
-      assertEquals(22, Emote.ALL.size());
+      assertEquals(23, Emote.ALL.size());
    }
 }

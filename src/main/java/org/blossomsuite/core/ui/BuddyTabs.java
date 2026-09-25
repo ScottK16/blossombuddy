@@ -313,7 +313,7 @@ public final class BuddyTabs {
 
       @Override
       int height(SuiteSettingsScreen screen) {
-         return UiRows.ROW * 8 + 18 * 11 + 24;
+         return UiRows.ROW * 9 + 18 * 11 + 24;
       }
 
       @Override
@@ -360,7 +360,12 @@ public final class BuddyTabs {
             EmoteClient.INSTANCE.setShare(!em.share);
             screen.rebuildPreserveScroll();
          });
-         y = UiRows.note(screen, x, w, y, "Emotes need the player list to be connected. Walking, jumping or attacking ends yours.");
+         y = UiRows.toggle(screen, x, w, y, "   Show emote timers", em.showTimers, "A small panel listing who is emoting and for how long. Move it in /buddy editmode.", () -> {
+            em.showTimers = !em.showTimers;
+            FeatureConfig.markDirty();
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.note(screen, x, w, y, "Emotes need the player list to be connected. They loop until you stop them (menu, Stop Emote key or /buddy emote stop).");
 
          FeatureConfig.MapArt mapart = FeatureConfig.INSTANCE.mapart;
          y = UiRows.toggle(screen, x, w, y, "Show map art preview on screen", mapart.showPreview, "The picture of whatever design /buddy mapart last opened. Move it in /buddy editmode.", () -> {
