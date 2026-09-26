@@ -26,6 +26,16 @@ public final class SecondaryChat {
    private final Deque<Line> lines = new ArrayDeque<>();
    /** How many of the newest lines (of the shown tab) the reader has scrolled back past. 0 = following the newest. */
    private int scroll = 0;
+   /** Goes up whenever a line is added or the list is cleared, so the window can reuse what it worked out last frame until then. */
+   private volatile long version = 0L;
+
+   /** Regex filters, compiled once instead of once per incoming chat line. */
+   private static final java.util.Map<String, Pattern> COMPILED = new java.util.concurrent.ConcurrentHashMap<>();
+   private static final Pattern NEVER = Pattern.compile("(?!)");
+
+   public long version() {
+      return this.version;
+   }
 
    SecondaryChat() {
    }
@@ -100,6 +110,7 @@ public final class SecondaryChat {
    }
 
    private synchronized void add(Line line) {
+      this.version++;
       this.lines.addLast(line);
       while (this.lines.size() > MAX_LINES) {
          this.lines.removeFirst();
@@ -176,6 +187,7 @@ public final class SecondaryChat {
    }
 
    public synchronized void clear() {
+      this.version++;
       this.lines.clear();
       this.scroll = 0;
    }
@@ -225,6 +237,28 @@ public final class SecondaryChat {
       return out == null ? text : out.toString();
    }
 
+   /** The compiled form of a filter's regex, remembered; one that isn't valid matches nothing. */
+   private static Pattern compiled(String pattern) {
+      Pattern cached = COMPILED.get(pattern);
+      if (cached != null) {
+         return cached;
+      }
+
+      Pattern made;
+      try {
+         made = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+      } catch (PatternSyntaxException e) {
+         made = NEVER;
+      }
+
+      if (COMPILED.size() >= 64) {
+         COMPILED.clear(); // filters are edited by hand, so this only ever holds a handful; this just stops it growing without limit
+      }
+
+      COMPILED.put(pattern, made);
+      return made;
+   }
+
    static boolean matches(FeatureConfig.Filter f, String rawText) {
       if (f.external || f.pattern == null || f.pattern.isBlank() || rawText == null) {
          return false;
@@ -232,11 +266,7 @@ public final class SecondaryChat {
 
       String plain = foldSmallCaps(rawText);
       if (f.regex) {
-         try {
-            return Pattern.compile(f.pattern, Pattern.CASE_INSENSITIVE).matcher(plain).find();
-         } catch (PatternSyntaxException e) {
-            return false;
-         }
+         return compiled(f.pattern).matcher(plain).find();
       }
 
       String haystack = plain.toLowerCase(Locale.ROOT);

@@ -112,6 +112,31 @@ public final class SecondaryChatHud extends PanelHud {
 
    /** The same, wrapped to {@code wrapWidth} pixels (the extra chat windows are narrower). */
    static List<OrderedText> wrap(TextRenderer tr, String filter, int skip, int maxLines, int wrapWidth) {
+      // Wrapping every line of every chat window every frame is real work (a gradient name is one text piece per letter), and the
+      // answer only changes when a line arrives, so keep it until then (or half a second, so a settings change still shows up soon).
+      long version = SecondaryChat.INSTANCE.version();
+      long now = System.currentTimeMillis();
+      String key = filter + "\u0000" + skip + "|" + maxLines + "|" + wrapWidth;
+      WrapCache hit = WRAPS.get(key);
+      if (hit != null && hit.version == version && now - hit.at < 500L) {
+         return hit.lines;
+      }
+
+      List<OrderedText> built = wrapNow(tr, filter, skip, maxLines, wrapWidth);
+      if (WRAPS.size() >= 32) {
+         WRAPS.clear();
+      }
+
+      WRAPS.put(key, new WrapCache(version, now, built));
+      return built;
+   }
+
+   private record WrapCache(long version, long at, List<OrderedText> lines) {
+   }
+
+   private static final java.util.Map<String, WrapCache> WRAPS = new java.util.HashMap<>();
+
+   private static List<OrderedText> wrapNow(TextRenderer tr, String filter, int skip, int maxLines, int wrapWidth) {
       List<OrderedText> wrapped = new ArrayList<>();
       List<SecondaryChat.Line> shown = SecondaryChat.INSTANCE.window(filter, skip, maxLines);
       for (int i = shown.size() - 1; i >= 0 && wrapped.size() < maxLines; i--) {
