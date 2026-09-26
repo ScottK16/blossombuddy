@@ -131,7 +131,7 @@ public final class BuddyTabs {
 
       @Override
       int height(SuiteSettingsScreen screen) {
-         return UiRows.ROW * 4 + UiRows.SLIDER_ROW + 18 + 12;
+         return UiRows.ROW * 5 + UiRows.SLIDER_ROW + 18 * 2 + 12;
       }
 
       @Override
@@ -166,7 +166,13 @@ public final class BuddyTabs {
             FeatureConfig.markDirty();
             screen.rebuildPreserveScroll();
          });
-         UiRows.note(screen, x, w, y, "A visual tweak only - it doesn't reveal anything hidden, just brightens what's already there.");
+         y = UiRows.note(screen, x, w, y, "A visual tweak only - it doesn't reveal anything hidden, just brightens what's already there.");
+         y = UiRows.toggle(screen, x, w, y, "Hide players during a vote party", render.hidePlayersDuringVoteParty, "Other players disappear from your screen while a vote party is on in your realm, and come back when it ends.", () -> {
+            render.hidePlayersDuringVoteParty = !render.hidePlayersDuringVoteParty;
+            FeatureConfig.markDirty();
+            screen.rebuildPreserveScroll();
+         });
+         UiRows.note(screen, x, w, y, "To hide or show everyone yourself: /buddy players, or the Hide / Show Other Players key (/buddy keys).");
       }
    }
 

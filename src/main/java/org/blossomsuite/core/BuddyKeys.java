@@ -8,6 +8,7 @@ import net.minecraft.client.util.InputUtil;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.chat.SecondaryChat;
 import org.blossomsuite.core.chat.StaffChatState;
+import org.blossomsuite.core.visibility.PlayerVisibility;
 import org.blossomsuite.core.util.WorldGate;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.config.SuiteConfig;
@@ -36,6 +37,7 @@ public final class BuddyKeys {
    private static KeyBinding emoteWheel;
    private static KeyBinding emoteStop;
    private static KeyBinding closeStaffChat;
+   private static KeyBinding hidePlayers;
    private static KeyBinding searchChat;
 
    private BuddyKeys() {
@@ -44,7 +46,7 @@ public final class BuddyKeys {
    /** Every BlossomBuddy key, for the in-mod keys screen (some clients don't list mod keys in their own controls menu). */
    public static java.util.List<KeyBinding> all() {
       return java.util.List.of(
-         emoteWheel, emoteStop, closeStaffChat, searchChat, xchatMode, playerList, chatFilter,
+         emoteWheel, emoteStop, closeStaffChat, hidePlayers, searchChat, xchatMode, playerList, chatFilter,
          toggleScoreboard, hotbarUp, hotbarDown, hotbarSwap1, hotbarSwap2
       );
    }
@@ -61,6 +63,7 @@ public final class BuddyKeys {
       emoteWheel = register("emote_wheel", GLFW.GLFW_KEY_B); // only for people who haven't got this key set yet; anyone's own choice wins
       emoteStop = register("emote_stop");
       closeStaffChat = register("close_staff_chat");
+      hidePlayers = register("hide_players");
       searchChat = register("search_chat");
       ClientTickEvents.END_CLIENT_TICK.register(BuddyKeys::tick);
    }
@@ -93,6 +96,7 @@ public final class BuddyKeys {
    private static void tick(MinecraftClient client) {
       if (client.player == null) {
          XChatMode.set(false); // cross-realm chat mode never survives leaving the world
+         PlayerVisibility.set(false); // nor does hiding the other players
       }
 
       if (client.player == null || !SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
@@ -134,6 +138,10 @@ public final class BuddyKeys {
 
       while (closeStaffChat.wasPressed()) {
          closeStaffChat(client);
+      }
+
+      while (hidePlayers.wasPressed()) {
+         ChatOutput.info(PlayerVisibility.toggle() ? "Other players hidden." : "Other players shown again.");
       }
 
       while (searchChat.wasPressed()) {

@@ -6,6 +6,7 @@
     "BossBarHudMixin",
     "BossBarMixin",
     "DropProtectionMixin",
+    "EntityRenderDispatcherMixin",
     "ChatHudLineVisibleMixin",
     "ChatHudTimestampMixin",
     "ChatScreenMixin",

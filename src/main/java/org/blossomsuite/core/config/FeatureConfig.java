@@ -102,6 +102,8 @@ public final class FeatureConfig {
    public static final class Render {
       /** Every light level renders as fully lit - lava, water and dark caves all show at max brightness. */
       public boolean fullBright = false;
+      /** Hide other players on your screen while a vote party is going on in your realm. */
+      public boolean hidePlayersDuringVoteParty = false;
    }
 
    /** Vote-party sharing between realms: automatic, anonymous, and switchable. Off until the player opts in. */

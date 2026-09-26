@@ -46,6 +46,7 @@ import org.blossomsuite.core.jobs.JobXpTracker;
 import org.blossomsuite.core.state.SuiteState;
 import org.blossomsuite.core.util.SuiteItemIdUtil;
 import org.blossomsuite.core.verify.VerifyClient;
+import org.blossomsuite.core.visibility.PlayerVisibility;
 
 /** Subcommands for the BlossomBuddy features, attached under the main command (/buddy, /bb, /bsuite). */
 public final class BuddyCommands {
@@ -55,7 +56,7 @@ public final class BuddyCommands {
    }
 
    public static List<LiteralArgumentBuilder<FabricClientCommandSource>> subcommands() {
-      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys());
+      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players());
    }
 
    public static final String DISCORD_INVITE = "https://discord.gg/EA4WwSdGTj";
@@ -572,6 +573,25 @@ public final class BuddyCommands {
       }
 
       return sb.toString();
+   }
+
+   /** {@code /buddy players [hide|show]}: hide other players on your screen (this session only); no argument flips it. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> players() {
+      return ClientCommandManager.literal("players")
+         .executes(ctx -> tellPlayers(PlayerVisibility.toggle()))
+         .then(ClientCommandManager.literal("hide").executes(ctx -> {
+            PlayerVisibility.set(true);
+            return tellPlayers(true);
+         }))
+         .then(ClientCommandManager.literal("show").executes(ctx -> {
+            PlayerVisibility.set(false);
+            return tellPlayers(false);
+         }));
+   }
+
+   private static int tellPlayers(boolean hidden) {
+      ChatOutput.info(hidden ? "Other players hidden. /buddy players show (or the key) brings them back." : "Other players shown again.");
+      return 1;
    }
 
    /** {@code /buddy keys}: set the BlossomBuddy keys without needing the game's own controls menu. */
