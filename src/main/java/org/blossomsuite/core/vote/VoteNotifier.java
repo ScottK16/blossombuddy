@@ -2,10 +2,9 @@ package org.blossomsuite.core.vote;
 
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.config.VoteConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
 public final class VoteNotifier {
    private static String activeCountdownServer = "";
    private static long activeCountdownExpectedAtMs = 0L;
@@ -105,16 +104,16 @@ public final class VoteNotifier {
    }
 
    private static void playVoteSound() {
-      MinecraftClient client = MinecraftClient.getInstance();
-      if (client != null && client.player != null && client.world != null) {
-         client.world
+      Minecraft client = Minecraft.getInstance();
+      if (client != null && client.player != null && client.level != null) {
+         client.level
             .playSound(
                client.player,
                client.player.getX(),
                client.player.getY(),
                client.player.getZ(),
-               SoundEvents.ENTITY_FIREWORK_ROCKET_LAUNCH,
-               SoundCategory.PLAYERS,
+               SoundEvents.FIREWORK_ROCKET_LAUNCH,
+               SoundSource.PLAYERS,
                0.8F,
                1.15F
             );

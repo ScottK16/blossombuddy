@@ -8,8 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.world.item.ItemStack;
 public final class CooldownState {
    public static final List<CooldownState.PendingTrigger> pending = new ArrayList<>();
    public static final Map<CooldownRules.CooldownRule, ItemStack> lastStackByRuleKey = new HashMap<>();

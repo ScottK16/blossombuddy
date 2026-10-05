@@ -7,10 +7,9 @@ import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.ui.HoverLabelWidget;
 import org.blossomsuite.core.ui.SuiteSettingsScreen;
 import org.blossomsuite.core.ui.SuiteSubTab;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 public final class AutoFlySubTab implements SuiteSubTab {
    @Override
    public String titleKey() {
@@ -30,19 +29,19 @@ public final class AutoFlySubTab implements SuiteSubTab {
             y + 6,
             260,
             12,
-            Text.literal("Auto Fly"),
-            Tooltip.of(
-               Text.literal("Automatically runs /fly enable after first login or a scoreboard world change. Teleport commands arm faster scoreboard watching.")
+            Component.literal("Auto Fly"),
+            Tooltip.create(
+               Component.literal("Automatically runs /fly enable after first login or a scoreboard world change. Teleport commands arm faster scoreboard watching.")
             )
          )
       );
-      ButtonWidget button = StyledButton.of(Text.literal(cfg.QolConfig.autoFlyOnRwWorldLoad ? "ON" : "OFF"), b -> {
+      Button button = StyledButton.of(Component.literal(cfg.QolConfig.autoFlyOnRwWorldLoad ? "ON" : "OFF"), b -> {
          cfg.QolConfig.autoFlyOnRwWorldLoad = !cfg.QolConfig.autoFlyOnRwWorldLoad;
          cfg.markDirty();
          ConfigIO.saveIfDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(x + w - 80, y, 80, rowH).build();
-      button.setTooltip(Tooltip.of(Text.literal("Normal chat is ignored. Excluded worlds are skipped and AutoFly never sends /fly disable.")));
+      button.setTooltip(Tooltip.create(Component.literal("Normal chat is ignored. Excluded worlds are skipped and AutoFly never sends /fly disable.")));
       screen.addContentWidget(button);
    }
 

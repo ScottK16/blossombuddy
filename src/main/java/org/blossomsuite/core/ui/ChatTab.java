@@ -5,17 +5,16 @@ import org.blossomsuite.core.chat.StaffChatState;
 import org.blossomsuite.core.config.ChatConfig;
 import org.blossomsuite.core.config.ConfigIO;
 import org.blossomsuite.core.config.SuiteConfig;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
 public class ChatTab extends NestedSuiteTab {
-   private TextFieldWidget advertisementMessageField;
-   private TextFieldWidget welcomeMessageField;
-   private TextFieldWidget advertiserProfileNameField;
-   private TextFieldWidget pinataBalanceThresholdField;
+   private EditBox advertisementMessageField;
+   private EditBox welcomeMessageField;
+   private EditBox advertiserProfileNameField;
+   private EditBox pinataBalanceThresholdField;
 
    @Override
    public String titleKey() {
@@ -79,42 +78,42 @@ public class ChatTab extends NestedSuiteTab {
       this.pinataBalanceThresholdField = null;
    }
 
-   private void renderCounter(SuiteSettingsScreen screen, DrawContext ctx, TextFieldWidget field, String helperText, int maxLength) {
+   private void renderCounter(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, EditBox field, String helperText, int maxLength) {
       if (field != null) {
          int baseX = field.getX();
          int baseY = field.getY() + field.getHeight() + 4;
          int width = field.getWidth();
-         ctx.drawTextWithShadow(screen.getTextRenderer(), Text.literal(helperText), baseX, baseY, -7829368);
-         String counterStr = field.getText().length() + " / " + maxLength;
-         int counterWidth = screen.getTextRenderer().getWidth(counterStr);
-         ctx.drawTextWithShadow(screen.getTextRenderer(), Text.literal(counterStr), baseX + width - counterWidth, baseY, -5592406);
+         ctx.text(screen.getFont(), Component.literal(helperText), baseX, baseY, -7829368);
+         String counterStr = field.getValue().length() + " / " + maxLength;
+         int counterWidth = screen.getFont().width(counterStr);
+         ctx.text(screen.getFont(), Component.literal(counterStr), baseX + width - counterWidth, baseY, -5592406);
       }
    }
 
    private int addToggleRow(SuiteSettingsScreen screen, int x, int w, int y, int rowH, String label, boolean enabled, String tooltip, Runnable onPress) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      ButtonWidget button = StyledButton.of(Text.literal(enabled ? "ON" : "OFF"), b -> onPress.run()).dimensions(x + w - 80, y, 80, rowH).build();
-      button.setTooltip(Tooltip.of(Text.literal(tooltip)));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      Button button = StyledButton.of(Component.literal(enabled ? "ON" : "OFF"), b -> onPress.run()).dimensions(x + w - 80, y, 80, rowH).build();
+      button.setTooltip(Tooltip.create(Component.literal(tooltip)));
       screen.addContentWidget(button);
       return y + 24;
    }
 
    private int addButtonRow(SuiteSettingsScreen screen, int x, int w, int y, int rowH, String label, String buttonText, String tooltip, Runnable onPress) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 180, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      ButtonWidget button = StyledButton.of(Text.literal(buttonText), b -> onPress.run()).dimensions(x + w - 120, y, 120, rowH).build();
-      button.setTooltip(Tooltip.of(Text.literal(tooltip)));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 180, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      Button button = StyledButton.of(Component.literal(buttonText), b -> onPress.run()).dimensions(x + w - 120, y, 120, rowH).build();
+      button.setTooltip(Tooltip.create(Component.literal(tooltip)));
       screen.addContentWidget(button);
       return y + 24;
    }
 
    private int addIntField(SuiteSettingsScreen screen, int x, int w, int y, String label, int value, String tooltip, ChatTab.IntSetter setter) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 2, 220, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 2, 220, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
       y += 16;
-      this.pinataBalanceThresholdField = new TextFieldWidget(screen.getTextRenderer(), x, y, Math.min(120, w), 20, Text.empty());
+      this.pinataBalanceThresholdField = new EditBox(screen.getFont(), x, y, Math.min(120, w), 20, Component.empty());
       this.pinataBalanceThresholdField.setMaxLength(8);
-      this.pinataBalanceThresholdField.setText(String.valueOf(value));
-      this.pinataBalanceThresholdField.setTooltip(Tooltip.of(Text.literal(tooltip)));
-      this.pinataBalanceThresholdField.setChangedListener(s -> {
+      this.pinataBalanceThresholdField.setValue(String.valueOf(value));
+      this.pinataBalanceThresholdField.setTooltip(Tooltip.create(Component.literal(tooltip)));
+      this.pinataBalanceThresholdField.setResponder(s -> {
          try {
             setter.set(Integer.parseInt(s != null && !s.isBlank() ? s.trim() : "0"));
             SuiteConfig.INSTANCE.markDirty();
@@ -169,16 +168,16 @@ public class ChatTab extends NestedSuiteTab {
                y + 2,
                260,
                12,
-               Text.literal("Profile Name"),
-               Tooltip.of(Text.literal("Name shown in the HUD and settings for the active advertiser profile."))
+               Component.literal("Profile Name"),
+               Tooltip.create(Component.literal("Name shown in the HUD and settings for the active advertiser profile."))
             )
          );
          y += 16;
-         ChatTab.this.advertiserProfileNameField = new TextFieldWidget(screen.getTextRenderer(), x, y, w, 20, Text.empty());
+         ChatTab.this.advertiserProfileNameField = new EditBox(screen.getFont(), x, y, w, 20, Component.empty());
          ChatTab.this.advertiserProfileNameField.setMaxLength(64);
-         ChatTab.this.advertiserProfileNameField.setText(cfg.getActiveAdvertiserProfile().name == null ? "" : cfg.getActiveAdvertiserProfile().name);
-         ChatTab.this.advertiserProfileNameField.setTooltip(Tooltip.of(Text.literal("Rename the active advertiser profile.")));
-         ChatTab.this.advertiserProfileNameField.setChangedListener(s -> {
+         ChatTab.this.advertiserProfileNameField.setValue(cfg.getActiveAdvertiserProfile().name == null ? "" : cfg.getActiveAdvertiserProfile().name);
+         ChatTab.this.advertiserProfileNameField.setTooltip(Tooltip.create(Component.literal("Rename the active advertiser profile.")));
+         ChatTab.this.advertiserProfileNameField.setResponder(s -> {
             cfg.getActiveAdvertiserProfile().name = s == null ? "" : s;
             SuiteConfig.INSTANCE.markDirty();
             ConfigIO.saveIfDirty();
@@ -200,15 +199,15 @@ public class ChatTab extends NestedSuiteTab {
 
          screen.addContentWidget(
             new HoverLabelWidget(
-               x, y + 2, 260, 12, Text.literal("Advertisement Message"), Tooltip.of(Text.literal("Message sent when the advertiser hotkey is used."))
+               x, y + 2, 260, 12, Component.literal("Advertisement Message"), Tooltip.create(Component.literal("Message sent when the advertiser hotkey is used."))
             )
          );
          y += 16;
-         ChatTab.this.advertisementMessageField = new TextFieldWidget(screen.getTextRenderer(), x, y, w, 20, Text.empty());
+         ChatTab.this.advertisementMessageField = new EditBox(screen.getFont(), x, y, w, 20, Component.empty());
          ChatTab.this.advertisementMessageField.setMaxLength(256);
-         ChatTab.this.advertisementMessageField.setText(cfg.getActiveAdvertisementMessage());
-         ChatTab.this.advertisementMessageField.setTooltip(Tooltip.of(Text.literal("Enter the message used by the advertiser hotkey.")));
-         ChatTab.this.advertisementMessageField.setChangedListener(s -> {
+         ChatTab.this.advertisementMessageField.setValue(cfg.getActiveAdvertisementMessage());
+         ChatTab.this.advertisementMessageField.setTooltip(Tooltip.create(Component.literal("Enter the message used by the advertiser hotkey.")));
+         ChatTab.this.advertisementMessageField.setResponder(s -> {
             cfg.setAutomatedAdvertisementMessage(s);
             ConfigIO.saveIfDirty();
          });
@@ -216,7 +215,7 @@ public class ChatTab extends NestedSuiteTab {
       }
 
       @Override
-      public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
+      public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
          ChatTab.this.renderCounter(screen, ctx, ChatTab.this.advertisementMessageField, "Used when your advertiser hotkey is pressed.", 256);
       }
 
@@ -463,8 +462,8 @@ public class ChatTab extends NestedSuiteTab {
                   y,
                   Math.min(w, 320),
                   24,
-                  Text.literal("Staff chat tracking is disabled."),
-                  Tooltip.of(Text.literal("SuiteCore will ignore staff chat state until Track Staff Chat is turned back on."))
+                  Component.literal("Staff chat tracking is disabled."),
+                  Tooltip.create(Component.literal("SuiteCore will ignore staff chat state until Track Staff Chat is turned back on."))
                )
             );
          } else if (!StaffChatState.isStaffMember) {
@@ -475,8 +474,8 @@ public class ChatTab extends NestedSuiteTab {
                   y,
                   Math.min(w, 320),
                   24,
-                  Text.literal("Staff options appear after staff chat is detected."),
-                  Tooltip.of(Text.literal("Join a server where staff chat is available to configure these options."))
+                  Component.literal("Staff options appear after staff chat is detected."),
+                  Tooltip.create(Component.literal("Join a server where staff chat is available to configure these options."))
                )
             );
          } else {
@@ -487,21 +486,21 @@ public class ChatTab extends NestedSuiteTab {
             });
             screen.addContentWidget(
                new HoverLabelWidget(
-                  x, y + 2, 260, 12, Text.literal("Welcome Message"), Tooltip.of(Text.literal("Message sent when you press Send Welcome Message."))
+                  x, y + 2, 260, 12, Component.literal("Welcome Message"), Tooltip.create(Component.literal("Message sent when you press Send Welcome Message."))
                )
             );
             y += 16;
-            ChatTab.this.welcomeMessageField = new TextFieldWidget(screen.getTextRenderer(), x, y, w, 20, Text.empty());
+            ChatTab.this.welcomeMessageField = new EditBox(screen.getFont(), x, y, w, 20, Component.empty());
             ChatTab.this.welcomeMessageField.setMaxLength(256);
-            ChatTab.this.welcomeMessageField.setText(cfg.welcomeMessage == null ? "" : cfg.welcomeMessage);
-            ChatTab.this.welcomeMessageField.setTooltip(Tooltip.of(Text.literal("Enter a message used by the staff-only Welcome Message keybind.")));
-            ChatTab.this.welcomeMessageField.setChangedListener(cfg::setWelcomeMessage);
+            ChatTab.this.welcomeMessageField.setValue(cfg.welcomeMessage == null ? "" : cfg.welcomeMessage);
+            ChatTab.this.welcomeMessageField.setTooltip(Tooltip.create(Component.literal("Enter a message used by the staff-only Welcome Message keybind.")));
+            ChatTab.this.welcomeMessageField.setResponder(cfg::setWelcomeMessage);
             screen.addContentWidget(ChatTab.this.welcomeMessageField);
          }
       }
 
       @Override
-      public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
+      public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
          ChatTab.this.renderCounter(screen, ctx, ChatTab.this.welcomeMessageField, "Used when your Welcome Message keybind is pressed.", 256);
       }
 

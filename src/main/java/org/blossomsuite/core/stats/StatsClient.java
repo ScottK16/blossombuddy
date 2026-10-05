@@ -5,8 +5,8 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.session.Session;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.User;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.config.SuiteConfig;
@@ -297,7 +297,7 @@ public final class StatsClient {
 
       @Override
       public boolean canRun() {
-         MinecraftClient mc = MinecraftClient.getInstance();
+         Minecraft mc = Minecraft.getInstance();
          SuiteHttp http = SuiteState.INSTANCE.http;
          return mc.player != null && SuiteConfig.INSTANCE.isEnabledForCurrentWorld() && http != null && http.enabled();
       }
@@ -348,8 +348,8 @@ public final class StatsClient {
 
       @Override
       public String accountName() {
-         Session session = MinecraftClient.getInstance().getSession();
-         return session == null ? "" : session.getUsername();
+         User session = Minecraft.getInstance().getUser();
+         return session == null ? "" : session.getName();
       }
 
       @Override
@@ -361,7 +361,7 @@ public final class StatsClient {
    private static final class GameSink implements Sink {
       @Override
       public void notice(String text) {
-         MinecraftClient.getInstance().execute(() -> ChatOutput.info(text));
+         Minecraft.getInstance().execute(() -> ChatOutput.info(text));
       }
    }
 }

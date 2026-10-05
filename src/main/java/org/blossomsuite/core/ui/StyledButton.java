@@ -1,25 +1,25 @@
 package org.blossomsuite.core.ui;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 /**
  * Drop-in for {@link ButtonWidget} with the BlossomBuddy look. Same builder calls as the vanilla one,
  * so a call site only needs {@code ButtonWidget.builder(} changed to {@code StyledButton.of(}.
  */
-public class StyledButton extends ButtonWidget implements TooltipHolder {
+public class StyledButton extends Button implements TooltipHolder {
    private boolean accent = false;
    private Tooltip heldTooltip;
 
-   protected StyledButton(int x, int y, int width, int height, Text message, PressAction onPress, NarrationSupplier narration) {
+   protected StyledButton(int x, int y, int width, int height, Component message, Button.OnPress onPress, Button.CreateNarration narration) {
       super(x, y, width, height, message, onPress, narration);
+      this.alpha = 0.0F; // vanilla paints its own button sprite first (with this alpha); this button draws everything itself
    }
 
-   public static Builder of(Text message, PressAction onPress) {
+   public static Builder of(Component message, Button.OnPress onPress) {
       return new Builder(message, onPress);
    }
 
@@ -41,7 +41,7 @@ public class StyledButton extends ButtonWidget implements TooltipHolder {
    }
 
    @Override
-   public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+   protected void extractContents(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
       boolean hover = this.isHovered() && this.active;
       boolean focus = this.isFocused() && this.active;
       int fill;
@@ -75,22 +75,22 @@ public class StyledButton extends ButtonWidget implements TooltipHolder {
          color = Theme.TEXT;
       }
 
-      TextRenderer tr = MinecraftClient.getInstance().textRenderer;
+      Font tr = Minecraft.getInstance().font;
       int textY = y1 + (this.getHeight() - 8) / 2;
-      context.drawCenteredTextWithShadow(tr, this.getMessage(), x1 + this.getWidth() / 2, textY, color);
+      context.centeredText(tr, this.getMessage(), x1 + this.getWidth() / 2, textY, color);
    }
 
    public static final class Builder {
-      private final Text message;
-      private final PressAction onPress;
+      private final Component message;
+      private final Button.OnPress onPress;
       private Tooltip tooltip;
       private int x;
       private int y;
       private int width = 150;
       private int height = 20;
-      private NarrationSupplier narration = DEFAULT_NARRATION_SUPPLIER;
+      private Button.CreateNarration narration = DEFAULT_NARRATION;
 
-      private Builder(Text message, PressAction onPress) {
+      private Builder(Component message, Button.OnPress onPress) {
          this.message = message;
          this.onPress = onPress;
       }
@@ -121,7 +121,7 @@ public class StyledButton extends ButtonWidget implements TooltipHolder {
          return this;
       }
 
-      public Builder narrationSupplier(NarrationSupplier narration) {
+      public Builder narrationSupplier(Button.CreateNarration narration) {
          this.narration = narration;
          return this;
       }

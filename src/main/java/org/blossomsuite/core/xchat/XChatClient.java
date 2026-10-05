@@ -10,8 +10,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.session.Session;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.User;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.chat.SecondaryChat;
 import org.blossomsuite.core.config.FeatureConfig;
@@ -356,17 +356,17 @@ public final class XChatClient {
    public static final class MojangJoiner implements Joiner {
       @Override
       public String join(String serverId) throws ChatException {
-         MinecraftClient mc = MinecraftClient.getInstance();
-         Session session = mc.getSession();
-         UUID id = session == null ? null : session.getUuidOrNull();
+         Minecraft mc = Minecraft.getInstance();
+         User session = mc.getUser();
+         UUID id = session == null ? null : session.getProfileId();
          if (id == null) {
             throw new ChatException("This isn't a Minecraft account that can sign in.", 10 * 60_000L);
          }
 
          try {
-            MinecraftSessionService service = mc.getSessionService();
+            MinecraftSessionService service = mc.services().sessionService();
             service.joinServer(id, session.getAccessToken(), serverId); // talks to Mojang only
-            return session.getUsername();
+            return session.getName();
          } catch (Exception e) {
             throw new ChatException("Mojang's login check didn't accept this session.", 60_000L);
          }
@@ -381,7 +381,7 @@ public final class XChatClient {
 
       @Override
       public boolean canRun() {
-         MinecraftClient mc = MinecraftClient.getInstance();
+         Minecraft mc = Minecraft.getInstance();
          SuiteHttp http = SuiteState.INSTANCE.http;
          return mc.player != null && SuiteConfig.INSTANCE.isEnabledForCurrentWorld() && http != null && http.enabled();
       }
@@ -402,8 +402,8 @@ public final class XChatClient {
    private static final class GameSink implements Sink {
       @Override
       public void message(XChatModels.Message message, boolean own) {
-         MinecraftClient.getInstance().execute(() -> {
-            net.minecraft.text.Text line = XChatText.format(message);
+         Minecraft.getInstance().execute(() -> {
+            net.minecraft.network.chat.Component line = XChatText.format(message);
             SecondaryChat.INSTANCE.addExternal(line);
             if (!FeatureConfig.INSTANCE.chat.show) {
                ChatOutput.raw(line);
@@ -413,7 +413,7 @@ public final class XChatClient {
 
       @Override
       public void notice(String text) {
-         MinecraftClient.getInstance().execute(() -> ChatOutput.info(text));
+         Minecraft.getInstance().execute(() -> ChatOutput.info(text));
       }
    }
 }

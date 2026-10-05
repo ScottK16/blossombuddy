@@ -3,9 +3,9 @@ package org.blossomsuite.core.hud;
 import org.blossomsuite.core.config.ConfigIO;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.util.HudStyleUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.joml.Matrix3x2fStack;
 
 public final class AutoSwapperHud {
@@ -107,7 +107,7 @@ public final class AutoSwapperHud {
       return SuiteConfig.INSTANCE.AutoSwapperHudConfig.showHeader ? 35 : 21;
    }
 
-   public static void render(DrawContext ctx, MinecraftClient client) {
+   public static void render(GuiGraphicsExtractor ctx, Minecraft client) {
       if (SuiteConfig.INSTANCE.AutoSwapperHudConfig.showHud) {
          if (client != null && client.player != null) {
             String header = "AutoSwapper";
@@ -118,16 +118,16 @@ public final class AutoSwapperHud {
       }
    }
 
-   private static void renderPanel(DrawContext ctx, MinecraftClient client, String header, String row, int rowColor) {
-      int screenH = client.getWindow().getScaledHeight();
-      int screenW = client.getWindow().getScaledWidth();
-      TextRenderer tr = client.textRenderer;
+   private static void renderPanel(GuiGraphicsExtractor ctx, Minecraft client, String header, String row, int rowColor) {
+      int screenH = client.getWindow().getGuiScaledHeight();
+      int screenW = client.getWindow().getGuiScaledWidth();
+      Font tr = client.font;
       boolean showHeader = SuiteConfig.INSTANCE.AutoSwapperHudConfig.showHeader;
       int headerH = 14;
       int pad = 4;
       int rowH = 9;
       int baseH = showHeader ? 2 + headerH + pad + rowH + pad + 2 : 2 + pad + rowH + pad + 2;
-      int baseW = Math.max(110, (showHeader ? Math.max(tr.getWidth(header), tr.getWidth(row)) : tr.getWidth(row)) + 12);
+      int baseW = Math.max(110, (showHeader ? Math.max(tr.width(header), tr.width(row)) : tr.width(row)) + 12);
       if (baseW > 220) {
          baseW = 220;
       }
@@ -153,7 +153,7 @@ public final class AutoSwapperHud {
       lastY = y;
       lastW = w;
       lastH = h;
-      Matrix3x2fStack matrices = ctx.getMatrices();
+      Matrix3x2fStack matrices = ctx.pose();
       matrices.pushMatrix();
       matrices.translate(x, y);
       matrices.scale(scale, scale);
@@ -164,11 +164,11 @@ public final class AutoSwapperHud {
          if (showHeader) {
             ctx.fill(0, 0, baseW, headerH, HudStyleUtil.panelHeader(opacity));
             ctx.fill(0, headerH, baseW, headerH + 1, HudStyleUtil.panelDivider(opacity));
-            ctx.drawTextWithShadow(tr, header, 6, 4, -1);
+            ctx.text(tr, header, 6, 4, -1);
          }
 
          int rowY = showHeader ? headerH + pad : 2 + pad;
-         ctx.drawTextWithShadow(tr, row, 6, rowY, rowColor);
+         ctx.text(tr, row, 6, rowY, rowColor);
       } finally {
          matrices.popMatrix();
       }

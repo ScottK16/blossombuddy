@@ -1,12 +1,11 @@
 package org.blossomsuite.core.qol.mining;
 
 import org.blossomsuite.core.config.SuiteConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult.Type;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 public final class MiningResumeGuard {
    private static final int RECOVERY_TICKS = 10;
    private static final int RESTART_DELAY_TICKS = 6;
@@ -30,7 +29,7 @@ public final class MiningResumeGuard {
       }
    }
 
-   public static void onAutoDropLikeInventoryAction(MinecraftClient client) {
+   public static void onAutoDropLikeInventoryAction(Minecraft client) {
       if (shouldKeepBreaking(client)) {
          if (isAttackInputPressed(client)) {
             rememberCurrentTarget(client);
@@ -42,11 +41,11 @@ public final class MiningResumeGuard {
       }
    }
 
-   public static void onBlockBreakingInterrupted(MinecraftClient client) {
+   public static void onBlockBreakingInterrupted(Minecraft client) {
       onAutoDropLikeInventoryAction(client);
    }
 
-   public static void tick(MinecraftClient client) {
+   public static void tick(Minecraft client) {
       if (!shouldKeepBreaking(client)) {
          clearRecovery();
       } else if (recoveryTicks > 0) {
@@ -65,22 +64,22 @@ public final class MiningResumeGuard {
       }
    }
 
-   public static boolean shouldKeepBreaking(MinecraftClient client) {
-      if (client != null && client.player != null && client.world != null) {
+   public static boolean shouldKeepBreaking(Minecraft client) {
+      if (client != null && client.player != null && client.level != null) {
          SuiteConfig cfg = SuiteConfig.INSTANCE;
          if (cfg == null || cfg.QolConfig == null || !cfg.QolConfig.miningResumeAfterDrops) {
             return false;
          }
 
-         if (client.currentScreen != null) {
+         if (client.screen != null) {
             return false;
          }
 
-         if (client.crosshairTarget != null && client.crosshairTarget.getType() == Type.BLOCK) {
+         if (client.hitResult != null && client.hitResult.getType() == Type.BLOCK) {
             boolean attackKeyPressed = false;
 
             try {
-               attackKeyPressed = client.options != null && client.options.attackKey != null && client.options.attackKey.isPressed();
+               attackKeyPressed = client.options != null && client.options.keyAttack != null && client.options.keyAttack.isDown();
             } catch (Throwable var4) {
             }
 
@@ -95,32 +94,32 @@ public final class MiningResumeGuard {
       }
    }
 
-   private static void rememberCurrentTarget(MinecraftClient client) {
+   private static void rememberCurrentTarget(Minecraft client) {
       if (client != null) {
-         if (client.crosshairTarget instanceof BlockHitResult hit) {
+         if (client.hitResult instanceof BlockHitResult hit) {
             BlockPos var4 = hit.getBlockPos();
-            Direction side = hit.getSide();
+            Direction side = hit.getDirection();
             if (var4 != null && side != null) {
-               lastTargetPos = var4.toImmutable();
+               lastTargetPos = var4.immutable();
                lastTargetSide = side;
             }
          }
       }
    }
 
-   private static void cancelCurrentBreaking(MinecraftClient client) {
-      if (client != null && client.interactionManager != null) {
+   private static void cancelCurrentBreaking(Minecraft client) {
+      if (client != null && client.gameMode != null) {
          try {
-            client.interactionManager.cancelBlockBreaking();
+            client.gameMode.stopDestroyBlock();
          } catch (Throwable var2) {
          }
       }
    }
 
-   private static void restartCurrentTargetBreaking(MinecraftClient client) {
+   private static void restartCurrentTargetBreaking(Minecraft client) {
       if (restartSent) {
          clearRecovery();
-      } else if (client != null && client.interactionManager != null) {
+      } else if (client != null && client.gameMode != null) {
          if (!isAttackInputPressed(client)) {
             clearRecovery();
          } else {
@@ -129,13 +128,13 @@ public final class MiningResumeGuard {
             if (pos != null) {
                if (side != null) {
                   try {
-                     boolean accepted = client.interactionManager.attackBlock(pos, side);
+                     boolean accepted = client.gameMode.startDestroyBlock(pos, side);
                      if (!accepted) {
                         clearRecovery();
                         return;
                      }
 
-                     client.interactionManager.updateBlockBreakingProgress(pos, side);
+                     client.gameMode.continueDestroyBlock(pos, side);
                      restartSent = true;
                   } catch (Throwable ignored) {
                      clearRecovery();
@@ -146,10 +145,10 @@ public final class MiningResumeGuard {
       }
    }
 
-   private static boolean isAttackInputPressed(MinecraftClient client) {
-      if (client != null && client.options != null && client.options.attackKey != null) {
+   private static boolean isAttackInputPressed(Minecraft client) {
+      if (client != null && client.options != null && client.options.keyAttack != null) {
          try {
-            return client.options.attackKey.isPressed();
+            return client.options.keyAttack.isDown();
          } catch (Throwable ignored) {
             return false;
          }
@@ -158,13 +157,13 @@ public final class MiningResumeGuard {
       }
    }
 
-   private static boolean currentTargetMatchesRemembered(MinecraftClient client) {
+   private static boolean currentTargetMatchesRemembered(Minecraft client) {
       if (client == null) {
          return false;
-      } else if (!(client.crosshairTarget instanceof BlockHitResult hit)) {
+      } else if (!(client.hitResult instanceof BlockHitResult hit)) {
          return false;
       } else {
-         return lastTargetPos != null && lastTargetSide != null ? lastTargetPos.equals(hit.getBlockPos()) && lastTargetSide == hit.getSide() : false;
+         return lastTargetPos != null && lastTargetSide != null ? lastTargetPos.equals(hit.getBlockPos()) && lastTargetSide == hit.getDirection() : false;
       }
    }
 

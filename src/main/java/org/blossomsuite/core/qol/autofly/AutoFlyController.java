@@ -4,8 +4,7 @@ import org.blossomsuite.core.SuiteRuntime;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.util.TextUtil;
 import java.util.Locale;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 public final class AutoFlyController {
    private static final long COMMAND_COOLDOWN_MS = 1000L;
    private static final long WORLD_STABLE_MS = 750L;
@@ -36,8 +35,8 @@ public final class AutoFlyController {
       if (SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
          if (SuiteConfig.INSTANCE.QolConfig != null && SuiteConfig.INSTANCE.QolConfig.autoFlyOnRwWorldLoad) {
             if (worldName != null && !worldName.isBlank()) {
-               MinecraftClient client = MinecraftClient.getInstance();
-               if (client != null && client.player != null && client.getNetworkHandler() != null) {
+               Minecraft client = Minecraft.getInstance();
+               if (client != null && client.player != null && client.getConnection() != null) {
                   String key = normalizeKey(serverName) + "|" + normalizeKey(worldName);
                   if (!key.isBlank()) {
                      boolean excludedWorld = SuiteRuntime.profile().isAutoFlyExcludedWorld(worldName);
@@ -89,11 +88,11 @@ public final class AutoFlyController {
       }
    }
 
-   public static void onServerSet(String serverName, MinecraftClient client, long nowMs) {
+   public static void onServerSet(String serverName, Minecraft client, long nowMs) {
       if (SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
          if (SuiteConfig.INSTANCE.QolConfig != null && SuiteConfig.INSTANCE.QolConfig.autoFlyOnRwWorldLoad) {
             if (serverName != null && !serverName.isBlank()) {
-               if (client != null && client.player != null && client.getNetworkHandler() != null) {
+               if (client != null && client.player != null && client.getConnection() != null) {
                   pendingLoginServerKey = normalizeKey(serverName);
                   if (!confirmedWorldKey.isBlank() && matchesLoginServer(confirmedWorldKey)) {
                      pendingLoginServerKey = "";
@@ -127,7 +126,7 @@ public final class AutoFlyController {
       }
    }
 
-   public static void tick(MinecraftClient client, long nowMs) {
+   public static void tick(Minecraft client, long nowMs) {
       if (!SuiteConfig.INSTANCE.isEnabledForCurrentWorld() || SuiteConfig.INSTANCE.QolConfig == null || !SuiteConfig.INSTANCE.QolConfig.autoFlyOnRwWorldLoad) {
          clearPendingWorld();
          pendingLoginServerKey = "";
@@ -184,9 +183,9 @@ public final class AutoFlyController {
       }
    }
 
-   private static void sendFlyEnable(MinecraftClient client, long nowMs) {
+   private static void sendFlyEnable(Minecraft client, long nowMs) {
       if (nowMs - lastCommandAtMs >= 1000L) {
-         client.getNetworkHandler().sendChatCommand("fly enable");
+         client.getConnection().sendCommand("fly enable");
          lastCommandAtMs = nowMs;
       }
    }

@@ -4,19 +4,18 @@ import org.blossomsuite.core.SuiteRuntime;
 import org.blossomsuite.core.config.SuiteConfig;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 public final class HudCallbacks {
    private HudCallbacks() {
    }
 
    public static void init() {
-      HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.of(SuiteRuntime.profile().modId(), "hud"), (ctx, tickCounter) -> {
-         MinecraftClient client = MinecraftClient.getInstance();
+      HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.fromNamespaceAndPath(SuiteRuntime.profile().modId(), "hud"), (ctx, tickCounter) -> {
+         Minecraft client = Minecraft.getInstance();
          if (client.player != null) {
             if (SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
-               if (!client.options.hudHidden) {
+               if (!client.options.hideGui) {
                   if (!HudEditState.editMode) {
                      JobsHud.render(ctx, client);
                      CooldownsHud.renderPanel(ctx, client);

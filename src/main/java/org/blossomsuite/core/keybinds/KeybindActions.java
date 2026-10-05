@@ -18,9 +18,8 @@ import org.blossomsuite.core.qol.holepuncher.HolePuncher;
 import org.blossomsuite.core.qol.inventorysort.InventorySorter;
 import org.blossomsuite.core.storage.SegmentStore;
 import org.blossomsuite.core.util.WorldGate;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.math.Direction;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.Direction;
 public final class KeybindActions {
    private KeybindActions() {
    }
@@ -30,12 +29,12 @@ public final class KeybindActions {
       return feature == null || SuiteRuntime.isEnabled(feature);
    }
 
-   public static void run(KeybindActions.Action a, MinecraftClient client) {
+   public static void run(KeybindActions.Action a, Minecraft client) {
       if (client != null) {
          if (isAvailable(a)) {
             switch (a) {
                case OPEN_SETTINGS: {
-                  KeybindRuntime.openSettings(MinecraftClient.getInstance());
+                  KeybindRuntime.openSettings(Minecraft.getInstance());
                   break;
                }
                case TOGGLE_EDIT_MODE: {
@@ -129,7 +128,7 @@ public final class KeybindActions {
                      return;
                   }
 
-                  if (client.getNetworkHandler() == null) {
+                  if (client.getConnection() == null) {
                      return;
                   }
 
@@ -137,7 +136,7 @@ public final class KeybindActions {
                      return;
                   }
 
-                  client.getNetworkHandler().sendChatCommand("condense");
+                  client.getConnection().sendCommand("condense");
                   ChatOutput.info("Condense command sent.");
                   break;
                }
@@ -174,7 +173,7 @@ public final class KeybindActions {
                      return;
                   }
 
-                  if (client.getNetworkHandler() == null) {
+                  if (client.getConnection() == null) {
                      return;
                   }
 
@@ -182,7 +181,7 @@ public final class KeybindActions {
                      return;
                   }
 
-                  client.getNetworkHandler().sendChatCommand("marry chattoggle");
+                  client.getConnection().sendCommand("marry chattoggle");
                   ChatOutput.info("Marry chat toggle command sent.");
                   break;
                }
@@ -239,17 +238,17 @@ public final class KeybindActions {
                      return;
                   }
 
-                  Direction d = client.player.getHorizontalFacing();
-                  q.miningTrackDir = d.asString();
+                  Direction d = client.player.getDirection();
+                  q.miningTrackDir = d.getSerializedName();
                   if (d != Direction.EAST && d != Direction.WEST) {
-                     q.miningTrackCoord = client.player.getBlockPos().getX();
+                     q.miningTrackCoord = client.player.blockPosition().getX();
                   } else {
-                     q.miningTrackCoord = client.player.getBlockPos().getZ();
+                     q.miningTrackCoord = client.player.blockPosition().getZ();
                   }
 
                   SuiteConfig.INSTANCE.markDirty();
                   ConfigIO.saveIfDirty();
-                  String dir = d.asString().toUpperCase();
+                  String dir = d.getSerializedName().toUpperCase();
                   boolean alongZ = d == Direction.NORTH || d == Direction.SOUTH;
                   String axis = alongZ ? "X" : "Z";
                   ChatOutput.info("Mining Track set: " + (alongZ ? "N/S" : "E/W") + " (" + axis + "=" + q.miningTrackCoord + ").");
@@ -323,7 +322,7 @@ public final class KeybindActions {
                      return;
                   }
 
-                  if (client.getNetworkHandler() == null) {
+                  if (client.getConnection() == null) {
                      return;
                   }
 
@@ -360,7 +359,7 @@ public final class KeybindActions {
                      return;
                   }
 
-                  if (client.getNetworkHandler() == null) {
+                  if (client.getConnection() == null) {
                      return;
                   }
 
@@ -385,7 +384,7 @@ public final class KeybindActions {
                      return;
                   }
 
-                  if (client.getNetworkHandler() == null) {
+                  if (client.getConnection() == null) {
                      return;
                   }
 
@@ -393,7 +392,7 @@ public final class KeybindActions {
                      return;
                   }
 
-                  client.getNetworkHandler().sendChatCommand("sch toggle");
+                  client.getConnection().sendCommand("sch toggle");
                   ChatOutput.info("Staff chat toggle command sent.");
                }
             }

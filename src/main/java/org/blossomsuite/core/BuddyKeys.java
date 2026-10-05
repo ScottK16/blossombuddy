@@ -1,10 +1,10 @@
 package org.blossomsuite.core;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.KeyMapping;
+import com.mojang.blaze3d.platform.InputConstants;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.chat.SecondaryChat;
 import org.blossomsuite.core.chat.StaffChatState;
@@ -25,26 +25,26 @@ import org.lwjgl.glfw.GLFW;
  * Options > Controls under "BlossomBuddy" and are rebound there. All start unbound, except the emote menu (B).
  */
 public final class BuddyKeys {
-   private static final String CATEGORY = "category.suitecore";
-   private static KeyBinding toggleScoreboard;
-   private static KeyBinding hotbarUp;
-   private static KeyBinding hotbarDown;
-   private static KeyBinding hotbarSwap1;
-   private static KeyBinding hotbarSwap2;
-   private static KeyBinding chatFilter;
-   private static KeyBinding playerList;
-   private static KeyBinding xchatMode;
-   private static KeyBinding emoteWheel;
-   private static KeyBinding emoteStop;
-   private static KeyBinding closeStaffChat;
-   private static KeyBinding hidePlayers;
-   private static KeyBinding searchChat;
+   private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(net.minecraft.resources.Identifier.fromNamespaceAndPath("suitecore", "main"));
+   private static KeyMapping toggleScoreboard;
+   private static KeyMapping hotbarUp;
+   private static KeyMapping hotbarDown;
+   private static KeyMapping hotbarSwap1;
+   private static KeyMapping hotbarSwap2;
+   private static KeyMapping chatFilter;
+   private static KeyMapping playerList;
+   private static KeyMapping xchatMode;
+   private static KeyMapping emoteWheel;
+   private static KeyMapping emoteStop;
+   private static KeyMapping closeStaffChat;
+   private static KeyMapping hidePlayers;
+   private static KeyMapping searchChat;
 
    private BuddyKeys() {
    }
 
    /** Every BlossomBuddy key, for the in-mod keys screen (some clients don't list mod keys in their own controls menu). */
-   public static java.util.List<KeyBinding> all() {
+   public static java.util.List<KeyMapping> all() {
       return java.util.List.of(
          emoteWheel, emoteStop, closeStaffChat, hidePlayers, searchChat, xchatMode, playerList, chatFilter,
          toggleScoreboard, hotbarUp, hotbarDown, hotbarSwap1, hotbarSwap2
@@ -69,16 +69,16 @@ public final class BuddyKeys {
       ClientTickEvents.END_CLIENT_TICK.register(org.blossomsuite.core.alts.AltGuard::tick);
    }
 
-   private static KeyBinding register(String id) {
+   private static KeyMapping register(String id) {
       return register(id, GLFW.GLFW_KEY_UNKNOWN);
    }
 
-   private static KeyBinding register(String id, int defaultKey) {
-      return KeyBindingHelper.registerKeyBinding(new KeyBinding("key.suitecore." + id, InputUtil.Type.KEYSYM, defaultKey, CATEGORY));
+   private static KeyMapping register(String id, int defaultKey) {
+      return KeyMappingHelper.registerKeyMapping(new KeyMapping("key.suitecore." + id, InputConstants.Type.KEYSYM, defaultKey, CATEGORY));
    }
 
    /** Switches staff chat off if it is on. Unlike the toggle key, pressing it again never turns it back on. */
-   private static void closeStaffChat(MinecraftClient client) {
+   private static void closeStaffChat(Minecraft client) {
       if (!StaffChatState.isStaffTrackingActive()) {
          ChatOutput.info("Staff chat isn't detected for you yet - toggle it once, or check Options > Chat > Staff Chat.");
          return;
@@ -89,12 +89,12 @@ public final class BuddyKeys {
          return;
       }
 
-      if (client.getNetworkHandler() != null && WorldGate.isActive()) {
-         client.getNetworkHandler().sendChatCommand("sch toggle");
+      if (client.getConnection() != null && WorldGate.isActive()) {
+         client.getConnection().sendCommand("sch toggle");
       }
    }
 
-   private static void tick(MinecraftClient client) {
+   private static void tick(Minecraft client) {
       if (client.player == null) {
          XChatMode.set(false); // cross-realm chat mode never survives leaving the world
          PlayerVisibility.set(false); // nor does hiding the other players
@@ -104,60 +104,60 @@ public final class BuddyKeys {
          return;
       }
 
-      while (toggleScoreboard.wasPressed()) {
+      while (toggleScoreboard.consumeClick()) {
          FeatureConfig.Scoreboard sb = FeatureConfig.INSTANCE.scoreboard;
          sb.hidden = !sb.hidden;
          FeatureConfig.markDirty();
          ChatOutput.info("Scoreboard " + (sb.hidden ? "hidden." : "shown."));
       }
 
-      while (hotbarUp.wasPressed()) {
+      while (hotbarUp.consumeClick()) {
          HotbarCycler.cycle(client, true);
       }
 
-      while (hotbarDown.wasPressed()) {
+      while (hotbarDown.consumeClick()) {
          HotbarCycler.cycle(client, false);
       }
 
-      while (hotbarSwap1.wasPressed()) {
+      while (hotbarSwap1.consumeClick()) {
          HotbarCycler.swapWithRow(client, 1);
       }
 
-      while (hotbarSwap2.wasPressed()) {
+      while (hotbarSwap2.consumeClick()) {
          HotbarCycler.swapWithRow(client, 2);
       }
 
       EmoteClient.INSTANCE.clientTick(); // moving only ends the sitting/lying emotes
 
-      while (emoteWheel.wasPressed()) {
+      while (emoteWheel.consumeClick()) {
          client.setScreen(new EmoteWheelScreen());
       }
 
-      while (emoteStop.wasPressed()) {
+      while (emoteStop.consumeClick()) {
          EmoteClient.INSTANCE.stop();
       }
 
-      while (closeStaffChat.wasPressed()) {
+      while (closeStaffChat.consumeClick()) {
          closeStaffChat(client);
       }
 
-      while (hidePlayers.wasPressed()) {
+      while (hidePlayers.consumeClick()) {
          ChatOutput.info(PlayerVisibility.toggle() ? "Other players hidden." : "Other players shown again.");
       }
 
-      while (searchChat.wasPressed()) {
-         client.setScreen(new ChatSearchScreen(client.currentScreen));
+      while (searchChat.consumeClick()) {
+         client.setScreen(new ChatSearchScreen(client.screen));
       }
 
-      while (xchatMode.wasPressed()) {
+      while (xchatMode.consumeClick()) {
          XChatMode.toggleAndTell();
       }
 
-      while (playerList.wasPressed()) {
+      while (playerList.consumeClick()) {
          client.setScreen(new PlayerListScreen());
       }
 
-      while (chatFilter.wasPressed()) {
+      while (chatFilter.consumeClick()) {
          ChatOutput.info("Secondary chat: " + SecondaryChat.INSTANCE.cycleFilter());
       }
    }

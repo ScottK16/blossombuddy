@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "blossombuddy-gametest",
+  "version": "1.0.0",
+  "name": "BlossomBuddy smoke test",
+  "environment": "client",
+  "depends": {
+    "blossombuddy": "*",
+    "fabric-client-gametest-api-v1": "*"
+  },
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "org.blossomsuite.gametest.BuddySmokeTest"
+    ]
+  }
+}

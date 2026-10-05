@@ -10,17 +10,16 @@ import org.blossomsuite.core.jobs.JobsMode;
 import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Locale;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
 public class JobsTab extends NestedSuiteTab {
    private static final DecimalFormat MONEY_FMT = new DecimalFormat("#,##0.00");
-   private TextFieldWidget autoSegmentMoneyField;
-   private TextFieldWidget autoSegmentExpField;
-   private TextFieldWidget pauseAutoUnpauseMoneyField;
+   private EditBox autoSegmentMoneyField;
+   private EditBox autoSegmentExpField;
+   private EditBox pauseAutoUnpauseMoneyField;
 
    @Override
    public String titleKey() {
@@ -52,12 +51,12 @@ public class JobsTab extends NestedSuiteTab {
       int x = screen.contentX();
       int w = screen.contentW();
       int y = screen.headerControlY();
-      screen.addHeaderWidget(new HoverLabelWidget(x, y + 6, 120, 12, Text.literal("Capture"), Tooltip.of(Text.literal("Master toggle for Jobs tracking."))));
-      ButtonWidget captureButton = StyledButton.of(Text.literal(jobs.capture ? "ON" : "OFF"), b -> {
+      screen.addHeaderWidget(new HoverLabelWidget(x, y + 6, 120, 12, Component.literal("Capture"), Tooltip.create(Component.literal("Master toggle for Jobs tracking."))));
+      Button captureButton = StyledButton.of(Component.literal(jobs.capture ? "ON" : "OFF"), b -> {
          jobs.toggleCapture();
          screen.rebuildFromTab();
       }).dimensions(x + w - 80, y, 80, 20).build();
-      captureButton.setTooltip(Tooltip.of(Text.literal("When disabled, Jobs data will not be captured.")));
+      captureButton.setTooltip(Tooltip.create(Component.literal("When disabled, Jobs data will not be captured.")));
       screen.addHeaderWidget(captureButton);
    }
 
@@ -80,8 +79,8 @@ public class JobsTab extends NestedSuiteTab {
             y,
             Math.min(w, 360),
             24,
-            Text.literal("Enable Capture to show the rest of the Jobs settings."),
-            Tooltip.of(Text.literal("HUD, session, pause, segment, and lifetime options are hidden while Capture is off."))
+            Component.literal("Enable Capture to show the rest of the Jobs settings."),
+            Tooltip.create(Component.literal("HUD, session, pause, segment, and lifetime options are hidden while Capture is off."))
          )
       );
    }
@@ -91,26 +90,26 @@ public class JobsTab extends NestedSuiteTab {
    }
 
    private int addToggleRow(SuiteSettingsScreen screen, int x, int w, int y, int rowH, String label, boolean enabled, String tooltip, Runnable onPress) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      ButtonWidget button = StyledButton.of(Text.literal(enabled ? "ON" : "OFF"), b -> onPress.run()).dimensions(x + w - 80, y, 80, rowH).build();
-      button.setTooltip(Tooltip.of(Text.literal(tooltip)));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      Button button = StyledButton.of(Component.literal(enabled ? "ON" : "OFF"), b -> onPress.run()).dimensions(x + w - 80, y, 80, rowH).build();
+      button.setTooltip(Tooltip.create(Component.literal(tooltip)));
       screen.addContentWidget(button);
       return y + 24;
    }
 
    private int addButtonRow(SuiteSettingsScreen screen, int x, int w, int y, int rowH, String label, String buttonText, String tooltip, Runnable onPress) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 180, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      ButtonWidget button = StyledButton.of(Text.literal(buttonText), b -> onPress.run()).dimensions(x + w - 120, y, 120, rowH).build();
-      button.setTooltip(Tooltip.of(Text.literal(tooltip)));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 180, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      Button button = StyledButton.of(Component.literal(buttonText), b -> onPress.run()).dimensions(x + w - 120, y, 120, rowH).build();
+      button.setTooltip(Tooltip.create(Component.literal(tooltip)));
       screen.addContentWidget(button);
       return y + 24;
    }
 
    private int addLifetimeRow(SuiteSettingsScreen screen, int tableX, int tableW, int y, int rowH, String label, String value) {
       int labelW = 90;
-      screen.addContentWidget(new HoverLabelWidget(tableX, y + 6, labelW, 12, Text.literal(label), Tooltip.of(Text.literal(label + " lifetime earnings"))));
-      Text valueText = Text.literal(value != null && !value.isBlank() ? value : "-");
-      int textWidth = screen.getTextRenderer().getWidth(valueText);
+      screen.addContentWidget(new HoverLabelWidget(tableX, y + 6, labelW, 12, Component.literal(label), Tooltip.create(Component.literal(label + " lifetime earnings"))));
+      Component valueText = Component.literal(value != null && !value.isBlank() ? value : "-");
+      int textWidth = screen.getFont().width(valueText);
       screen.addContentWidget(new HoverLabelWidget(tableX + tableW - textWidth, y + 6, textWidth, 12, valueText, null));
       return y + rowH + 2;
    }
@@ -309,21 +308,21 @@ public class JobsTab extends NestedSuiteTab {
                         labelY,
                         180,
                         12,
-                        Text.literal("Segment Interval"),
-                        Tooltip.of(Text.literal("How often Jobs should automatically segment. Range: 5 to 180 minutes."))
+                        Component.literal("Segment Interval"),
+                        Tooltip.create(Component.literal("How often Jobs should automatically segment. Range: 5 to 180 minutes."))
                      )
                   );
-                  SliderWidget autoSegmentSlider = new StyledSlider(x, sliderY, w, 20, Text.empty(), JobsTab.secsToSlider(jobs.autoSegmentInSecs)) {
+                  AbstractSliderButton autoSegmentSlider = new StyledSlider(x, sliderY, w, 20, Component.empty(), JobsTab.secsToSlider(jobs.autoSegmentInSecs)) {
                      {
                         this.updateMessage();
-                        this.setTooltip(Tooltip.of(Text.literal("Current auto-segment interval.")));
+                        this.setTooltip(Tooltip.create(Component.literal("Current auto-segment interval.")));
                      }
 
                      @Override
                      protected void updateMessage() {
                         int secs = JobsTab.sliderToSecs(this.value);
                         int mins = secs / 60;
-                        this.setMessage(Text.literal(mins + " min"));
+                        this.setMessage(Component.literal(mins + " min"));
                      }
 
                      @Override
@@ -341,16 +340,16 @@ public class JobsTab extends NestedSuiteTab {
                         y + 2,
                         220,
                         12,
-                        Text.literal("Money Threshold"),
-                        Tooltip.of(Text.literal("Segments when segment money reaches this amount (e.g. 100k, 1m)."))
+                        Component.literal("Money Threshold"),
+                        Tooltip.create(Component.literal("Segments when segment money reaches this amount (e.g. 100k, 1m)."))
                      )
                   );
                   y += 16;
-                  JobsTab.this.autoSegmentMoneyField = new TextFieldWidget(screen.getTextRenderer(), x, y, w, 20, Text.empty());
+                  JobsTab.this.autoSegmentMoneyField = new EditBox(screen.getFont(), x, y, w, 20, Component.empty());
                   JobsTab.this.autoSegmentMoneyField.setMaxLength(32);
-                  JobsTab.this.autoSegmentMoneyField.setText(JobsTab.formatShortAmount(jobs.autoSegmentMoneyThreshold));
-                  JobsTab.this.autoSegmentMoneyField.setTooltip(Tooltip.of(Text.literal("Accepts numbers like 100000, 100k, 1m.")));
-                  JobsTab.this.autoSegmentMoneyField.setChangedListener(s -> {
+                  JobsTab.this.autoSegmentMoneyField.setValue(JobsTab.formatShortAmount(jobs.autoSegmentMoneyThreshold));
+                  JobsTab.this.autoSegmentMoneyField.setTooltip(Tooltip.create(Component.literal("Accepts numbers like 100000, 100k, 1m.")));
+                  JobsTab.this.autoSegmentMoneyField.setResponder(s -> {
                      Double v = JobsTab.parseShortAmount(s);
                      if (v != null) {
                         jobs.setAutoSegmentMoneyThreshold(v);
@@ -365,16 +364,16 @@ public class JobsTab extends NestedSuiteTab {
                         y + 2,
                         220,
                         12,
-                        Text.literal("XP Threshold"),
-                        Tooltip.of(Text.literal("Segments when segment XP reaches this amount (e.g. 100k, 1m)."))
+                        Component.literal("XP Threshold"),
+                        Tooltip.create(Component.literal("Segments when segment XP reaches this amount (e.g. 100k, 1m)."))
                      )
                   );
                   y += 16;
-                  JobsTab.this.autoSegmentExpField = new TextFieldWidget(screen.getTextRenderer(), x, y, w, 20, Text.empty());
+                  JobsTab.this.autoSegmentExpField = new EditBox(screen.getFont(), x, y, w, 20, Component.empty());
                   JobsTab.this.autoSegmentExpField.setMaxLength(32);
-                  JobsTab.this.autoSegmentExpField.setText(JobsTab.formatShortAmount(jobs.autoSegmentExpThreshold));
-                  JobsTab.this.autoSegmentExpField.setTooltip(Tooltip.of(Text.literal("Accepts numbers like 100000, 100k, 1m.")));
-                  JobsTab.this.autoSegmentExpField.setChangedListener(s -> {
+                  JobsTab.this.autoSegmentExpField.setValue(JobsTab.formatShortAmount(jobs.autoSegmentExpThreshold));
+                  JobsTab.this.autoSegmentExpField.setTooltip(Tooltip.create(Component.literal("Accepts numbers like 100000, 100k, 1m.")));
+                  JobsTab.this.autoSegmentExpField.setResponder(s -> {
                      Double v = JobsTab.parseShortAmount(s);
                      if (v != null) {
                         jobs.setAutoSegmentExpThreshold(v);
@@ -520,7 +519,7 @@ public class JobsTab extends NestedSuiteTab {
             List<SuiteServer> servers = SuiteRuntime.profile().servers();
             if (servers.isEmpty()) {
                screen.addContentWidget(
-                  new HoverLabelWidget(x, y, Math.min(w, 360), 24, Text.literal("No tracked servers are configured for this build."), null)
+                  new HoverLabelWidget(x, y, Math.min(w, 360), 24, Component.literal("No tracked servers are configured for this build."), null)
                );
             } else {
                for (SuiteServer server : servers) {
@@ -600,8 +599,8 @@ public class JobsTab extends NestedSuiteTab {
                y + 4,
                Math.min(w, 360),
                24,
-               Text.literal("Totals: /jobsoverflow  (all, reset, resetjob <job>)"),
-               Tooltip.of(Text.literal("Needs the Jobs Reborn boss bar enabled on the server. Max level defaults to 200 (jobs.overflow.maxLevel in the config)."))
+               Component.literal("Totals: /jobsoverflow  (all, reset, resetjob <job>)"),
+               Tooltip.create(Component.literal("Needs the Jobs Reborn boss bar enabled on the server. Max level defaults to 200 (jobs.overflow.maxLevel in the config)."))
             )
          );
       }
@@ -653,21 +652,21 @@ public class JobsTab extends NestedSuiteTab {
                      labelY,
                      220,
                      12,
-                     Text.literal("Reminder Timer"),
-                     Tooltip.of(Text.literal("How long Jobs can stay paused before sending another reminder. Range: 1 to 60 minutes."))
+                     Component.literal("Reminder Timer"),
+                     Tooltip.create(Component.literal("How long Jobs can stay paused before sending another reminder. Range: 1 to 60 minutes."))
                   )
                );
-               SliderWidget pauseThresholdSlider = new StyledSlider(x, sliderY, w, 20, Text.empty(), JobsTab.pauseSecsToSlider(jobs.pauseReminderThresholdSecs)) {
+               AbstractSliderButton pauseThresholdSlider = new StyledSlider(x, sliderY, w, 20, Component.empty(), JobsTab.pauseSecsToSlider(jobs.pauseReminderThresholdSecs)) {
                   {
                      this.updateMessage();
-                     this.setTooltip(Tooltip.of(Text.literal("Current pause reminder timer.")));
+                     this.setTooltip(Tooltip.create(Component.literal("Current pause reminder timer.")));
                   }
 
                   @Override
                   protected void updateMessage() {
                      int secs = JobsTab.sliderToPauseSecs(this.value);
                      int mins = Math.max(1, secs / 60);
-                     this.setMessage(Text.literal(mins + " min"));
+                     this.setMessage(Component.literal(mins + " min"));
                   }
 
                   @Override
@@ -700,17 +699,17 @@ public class JobsTab extends NestedSuiteTab {
                      y + 2,
                      240,
                      12,
-                     Text.literal("Auto Unpause $"),
-                     Tooltip.of(Text.literal("Auto-resumes after this much money is earned while paused. Set 0 to disable auto-unpause."))
+                     Component.literal("Auto Unpause $"),
+                     Tooltip.create(Component.literal("Auto-resumes after this much money is earned while paused. Set 0 to disable auto-unpause."))
                   )
                );
                y += 16;
-               JobsTab.this.pauseAutoUnpauseMoneyField = new TextFieldWidget(screen.getTextRenderer(), x, y, w, 20, Text.empty());
+               JobsTab.this.pauseAutoUnpauseMoneyField = new EditBox(screen.getFont(), x, y, w, 20, Component.empty());
                JobsTab.this.pauseAutoUnpauseMoneyField.setMaxLength(32);
-               JobsTab.this.pauseAutoUnpauseMoneyField.setText(JobsTab.formatShortAmount(jobs.pauseAutoUnpauseMoneyThreshold));
+               JobsTab.this.pauseAutoUnpauseMoneyField.setValue(JobsTab.formatShortAmount(jobs.pauseAutoUnpauseMoneyThreshold));
                JobsTab.this.pauseAutoUnpauseMoneyField
-                  .setTooltip(Tooltip.of(Text.literal("Accepts numbers like 100000, 100k, 1m. Set 0 to disable auto-unpause.")));
-               JobsTab.this.pauseAutoUnpauseMoneyField.setChangedListener(s -> {
+                  .setTooltip(Tooltip.create(Component.literal("Accepts numbers like 100000, 100k, 1m. Set 0 to disable auto-unpause.")));
+               JobsTab.this.pauseAutoUnpauseMoneyField.setResponder(s -> {
                   Double v = JobsTab.parseShortAmount(s);
                   if (v != null) {
                      jobs.setPauseAutoUnpauseMoneyThreshold(v);

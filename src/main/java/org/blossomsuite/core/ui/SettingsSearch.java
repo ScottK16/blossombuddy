@@ -5,12 +5,11 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.Component;
 /**
  * Finds settings by name. Every tab builds its widgets through {@link SuiteSettingsScreen}, so search asks each
  * tab to build once into a throw-away capture, groups the widgets into rows (a label plus the controls beside
@@ -27,7 +26,7 @@ final class SettingsSearch {
    }
 
    /** A label and the controls that belong to it, at the position they were built. */
-   record Row(List<ClickableWidget> widgets, String text, int top, int bottom) {
+   record Row(List<AbstractWidget> widgets, String text, int top, int bottom) {
       int height() {
          return this.bottom - this.top;
       }
@@ -68,24 +67,24 @@ final class SettingsSearch {
       }
    }
 
-   static List<Row> group(List<ClickableWidget> widgets) {
-      List<ClickableWidget> anchors = new ArrayList<>();
-      for (ClickableWidget w : widgets) {
+   static List<Row> group(List<AbstractWidget> widgets) {
+      List<AbstractWidget> anchors = new ArrayList<>();
+      for (AbstractWidget w : widgets) {
          if (w.visible && (w instanceof HoverLabelWidget || w instanceof LabelWidget)) {
             anchors.add(w);
          }
       }
 
-      Map<ClickableWidget, List<ClickableWidget>> attached = new IdentityHashMap<>();
-      List<ClickableWidget> orphans = new ArrayList<>();
-      for (ClickableWidget w : widgets) {
+      Map<AbstractWidget, List<AbstractWidget>> attached = new IdentityHashMap<>();
+      List<AbstractWidget> orphans = new ArrayList<>();
+      for (AbstractWidget w : widgets) {
          if (!w.visible || anchors.contains(w)) {
             continue;
          }
 
-         ClickableWidget best = null;
+         AbstractWidget best = null;
          int bestDist = Integer.MAX_VALUE;
-         for (ClickableWidget a : anchors) {
+         for (AbstractWidget a : anchors) {
             // a control sits beside its label: level with it, or a little below (sliders)
             if (w.getY() >= a.getY() - 8 && w.getY() < a.getY() + 16) {
                int dist = Math.abs(centerY(w) - centerY(a));
@@ -104,14 +103,14 @@ final class SettingsSearch {
       }
 
       List<Row> rows = new ArrayList<>();
-      for (ClickableWidget a : anchors) {
-         List<ClickableWidget> members = new ArrayList<>();
+      for (AbstractWidget a : anchors) {
+         List<AbstractWidget> members = new ArrayList<>();
          members.add(a);
          members.addAll(attached.getOrDefault(a, List.of()));
          rows.add(row(members));
       }
 
-      for (ClickableWidget o : orphans) {
+      for (AbstractWidget o : orphans) {
          rows.add(row(List.of(o)));
       }
 
@@ -119,11 +118,11 @@ final class SettingsSearch {
       return rows;
    }
 
-   private static Row row(List<ClickableWidget> members) {
+   private static Row row(List<AbstractWidget> members) {
       int top = Integer.MAX_VALUE;
       int bottom = Integer.MIN_VALUE;
       StringBuilder text = new StringBuilder();
-      for (ClickableWidget w : members) {
+      for (AbstractWidget w : members) {
          top = Math.min(top, w.getY());
          bottom = Math.max(bottom, w.getY() + w.getHeight());
          text.append(w.getMessage().getString()).append(' ').append(tooltipText(w)).append(' ');
@@ -153,15 +152,15 @@ final class SettingsSearch {
       return true;
    }
 
-   private static int centerY(ClickableWidget w) {
+   private static int centerY(AbstractWidget w) {
       return w.getY() + w.getHeight() / 2;
    }
 
    private static String title(String translationKey) {
-      return Text.translatable(translationKey).getString();
+      return Component.translatable(translationKey).getString();
    }
 
-   private static String tooltipText(ClickableWidget w) {
+   private static String tooltipText(AbstractWidget w) {
       try {
          Tooltip tooltip = w instanceof TooltipHolder holder ? holder.heldTooltip() : null;
          if (tooltip == null) {
@@ -169,7 +168,7 @@ final class SettingsSearch {
          }
 
          StringBuilder sb = new StringBuilder();
-         for (OrderedText line : tooltip.getLines(MinecraftClient.getInstance())) {
+         for (FormattedCharSequence line : tooltip.toCharSequence(Minecraft.getInstance())) {
             line.accept((index, style, codePoint) -> {
                sb.appendCodePoint(codePoint);
                return true;

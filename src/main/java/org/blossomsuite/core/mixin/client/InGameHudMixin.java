@@ -29,37 +29,37 @@ import org.blossomsuite.core.vote.VoteRuntime;
 import org.blossomsuite.core.vote.VoteState;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.blossomsuite.core.state.SidebarParser;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.hud.InGameHud;
-import net.minecraft.scoreboard.ReadableScoreboardScore;
-import net.minecraft.scoreboard.ScoreHolder;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.scoreboard.Team;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.world.scores.ReadOnlyScoreInfo;
+import net.minecraft.world.scores.ScoreHolder;
+import net.minecraft.world.scores.Scoreboard;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
+import net.minecraft.resources.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(InGameHud.class)
+@Mixin(Gui.class)
 public abstract class InGameHudMixin {
 
    @Redirect(
-      method = "renderCrosshair(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/client/render/RenderTickCounter;)V",
+      method = "extractCrosshair(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/DeltaTracker;)V",
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/gui/DrawContext;drawGuiTexture(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/util/Identifier;IIII)V"
+         target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;blitSprite(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/resources/Identifier;IIII)V"
       )
    )
-   private void suitecore$drawCrosshairTextureTint(DrawContext ctx, RenderPipeline pipeline, Identifier texture, int x, int y, int w, int h) {
+   private void suitecore$drawCrosshairTextureTint(GuiGraphicsExtractor ctx, RenderPipeline pipeline, Identifier texture, int x, int y, int w, int h) {
       if (!suitecore$isVanillaCrosshairTexture(texture)) {
-         ctx.drawGuiTexture(pipeline, texture, x, y, w, h, 1.0F);
+         ctx.blitSprite(pipeline, texture, x, y, w, h, 1.0F);
       } else {
          SuiteConfig cfg = SuiteConfig.INSTANCE;
          if (cfg != null && cfg.QolConfig != null && cfg.isEnabledForCurrentWorld() && cfg.QolConfig.crosshairTintEnabled) {
@@ -67,10 +67,10 @@ public abstract class InGameHudMixin {
             if (cfg.QolConfig.crosshairShape != null && cfg.QolConfig.crosshairShape != QolConfig.CrosshairShape.VANILLA) {
                CrosshairShapeRenderer.draw(ctx, x + w / 2, y + h / 2, cfg.QolConfig, argb);
             } else {
-               ctx.drawGuiTexture(pipeline, texture, x, y, w, h, argb);
+               ctx.blitSprite(pipeline, texture, x, y, w, h, argb);
             }
          } else {
-            ctx.drawGuiTexture(pipeline, texture, x, y, w, h, 1.0F);
+            ctx.blitSprite(pipeline, texture, x, y, w, h, 1.0F);
          }
       }
    }
@@ -85,7 +85,7 @@ public abstract class InGameHudMixin {
    }
 
    @Inject(method = "setOverlayMessage", at = @At("HEAD"), cancellable = true)
-   private void suitecore$handleOverlayMessage(Text message, boolean tinted, CallbackInfo ci) {
+   private void suitecore$handleOverlayMessage(Component message, boolean tinted, CallbackInfo ci) {
       String raw = message == null ? "" : message.getString();
       SuiteLog.logger().debug("[hud-overlay] tinted={} text='{}'", tinted, raw);
       if (!JobsRapidOverlay.isInternalOverlayWrite()) {
@@ -99,11 +99,11 @@ public abstract class InGameHudMixin {
                   ConfigIO.saveIfDirty();
                   SuiteLog.logger().info("[jobs-overlay] +${} +{}xp :: {}", new Object[]{reward.money(), reward.exp(), raw});
                   if (SuiteConfig.INSTANCE.JobsConfig.showInChat) {
-                     Text chatLine = Text.literal("You got: ")
-                        .formatted(Formatting.GREEN)
-                        .append(Text.literal("$" + TextUtil.fmtMoney(reward.money())).formatted(Formatting.YELLOW))
-                        .append(Text.literal(", and ").formatted(Formatting.GRAY))
-                        .append(Text.literal(TextUtil.fmtExp(reward.exp()) + " exp").formatted(Formatting.AQUA));
+                     Component chatLine = Component.literal("You got: ")
+                        .withStyle(ChatFormatting.GREEN)
+                        .append(Component.literal("$" + TextUtil.fmtMoney(reward.money())).withStyle(ChatFormatting.YELLOW))
+                        .append(Component.literal(", and ").withStyle(ChatFormatting.GRAY))
+                        .append(Component.literal(TextUtil.fmtExp(reward.exp()) + " exp").withStyle(ChatFormatting.AQUA));
                      ChatOutput.raw(chatLine);
                   }
 
@@ -134,17 +134,17 @@ public abstract class InGameHudMixin {
    }
 
    private static void showJobsRapidOverlay(double addMoney, double addXp) {
-      MinecraftClient client = MinecraftClient.getInstance();
-      if (client != null && client.inGameHud != null) {
+      Minecraft client = Minecraft.getInstance();
+      if (client != null && client.gui != null) {
          long now = System.currentTimeMillis();
-         Text msg = JobsRapidOverlay.addAndFormat(addMoney, addXp, now);
-         JobsRapidOverlay.runInternalOverlayWrite(() -> client.inGameHud.setOverlayMessage(msg, false));
+         Component msg = JobsRapidOverlay.addAndFormat(addMoney, addXp, now);
+         JobsRapidOverlay.runInternalOverlayWrite(() -> client.gui.setOverlayMessage(msg, false));
       }
    }
 
    private static void showJobsTotalOverlay(boolean session) {
-      MinecraftClient client = MinecraftClient.getInstance();
-      if (client != null && client.inGameHud != null) {
+      Minecraft client = Minecraft.getInstance();
+      if (client != null && client.gui != null) {
          JobsTracker tracker = JobsModule.tracker();
          if (tracker != null) {
             JobsTracker.LiveStats s = tracker.getLiveStats();
@@ -152,18 +152,18 @@ public abstract class InGameHudMixin {
             double xpTotal = session ? s.sessionExp() : s.segmentExp();
             long now = System.currentTimeMillis();
             JobsRapidOverlay.retarget(session ? JobsRapidOverlay.Kind.SESSION_TOTAL : JobsRapidOverlay.Kind.SEGMENT_TOTAL, moneyTotal, xpTotal, now);
-            Text msg = JobsRapidOverlay.formatNow(now);
-            JobsRapidOverlay.runInternalOverlayWrite(() -> client.inGameHud.setOverlayMessage(msg, false));
+            Component msg = JobsRapidOverlay.formatNow(now);
+            JobsRapidOverlay.runInternalOverlayWrite(() -> client.gui.setOverlayMessage(msg, false));
          }
       }
    }
 
    @Inject(
-      method = "renderScoreboardSidebar(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/scoreboard/ScoreboardObjective;)V",
+      method = "displayScoreboardSidebar(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/world/scores/Objective;)V",
       at = @At("HEAD"),
       cancellable = false
    )
-   private void suitecore$debugSidebar(DrawContext context, ScoreboardObjective objective, CallbackInfo ci) {
+   private void suitecore$debugSidebar(GuiGraphicsExtractor context, Objective objective, CallbackInfo ci) {
       SidebarParser.process(objective);
    }
 }

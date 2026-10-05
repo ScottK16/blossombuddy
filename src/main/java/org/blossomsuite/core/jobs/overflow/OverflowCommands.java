@@ -4,7 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import java.util.Locale;
 import java.util.Map;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.config.SuiteConfig;
@@ -16,34 +16,34 @@ public final class OverflowCommands {
 
    public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
       dispatcher.register(
-         ClientCommandManager.literal("jobsoverflow")
+         ClientCommands.literal("jobsoverflow")
             .executes(ctx -> {
                showCurrent();
                return 1;
             })
-            .then(ClientCommandManager.literal("all").executes(ctx -> {
+            .then(ClientCommands.literal("all").executes(ctx -> {
                showAll();
                return 1;
             }))
             .then(
-               ClientCommandManager.literal("display")
-                  .then(ClientCommandManager.literal("xp").executes(ctx -> setDisplay(OverflowDisplayMode.XP, "raw overflow XP")))
-                  .then(ClientCommandManager.literal("levels").executes(ctx -> setDisplay(OverflowDisplayMode.LEVELS, "cosmetic levels")))
-                  .then(ClientCommandManager.literal("off").executes(ctx -> setDisplay(OverflowDisplayMode.OFF, "off (still tracking)")))
+               ClientCommands.literal("display")
+                  .then(ClientCommands.literal("xp").executes(ctx -> setDisplay(OverflowDisplayMode.XP, "raw overflow XP")))
+                  .then(ClientCommands.literal("levels").executes(ctx -> setDisplay(OverflowDisplayMode.LEVELS, "cosmetic levels")))
+                  .then(ClientCommands.literal("off").executes(ctx -> setDisplay(OverflowDisplayMode.OFF, "off (still tracking)")))
             )
-            .then(ClientCommandManager.literal("reset").executes(ctx -> {
+            .then(ClientCommands.literal("reset").executes(ctx -> {
                OverflowTracker.INSTANCE.resetCurrentRealm();
                ChatOutput.info("Reset all overflow XP for '" + OverflowTracker.INSTANCE.realmLabel() + "'.");
                return 1;
             }))
-            .then(ClientCommandManager.literal("resetall").executes(ctx -> {
+            .then(ClientCommands.literal("resetall").executes(ctx -> {
                OverflowTracker.INSTANCE.resetAll();
                ChatOutput.info("Reset all overflow XP for every realm.");
                return 1;
             }))
             .then(
-               ClientCommandManager.literal("resetjob")
-                  .then(ClientCommandManager.argument("job", StringArgumentType.greedyString()).executes(ctx -> {
+               ClientCommands.literal("resetjob")
+                  .then(ClientCommands.argument("job", StringArgumentType.greedyString()).executes(ctx -> {
                      String job = StringArgumentType.getString(ctx, "job");
                      OverflowTracker.INSTANCE.resetJob(job);
                      ChatOutput.info("Reset " + job + " on '" + OverflowTracker.INSTANCE.realmLabel() + "'.");

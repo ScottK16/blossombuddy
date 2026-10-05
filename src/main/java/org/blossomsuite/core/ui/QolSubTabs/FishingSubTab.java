@@ -13,15 +13,14 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 public class FishingSubTab implements SuiteSubTab {
    private static final List<String> SOUND_IDS = new ArrayList<>();
    private static final int VISIBLE_SOUND_ROWS = 8;
@@ -45,17 +44,17 @@ public class FishingSubTab implements SuiteSubTab {
       int rowGap = 24;
       screen.addContentWidget(
          new HoverLabelWidget(
-            x, y + 6, 120, 12, Text.translatable("suitecore.option.enabled"), Tooltip.of(Text.literal("Master toggle for Fishing bite alerts."))
+            x, y + 6, 120, 12, Component.translatable("suitecore.option.enabled"), Tooltip.create(Component.literal("Master toggle for Fishing bite alerts."))
          )
       );
       int toggleW = 80;
       int toggleX = x + w - toggleW;
-      ButtonWidget enabledButton = StyledButton.of(Text.literal(qol.fishingEnabled ? "ON" : "OFF"), b -> {
+      Button enabledButton = StyledButton.of(Component.literal(qol.fishingEnabled ? "ON" : "OFF"), b -> {
          qol.fishingEnabled = !qol.fishingEnabled;
          cfg.markDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(toggleX, y, toggleW, 20).build();
-      enabledButton.setTooltip(Tooltip.of(Text.literal("Turns Fishing bite alerts on or off.")));
+      enabledButton.setTooltip(Tooltip.create(Component.literal("Turns Fishing bite alerts on or off.")));
       screen.addContentWidget(enabledButton);
       if (!qol.fishingEnabled) {
          screen.addContentWidget(
@@ -64,29 +63,29 @@ public class FishingSubTab implements SuiteSubTab {
                y + 40,
                300,
                12,
-               Text.translatable("suitecore.option.disabled_hint"),
-               Tooltip.of(Text.literal("Enable Fishing to choose an alert sound, volume, and pitch."))
+               Component.translatable("suitecore.option.disabled_hint"),
+               Tooltip.create(Component.literal("Enable Fishing to choose an alert sound, volume, and pitch."))
             )
          );
       } else {
          y += 44;
          screen.addContentWidget(
             new HoverLabelWidget(
-               x, y, 160, 12, Text.literal("Selected Alert Sound"), Tooltip.of(Text.literal("This is the sound that will play when a fish bites."))
+               x, y, 160, 12, Component.literal("Selected Alert Sound"), Tooltip.create(Component.literal("This is the sound that will play when a fish bites."))
             )
          );
          int playW = 60;
          int selectedW = w - playW - 6;
-         ButtonWidget selectedSoundButton = StyledButton.of(Text.literal(shortButtonLabel(prettySoundName(qol.fishingSoundId))), b -> {})
+         Button selectedSoundButton = StyledButton.of(Component.literal(shortButtonLabel(prettySoundName(qol.fishingSoundId))), b -> {})
             .dimensions(x, y + 16, selectedW, 20)
             .build();
          selectedSoundButton.active = false;
-         selectedSoundButton.setTooltip(Tooltip.of(Text.literal(qol.fishingSoundId)));
+         selectedSoundButton.setTooltip(Tooltip.create(Component.literal(qol.fishingSoundId)));
          screen.addContentWidget(selectedSoundButton);
-         ButtonWidget playButton = StyledButton.of(Text.literal("Play"), b -> FishingAlertController.playPreview())
+         Button playButton = StyledButton.of(Component.literal("Play"), b -> FishingAlertController.playPreview())
             .dimensions(x + selectedW + 6, y + 16, playW, 20)
             .build();
-         playButton.setTooltip(Tooltip.of(Text.literal("Play the selected sound using the current volume and pitch.")));
+         playButton.setTooltip(Tooltip.create(Component.literal("Play the selected sound using the current volume and pitch.")));
          screen.addContentWidget(playButton);
          y += 50;
          screen.addContentWidget(
@@ -95,16 +94,16 @@ public class FishingSubTab implements SuiteSubTab {
                y,
                140,
                12,
-               Text.literal("Search Sounds"),
-               Tooltip.of(Text.literal("Type part of a sound name or id.\nExamples: pling, orb, pickup, bell, note"))
+               Component.literal("Search Sounds"),
+               Tooltip.create(Component.literal("Type part of a sound name or id.\nExamples: pling, orb, pickup, bell, note"))
             )
          );
-         TextFieldWidget searchBox = new TextFieldWidget(screen.getTextRenderer(), x, y + 16, w, 20, Text.literal("Search Sounds"));
+         EditBox searchBox = new EditBox(screen.getFont(), x, y + 16, w, 20, Component.literal("Search Sounds"));
          searchBox.setMaxLength(120);
-         searchBox.setText(this.searchText);
-         searchBox.setPlaceholder(Text.literal("Search sounds..."));
-         searchBox.setTooltip(Tooltip.of(Text.literal("Filters the sound list below.")));
-         searchBox.setChangedListener(text -> {
+         searchBox.setValue(this.searchText);
+         searchBox.setHint(Component.literal("Search sounds..."));
+         searchBox.setTooltip(Tooltip.create(Component.literal("Filters the sound list below.")));
+         searchBox.setResponder(text -> {
             this.searchText = text == null ? "" : text;
             this.listScroll = 0;
             screen.rebuildPreserveScroll();
@@ -119,8 +118,8 @@ public class FishingSubTab implements SuiteSubTab {
                y,
                220,
                12,
-               Text.literal("Matching Sounds (" + filtered.size() + ")"),
-               Tooltip.of(Text.literal("Click a sound to select it.\nHover a row to see the full id."))
+               Component.literal("Matching Sounds (" + filtered.size() + ")"),
+               Tooltip.create(Component.literal("Click a sound to select it.\nHover a row to see the full id."))
             )
          );
          y += 16;
@@ -139,27 +138,27 @@ public class FishingSubTab implements SuiteSubTab {
             boolean selected = soundId.equals(qol.fishingSoundId);
             String prefix = selected ? "> " : "";
             int rowY = y + i * 24;
-            ButtonWidget rowButton = StyledButton.of(Text.literal(prefix + shortButtonLabel(pretty)), b -> {
+            Button rowButton = StyledButton.of(Component.literal(prefix + shortButtonLabel(pretty)), b -> {
                qol.fishingSoundId = soundId;
                cfg.markDirty();
                screen.rebuildPreserveScroll();
             }).dimensions(x, rowY, rowButtonW, 20).build();
-            rowButton.setTooltip(Tooltip.of(Text.literal(soundId)));
+            rowButton.setTooltip(Tooltip.create(Component.literal(soundId)));
             screen.addContentWidget(rowButton);
          }
 
          int listHeight = 188;
          int scrollX = x + rowButtonW + 6;
-         ButtonWidget upButton = StyledButton.of(Text.literal("^"), b -> {
+         Button upButton = StyledButton.of(Component.literal("^"), b -> {
             if (this.listScroll > 0) {
                this.listScroll--;
                screen.rebuildPreserveScroll();
             }
          }).dimensions(scrollX, y, upDownW, 20).build();
          upButton.active = this.listScroll > 0;
-         upButton.setTooltip(Tooltip.of(Text.literal("Scroll up.")));
+         upButton.setTooltip(Tooltip.create(Component.literal("Scroll up.")));
          screen.addContentWidget(upButton);
-         ButtonWidget downButton = StyledButton.of(Text.literal("v"), b -> {
+         Button downButton = StyledButton.of(Component.literal("v"), b -> {
             int maxScroll = Math.max(0, filtered.size() - 8);
             if (this.listScroll < maxScroll) {
                this.listScroll++;
@@ -167,22 +166,22 @@ public class FishingSubTab implements SuiteSubTab {
             }
          }).dimensions(scrollX, y + listHeight - 20, upDownW, 20).build();
          downButton.active = this.listScroll < Math.max(0, filtered.size() - 8);
-         downButton.setTooltip(Tooltip.of(Text.literal("Scroll down.")));
+         downButton.setTooltip(Tooltip.create(Component.literal("Scroll down.")));
          screen.addContentWidget(downButton);
          y += listHeight + 18;
          screen.addContentWidget(
-            new HoverLabelWidget(x, y, 120, 12, Text.literal("Volume"), Tooltip.of(Text.literal("How loud the fishing alert sound plays.")))
+            new HoverLabelWidget(x, y, 120, 12, Component.literal("Volume"), Tooltip.create(Component.literal("How loud the fishing alert sound plays.")))
          );
-         SliderWidget volumeSlider = new StyledSlider(x, y + 16, w, 20, Text.empty(), floatToSlider(qol.fishingVolume, 0.0F, 1.0F)) {
+         AbstractSliderButton volumeSlider = new StyledSlider(x, y + 16, w, 20, Component.empty(), floatToSlider(qol.fishingVolume, 0.0F, 1.0F)) {
             {
                this.updateMessage();
-               this.setTooltip(Tooltip.of(Text.literal("Current fishing alert volume.")));
+               this.setTooltip(Tooltip.create(Component.literal("Current fishing alert volume.")));
             }
 
             @Override
             protected void updateMessage() {
                float volume = FishingSubTab.sliderToFloat(this.value, 0.0F, 1.0F);
-               this.setMessage(Text.literal("Volume: " + String.format(Locale.ROOT, "%.2f", volume)));
+               this.setMessage(Component.literal("Volume: " + String.format(Locale.ROOT, "%.2f", volume)));
             }
 
             @Override
@@ -194,18 +193,18 @@ public class FishingSubTab implements SuiteSubTab {
          screen.addContentWidget(volumeSlider);
          y += 50;
          screen.addContentWidget(
-            new HoverLabelWidget(x, y, 120, 12, Text.literal("Pitch"), Tooltip.of(Text.literal("Changes the pitch of the fishing alert sound.")))
+            new HoverLabelWidget(x, y, 120, 12, Component.literal("Pitch"), Tooltip.create(Component.literal("Changes the pitch of the fishing alert sound.")))
          );
-         SliderWidget pitchSlider = new StyledSlider(x, y + 16, w, 20, Text.empty(), floatToSlider(qol.fishingPitch, 0.5F, 2.0F)) {
+         AbstractSliderButton pitchSlider = new StyledSlider(x, y + 16, w, 20, Component.empty(), floatToSlider(qol.fishingPitch, 0.5F, 2.0F)) {
             {
                this.updateMessage();
-               this.setTooltip(Tooltip.of(Text.literal("Current fishing alert pitch.")));
+               this.setTooltip(Tooltip.create(Component.literal("Current fishing alert pitch.")));
             }
 
             @Override
             protected void updateMessage() {
                float pitch = FishingSubTab.sliderToFloat(this.value, 0.5F, 2.0F);
-               this.setMessage(Text.literal("Pitch: " + String.format(Locale.ROOT, "%.2f", pitch)));
+               this.setMessage(Component.literal("Pitch: " + String.format(Locale.ROOT, "%.2f", pitch)));
             }
 
             @Override
@@ -219,7 +218,7 @@ public class FishingSubTab implements SuiteSubTab {
    }
 
    @Override
-   public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
+   public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
    }
 
    @Override
@@ -345,9 +344,9 @@ public class FishingSubTab implements SuiteSubTab {
    }
 
    static {
-      Registries.SOUND_EVENT
+      BuiltInRegistries.SOUND_EVENT
          .stream()
-         .map(Registries.SOUND_EVENT::getId)
+         .map(BuiltInRegistries.SOUND_EVENT::getKey)
          .filter(id -> id != null)
          .map(Identifier::toString)
          .sorted(Comparator.naturalOrder())

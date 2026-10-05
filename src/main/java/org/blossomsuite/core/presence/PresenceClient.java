@@ -12,7 +12,7 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.chat.VanishState;
 import org.blossomsuite.core.config.FeatureConfig;
@@ -464,7 +464,7 @@ public final class PresenceClient {
 
       @Override
       public boolean canRun() {
-         MinecraftClient mc = MinecraftClient.getInstance();
+         Minecraft mc = Minecraft.getInstance();
          SuiteHttp http = SuiteState.INSTANCE.http;
          return mc.player != null && SuiteConfig.INSTANCE.isEnabledForCurrentWorld() && http != null && http.enabled();
       }
@@ -484,7 +484,7 @@ public final class PresenceClient {
    private static final class GameSink implements Sink {
       @Override
       public void notice(String text) {
-         MinecraftClient.getInstance().execute(() -> ChatOutput.info(text));
+         Minecraft.getInstance().execute(() -> ChatOutput.info(text));
       }
    }
 }

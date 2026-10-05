@@ -2,9 +2,8 @@ package org.blossomsuite.core.ui.QolSubTabs;
 
 import org.blossomsuite.core.ui.SuiteSettingsScreen;
 import org.blossomsuite.core.ui.SuiteSubTab;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 public class PlaceholderSubTab implements SuiteSubTab {
    private final String titleKey;
    private final String message;
@@ -24,10 +23,10 @@ public class PlaceholderSubTab implements SuiteSubTab {
    }
 
    @Override
-   public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
+   public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
       int x = screen.contentX();
       int y = screen.bodyContentY() + contentTopOffset + 8;
-      ctx.drawTextWithShadow(screen.getTextRenderer(), Text.literal(this.message), x, y, -3355444);
+      ctx.text(screen.getFont(), Component.literal(this.message), x, y, -3355444);
    }
 
    @Override

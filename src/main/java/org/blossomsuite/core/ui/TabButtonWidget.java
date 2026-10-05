@@ -1,18 +1,18 @@
 package org.blossomsuite.core.ui;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.Text;
-
-public class TabButtonWidget extends ClickableWidget {
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.network.chat.Component;
+public class TabButtonWidget extends AbstractWidget {
    private final Runnable onPress;
    private final boolean selectedSupplierDisabled;
    private boolean selected;
 
-   public TabButtonWidget(int x, int y, int w, int h, Text message, boolean selected, Runnable onPress) {
+   public TabButtonWidget(int x, int y, int w, int h, Component message, boolean selected, Runnable onPress) {
       super(x, y, w, h, message);
       this.onPress = onPress;
       this.selected = selected;
@@ -24,18 +24,20 @@ public class TabButtonWidget extends ClickableWidget {
    }
 
    @Override
-   public void onClick(double mouseX, double mouseY) {
+   public void onClick(MouseButtonEvent inputEvent, boolean isDoubleClick) {
+      double mouseX = inputEvent.x();
+      double mouseY = inputEvent.y();
       if (!this.selected) {
          this.onPress.run();
       }
    }
 
    @Override
-   protected void appendClickableNarrations(NarrationMessageBuilder builder) {
+   protected void updateWidgetNarration(NarrationElementOutput builder) {
    }
 
    @Override
-   protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+   protected void extractWidgetRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
       boolean hover = this.isHovered();
       int x1 = this.getX();
       int y1 = this.getY();
@@ -49,7 +51,7 @@ public class TabButtonWidget extends ClickableWidget {
       }
 
       int color = this.selected ? Theme.ACCENT : (hover ? Theme.TEXT : Theme.TEXT_DIM);
-      TextRenderer tr = MinecraftClient.getInstance().textRenderer;
-      context.drawTextWithShadow(tr, this.getMessage(), x1 + 10, y1 + (this.getHeight() - 8) / 2, color);
+      Font tr = Minecraft.getInstance().font;
+      context.text(tr, this.getMessage(), x1 + 10, y1 + (this.getHeight() - 8) / 2, color);
    }
 }

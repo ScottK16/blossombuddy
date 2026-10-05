@@ -2,8 +2,7 @@ package org.blossomsuite.core.chat;
 
 import org.blossomsuite.core.config.ConfigIO;
 import org.blossomsuite.core.config.SuiteConfig;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 public final class ChatModeProbe {
    private static volatile ChatModeProbe.Phase phase = ChatModeProbe.Phase.IDLE;
    private static volatile boolean marryProbeDone = false;
@@ -27,8 +26,8 @@ public final class ChatModeProbe {
    }
 
    public static void tick() {
-      MinecraftClient client = MinecraftClient.getInstance();
-      if (client != null && client.player != null && client.getNetworkHandler() != null) {
+      Minecraft client = Minecraft.getInstance();
+      if (client != null && client.player != null && client.getConnection() != null) {
          // This is what discovers which channel the player is actually in, which PublicChatSendState relies on to
          // correctly switch out of marry/party/staff chat before sending - it must always run, independent of
          // whether the "Show Tracked Channel" HUD (a cosmetic display) is turned on.
@@ -36,12 +35,12 @@ public final class ChatModeProbe {
             if (!staffProbeStarted && !staffProbeDone && StaffChatState.isStaffTrackingActive() && phase == ChatModeProbe.Phase.IDLE) {
                staffProbeStarted = true;
                phase = ChatModeProbe.Phase.STAFF_TOGGLE_WAIT;
-               client.getNetworkHandler().sendChatCommand("sch toggle");
+               client.getConnection().sendCommand("sch toggle");
             } else {
                if (!marryProbeStarted && !marryProbeDone && phase == ChatModeProbe.Phase.IDLE) {
                   marryProbeStarted = true;
                   phase = ChatModeProbe.Phase.MARRY_TOGGLE_WAIT;
-                  client.getNetworkHandler().sendChatCommand("marry chattoggle");
+                  client.getConnection().sendCommand("marry chattoggle");
                }
             }
          }
@@ -53,9 +52,9 @@ public final class ChatModeProbe {
          StaffChatState.setStaffChatEnabled(nowEnabled);
          if (phase == ChatModeProbe.Phase.STAFF_TOGGLE_WAIT) {
             phase = ChatModeProbe.Phase.STAFF_RESTORE_WAIT;
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client != null && client.getNetworkHandler() != null) {
-               client.getNetworkHandler().sendChatCommand("sch toggle");
+            Minecraft client = Minecraft.getInstance();
+            if (client != null && client.getConnection() != null) {
+               client.getConnection().sendCommand("sch toggle");
             }
          } else {
             if (phase == ChatModeProbe.Phase.STAFF_RESTORE_WAIT) {
@@ -90,9 +89,9 @@ public final class ChatModeProbe {
    public static void onMarryNowPublicLine() {
       if (phase == ChatModeProbe.Phase.MARRY_TOGGLE_WAIT) {
          phase = ChatModeProbe.Phase.MARRY_RESTORE_WAIT;
-         MinecraftClient client = MinecraftClient.getInstance();
-         if (client != null && client.getNetworkHandler() != null) {
-            client.getNetworkHandler().sendChatCommand("marry chattoggle");
+         Minecraft client = Minecraft.getInstance();
+         if (client != null && client.getConnection() != null) {
+            client.getConnection().sendCommand("marry chattoggle");
          }
       } else {
          if (phase == ChatModeProbe.Phase.MARRY_RESTORE_WAIT) {
@@ -105,9 +104,9 @@ public final class ChatModeProbe {
    public static void onMarryNowPrivateLine() {
       if (phase == ChatModeProbe.Phase.MARRY_TOGGLE_WAIT) {
          phase = ChatModeProbe.Phase.MARRY_RESTORE_WAIT;
-         MinecraftClient client = MinecraftClient.getInstance();
-         if (client != null && client.getNetworkHandler() != null) {
-            client.getNetworkHandler().sendChatCommand("marry chattoggle");
+         Minecraft client = Minecraft.getInstance();
+         if (client != null && client.getConnection() != null) {
+            client.getConnection().sendCommand("marry chattoggle");
          }
       } else {
          if (phase == ChatModeProbe.Phase.MARRY_RESTORE_WAIT) {

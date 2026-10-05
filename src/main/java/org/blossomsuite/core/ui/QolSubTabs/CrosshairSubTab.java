@@ -13,12 +13,11 @@ import org.blossomsuite.core.ui.SuiteSettingsScreen;
 import org.blossomsuite.core.ui.SuiteSubTab;
 import org.blossomsuite.core.util.CrosshairShapeRenderer;
 import java.util.Locale;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.network.chat.Component;
 public class CrosshairSubTab implements SuiteSubTab {
    @Override
    public String titleKey() {
@@ -33,8 +32,8 @@ public class CrosshairSubTab implements SuiteSubTab {
       int w = screen.contentW();
       int y = screen.bodyContentY() - screen.scrollOffset() + contentTopOffset;
       int rowH = 20;
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 160, 12, Text.literal("Enabled"), Tooltip.of(Text.literal("Enables crosshair tinting."))));
-      ButtonWidget enabledBtn = StyledButton.of(Text.literal(q.crosshairTintEnabled ? "ON" : "OFF"), b -> {
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 160, 12, Component.literal("Enabled"), Tooltip.create(Component.literal("Enables crosshair tinting."))));
+      Button enabledBtn = StyledButton.of(Component.literal(q.crosshairTintEnabled ? "ON" : "OFF"), b -> {
          q.crosshairTintEnabled = !q.crosshairTintEnabled;
          cfg.markDirty();
          ConfigIO.saveIfDirty();
@@ -44,10 +43,10 @@ public class CrosshairSubTab implements SuiteSubTab {
       y += 28;
       screen.addContentWidget(
          new HoverLabelWidget(
-            x, y + 6, 160, 12, Text.literal("Rainbow"), Tooltip.of(Text.literal("When enabled, RGB sliders are ignored and the crosshair cycles colors."))
+            x, y + 6, 160, 12, Component.literal("Rainbow"), Tooltip.create(Component.literal("When enabled, RGB sliders are ignored and the crosshair cycles colors."))
          )
       );
-      ButtonWidget rainbowBtn = StyledButton.of(Text.literal(q.crosshairRainbow ? "ON" : "OFF"), b -> {
+      Button rainbowBtn = StyledButton.of(Component.literal(q.crosshairRainbow ? "ON" : "OFF"), b -> {
          q.crosshairRainbow = !q.crosshairRainbow;
          cfg.markDirty();
          ConfigIO.saveIfDirty();
@@ -61,11 +60,11 @@ public class CrosshairSubTab implements SuiteSubTab {
             y + 6,
             160,
             12,
-            Text.literal("Shape"),
-            Tooltip.of(Text.literal("Vanilla keeps Minecraft's crosshair texture. Other shapes are drawn by " + SuiteRuntime.profile().displayName() + "."))
+            Component.literal("Shape"),
+            Tooltip.create(Component.literal("Vanilla keeps Minecraft's crosshair texture. Other shapes are drawn by " + SuiteRuntime.profile().displayName() + "."))
          )
       );
-      ButtonWidget shapeBtn = StyledButton.of(Text.literal(prettyShape(q.crosshairShape)), b -> {
+      Button shapeBtn = StyledButton.of(Component.literal(prettyShape(q.crosshairShape)), b -> {
          q.crosshairShape = nextShape(q.crosshairShape);
          clampShapeOptions(q);
          cfg.markDirty();
@@ -108,8 +107,8 @@ public class CrosshairSubTab implements SuiteSubTab {
          y = addColorSlider(screen, cfg, "Blue", q.crosshairB, x, w, y, 20, v -> q.crosshairB = v);
       }
 
-      screen.addContentWidget(new HoverLabelWidget(x, y, 120, 12, Text.literal("Alpha"), Tooltip.of(Text.literal("Crosshair opacity (0% to 100%)."))));
-      SliderWidget alphaSlider = new StyledSlider(x, y + 14, w, 20, Text.empty(), clamp01(q.crosshairA)) {
+      screen.addContentWidget(new HoverLabelWidget(x, y, 120, 12, Component.literal("Alpha"), Tooltip.create(Component.literal("Crosshair opacity (0% to 100%)."))));
+      AbstractSliderButton alphaSlider = new StyledSlider(x, y + 14, w, 20, Component.empty(), clamp01(q.crosshairA)) {
          {
             this.updateMessage();
          }
@@ -117,7 +116,7 @@ public class CrosshairSubTab implements SuiteSubTab {
          @Override
          protected void updateMessage() {
             int pct = (int)Math.round(this.value * 100.0);
-            this.setMessage(Text.literal(pct + "%"));
+            this.setMessage(Component.literal(pct + "%"));
          }
 
          @Override
@@ -130,9 +129,9 @@ public class CrosshairSubTab implements SuiteSubTab {
       y += 44;
       if (q.crosshairRainbow) {
          screen.addContentWidget(
-            new HoverLabelWidget(x, y, 160, 12, Text.literal("Rainbow Speed"), Tooltip.of(Text.literal("Rainbow cycle period. Lower = faster.")))
+            new HoverLabelWidget(x, y, 160, 12, Component.literal("Rainbow Speed"), Tooltip.create(Component.literal("Rainbow cycle period. Lower = faster.")))
          );
-         SliderWidget speedSlider = new StyledSlider(x, y + 14, w, 20, Text.empty(), periodToSlider(q.crosshairRainbowPeriodMs)) {
+         AbstractSliderButton speedSlider = new StyledSlider(x, y + 14, w, 20, Component.empty(), periodToSlider(q.crosshairRainbowPeriodMs)) {
             {
                this.updateMessage();
             }
@@ -140,7 +139,7 @@ public class CrosshairSubTab implements SuiteSubTab {
             @Override
             protected void updateMessage() {
                int ms = CrosshairSubTab.sliderToPeriod(this.value);
-               this.setMessage(Text.literal(ms / 1000.0 + "s"));
+               this.setMessage(Component.literal(ms / 1000.0 + "s"));
             }
 
             @Override
@@ -157,15 +156,15 @@ public class CrosshairSubTab implements SuiteSubTab {
    private static int addIntSlider(
       SuiteSettingsScreen screen, SuiteConfig cfg, String label, int current, int min, int max, int x, int w, int y, int rowH, CrosshairSubTab.IntSetter setter
    ) {
-      screen.addContentWidget(new HoverLabelWidget(x, y, 120, 12, Text.literal(label), Tooltip.of(Text.literal(label + " for custom crosshair shapes."))));
-      SliderWidget slider = new StyledSlider(x, y + 14, w, rowH, Text.empty(), intToSlider(current, min, max)) {
+      screen.addContentWidget(new HoverLabelWidget(x, y, 120, 12, Component.literal(label), Tooltip.create(Component.literal(label + " for custom crosshair shapes."))));
+      AbstractSliderButton slider = new StyledSlider(x, y + 14, w, rowH, Component.empty(), intToSlider(current, min, max)) {
          {
             this.updateMessage();
          }
 
          @Override
          protected void updateMessage() {
-            this.setMessage(Text.literal(String.valueOf(CrosshairSubTab.sliderToInt(this.value, min, max))));
+            this.setMessage(Component.literal(String.valueOf(CrosshairSubTab.sliderToInt(this.value, min, max))));
          }
 
          @Override
@@ -181,8 +180,8 @@ public class CrosshairSubTab implements SuiteSubTab {
    private static int addColorSlider(
       SuiteSettingsScreen screen, SuiteConfig cfg, String label, int current, int x, int w, int y, int rowH, CrosshairSubTab.IntSetter setter
    ) {
-      screen.addContentWidget(new HoverLabelWidget(x, y, 120, 12, Text.literal(label), Tooltip.of(Text.literal(label + " channel (0 to 255)."))));
-      SliderWidget slider = new StyledSlider(x, y + 14, w, rowH, Text.empty(), colorToSlider(current)) {
+      screen.addContentWidget(new HoverLabelWidget(x, y, 120, 12, Component.literal(label), Tooltip.create(Component.literal(label + " channel (0 to 255)."))));
+      AbstractSliderButton slider = new StyledSlider(x, y + 14, w, rowH, Component.empty(), colorToSlider(current)) {
          {
             this.updateMessage();
          }
@@ -190,7 +189,7 @@ public class CrosshairSubTab implements SuiteSubTab {
          @Override
          protected void updateMessage() {
             int v = CrosshairSubTab.sliderToColor(this.value);
-            this.setMessage(Text.literal(String.valueOf(v)));
+            this.setMessage(Component.literal(String.valueOf(v)));
          }
 
          @Override
@@ -204,7 +203,7 @@ public class CrosshairSubTab implements SuiteSubTab {
    }
 
    @Override
-   public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
+   public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
    }
 
    @Override

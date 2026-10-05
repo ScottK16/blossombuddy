@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.chat.MainChatLog;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +27,7 @@ class ChatEventsMainChatLogTest {
 
    @Test
    void ordinaryChatEndsUpInTheSearchLog() {
-      Text line = Text.literal("Wanderer : Steve > hello");
+      Component line = Component.literal("Wanderer : Steve > hello");
       boolean hiddenBySecondary = org.blossomsuite.core.chat.SecondaryChat.INSTANCE.onMessage(line);
       assertTrue(!hiddenBySecondary, "an ordinary line is never hidden");
       MainChatLog.INSTANCE.record(line);
@@ -37,7 +37,7 @@ class ChatEventsMainChatLogTest {
    @Test
    void aLineHiddenIntoASecondaryWindowIsNotRecordedForMainChatSearch() {
       FeatureConfig.INSTANCE.chat.show = true;
-      Text tp = Text.literal("TELEPORT ~Steve has requested to teleport to you.");
+      Component tp = Component.literal("TELEPORT ~Steve has requested to teleport to you.");
       List<String> log = new ArrayList<>();
       boolean hidden = org.blossomsuite.core.chat.SecondaryChat.INSTANCE.onMessage(tp);
       assertTrue(hidden, "the real ChatEvents.ALLOW_GAME would return false here and never call MainChatLog.record");

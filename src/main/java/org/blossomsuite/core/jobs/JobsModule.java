@@ -1,8 +1,7 @@
 package org.blossomsuite.core.jobs;
 
 import org.blossomsuite.core.config.SuiteConfig;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 public final class JobsModule {
    private static JobsTracker tracker;
 
@@ -17,7 +16,7 @@ public final class JobsModule {
       return tracker;
    }
 
-   public static void tick(MinecraftClient client) {
+   public static void tick(Minecraft client) {
    }
 
    public static void addLifeTime(double amt) {

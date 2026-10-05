@@ -1,8 +1,8 @@
 package org.blossomsuite.core.mixin.client;
 
-import net.minecraft.client.render.Frustum;
-import net.minecraft.client.render.entity.EntityRenderDispatcher;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.world.entity.Entity;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.visibility.PlayerVisibility;
 import org.spongepowered.asm.mixin.Mixin;

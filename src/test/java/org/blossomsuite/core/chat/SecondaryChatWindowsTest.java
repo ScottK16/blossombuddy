@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,8 +39,8 @@ class SecondaryChatWindowsTest {
 
    private static SecondaryChat withMarryAndTeleport() {
       SecondaryChat chat = new SecondaryChat();
-      chat.onMessage(Text.literal(MARRY_LINE));
-      chat.onMessage(Text.literal(TP_LINE));
+      chat.onMessage(Component.literal(MARRY_LINE));
+      chat.onMessage(Component.literal(TP_LINE));
       return chat;
    }
 
@@ -86,21 +86,21 @@ class SecondaryChatWindowsTest {
    void aLineIsHiddenFromMainChatWhenItsOwnWindowIsShowingEvenIfTheMainWindowIsOff() {
       FeatureConfig.INSTANCE.chat.show = false;
       SecondaryChat chat = new SecondaryChat();
-      assertFalse(chat.onMessage(Text.literal(MARRY_LINE)), "no window to read it in: it stays in main chat");
+      assertFalse(chat.onMessage(Component.literal(MARRY_LINE)), "no window to read it in: it stays in main chat");
 
       window(0, "Marry", true, true);
-      assertTrue(chat.onMessage(Text.literal(MARRY_LINE)), "the Marry window shows it, so main chat doesn't need to");
-      assertFalse(chat.onMessage(Text.literal(TP_LINE)), "Teleports has no window: still in main chat");
+      assertTrue(chat.onMessage(Component.literal(MARRY_LINE)), "the Marry window shows it, so main chat doesn't need to");
+      assertFalse(chat.onMessage(Component.literal(TP_LINE)), "Teleports has no window: still in main chat");
 
       window(0, "Marry", false, true);
-      assertFalse(chat.onMessage(Text.literal(MARRY_LINE)), "window off again");
+      assertFalse(chat.onMessage(Component.literal(MARRY_LINE)), "window off again");
    }
 
    @Test
    void aFilterThatDoesNotHideFromMainIsNeverHidden() {
       window(0, "Marry", true, true);
       FeatureConfig.INSTANCE.chat.filters.stream().filter(f -> "Marry".equals(f.name)).findFirst().orElseThrow().hideFromMain = false;
-      assertFalse(new SecondaryChat().onMessage(Text.literal(MARRY_LINE)));
+      assertFalse(new SecondaryChat().onMessage(Component.literal(MARRY_LINE)));
    }
 
    @Test
@@ -117,11 +117,11 @@ class SecondaryChatWindowsTest {
    @Test
    void theStaffFilterIsOffByDefaultSoItCatchesNothingUntilAStaffMemberTurnsItOn() {
       SecondaryChat chat = new SecondaryChat();
-      chat.onMessage(Text.literal("[Staff] Admin: meeting at 5"));
+      chat.onMessage(Component.literal("[Staff] Admin: meeting at 5"));
       assertEquals(0, chat.count("Staff"));
 
       FeatureConfig.INSTANCE.chat.filters.stream().filter(f -> "Staff".equals(f.name)).findFirst().orElseThrow().enabled = true;
-      chat.onMessage(Text.literal("[Staff] Admin: meeting at 5"));
+      chat.onMessage(Component.literal("[Staff] Admin: meeting at 5"));
       assertEquals(1, chat.count("Staff"));
    }
 
@@ -130,7 +130,7 @@ class SecondaryChatWindowsTest {
       FeatureConfig.INSTANCE.chat.filters.stream().filter(f -> "Staff".equals(f.name)).findFirst().orElseThrow().enabled = true;
       SecondaryChat chat = new SecondaryChat();
       for (String line : new String[]{"[Staff] updated staff chat toggle to on.", "[Staff] Theonlymxrvin > tst", "[22:59:05] [Staff] Theonlymxrvin > test", "  [Staff] Name > indented"}) {
-         chat.onMessage(Text.literal(line));
+         chat.onMessage(Component.literal(line));
       }
 
       assertEquals(4, chat.count("Staff"));
@@ -141,7 +141,7 @@ class SecondaryChatWindowsTest {
       FeatureConfig.INSTANCE.chat.filters.stream().filter(f -> "Staff".equals(f.name)).findFirst().orElseThrow().enabled = true;
       SecondaryChat chat = new SecondaryChat();
       for (String line : new String[]{"Wanderer : SimpatiX > [Staff] hello everyone", "Ranger : Bob > can someone in staff chat help me?", "BR_Fishyboy12389 died", "[Party] Alice > staff"}) {
-         chat.onMessage(Text.literal(line));
+         chat.onMessage(Component.literal(line));
       }
 
       assertEquals(0, chat.count("Staff"), "a player typing [Staff] mid-line can't fake a staff message");
@@ -150,15 +150,15 @@ class SecondaryChatWindowsTest {
    @Test
    void aStaffWindowCatchesStaffChatEvenThoughTheStaffFilterItselfIsOff() {
       SecondaryChat chat = new SecondaryChat();
-      chat.onMessage(Text.literal("[Staff] Theonlymxrvin > before the window"));
+      chat.onMessage(Component.literal("[Staff] Theonlymxrvin > before the window"));
       assertEquals(0, chat.count("Staff"), "no window, filter off: nothing is kept");
 
       window(1, "Staff", true, true);
-      chat.onMessage(Text.literal("[Staff] Theonlymxrvin > after the window"));
+      chat.onMessage(Component.literal("[Staff] Theonlymxrvin > after the window"));
       assertEquals(1, chat.count("Staff"));
 
       window(1, "Staff", false, true);
-      chat.onMessage(Text.literal("[Staff] Theonlymxrvin > window off again"));
+      chat.onMessage(Component.literal("[Staff] Theonlymxrvin > window off again"));
       assertEquals(1, chat.count("Staff"), "and not again once the window is off");
    }
 
@@ -167,14 +167,14 @@ class SecondaryChatWindowsTest {
       window(0, "Marry", true, true);
       SecondaryChat chat = new SecondaryChat();
       for (int i = 0; i < 6; i++) {
-         chat.onMessage(Text.literal(TP_LINE + " " + i));
+         chat.onMessage(Component.literal(TP_LINE + " " + i));
       }
 
       chat.scrollBy(3);
       assertEquals(3, chat.scroll());
-      chat.onMessage(Text.literal(MARRY_LINE));
+      chat.onMessage(Component.literal(MARRY_LINE));
       assertEquals(3, chat.scroll(), "a Marry line doesn't appear in All, so it doesn't push the view");
-      chat.onMessage(Text.literal(TP_LINE + " new"));
+      chat.onMessage(Component.literal(TP_LINE + " new"));
       assertEquals(4, chat.scroll(), "a Teleports line does");
    }
 }

@@ -6,16 +6,15 @@ import org.blossomsuite.core.services.models.RelayModels;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 public final class CooldownRuntime {
    private static Supplier<String> realmSupplier = () -> "";
    private static Supplier<RelayService> relaySupplier = () -> null;
-   private static Consumer<Text> chatReporter = text -> {
-      MinecraftClient client = MinecraftClient.getInstance();
+   private static Consumer<Component> chatReporter = text -> {
+      Minecraft client = Minecraft.getInstance();
       if (client != null && client.player != null) {
-         client.player.sendMessage(text, false);
+         client.player.sendSystemMessage(text);
       }
    };
 
@@ -30,7 +29,7 @@ public final class CooldownRuntime {
       relaySupplier = supplier != null ? supplier : () -> null;
    }
 
-   public static void setChatReporter(Consumer<Text> reporter) {
+   public static void setChatReporter(Consumer<Component> reporter) {
       chatReporter = reporter != null ? reporter : text -> {};
    }
 
@@ -58,7 +57,7 @@ public final class CooldownRuntime {
             if (relay == null) {
                return false;
             } else {
-               MinecraftClient client = MinecraftClient.getInstance();
+               Minecraft client = Minecraft.getInstance();
                if (client != null && client.player != null) {
                   relay.publishSnapshotIfAllowed(true, SuiteConfig.INSTANCE.RelayConfig.linkId, realm, client.player.getName().getString(), snapshot);
                   return true;
@@ -72,7 +71,7 @@ public final class CooldownRuntime {
       }
    }
 
-   public static void sendChat(Text text) {
+   public static void sendChat(Component text) {
       if (text != null) {
          chatReporter.accept(text);
       }

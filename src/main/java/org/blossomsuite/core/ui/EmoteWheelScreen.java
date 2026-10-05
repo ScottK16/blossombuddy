@@ -1,13 +1,15 @@
 package org.blossomsuite.core.ui;
 
 import java.util.ArrayList;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import java.util.List;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
+import net.minecraft.resources.Identifier;
 import org.blossomsuite.core.emote.Emote;
 import org.blossomsuite.core.emote.EmoteClient;
 import org.blossomsuite.core.presence.PresenceClient;
@@ -33,17 +35,17 @@ public final class EmoteWheelScreen extends Screen {
    private int page = 0;
 
    public EmoteWheelScreen() {
-      super(Text.literal("Emotes"));
+      super(Component.literal("Emotes"));
    }
 
    @Override
-   public boolean shouldPause() {
+   public boolean isPauseScreen() {
       return false;
    }
 
    /** Where an emote's picture lives inside the mod. */
    public static Identifier imageOf(Emote emote) {
-      return Identifier.of("blossombuddy", "textures/emote/" + emote.id() + ".png");
+      return Identifier.fromNamespaceAndPath("blossombuddy", "textures/emote/" + emote.id() + ".png");
    }
 
    // ------------------------------------------------------------------ layout
@@ -121,9 +123,9 @@ public final class EmoteWheelScreen extends Screen {
    // ------------------------------------------------------------------ drawing
 
    @Override
-   public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-      super.render(ctx, mouseX, mouseY, delta);
-      ctx.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Emotes").formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD), this.width / 2, Math.max(4, this.gridTop() - 14), -1);
+   public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+      super.extractRenderState(ctx, mouseX, mouseY, delta);
+      ctx.centeredText(this.font, Component.literal("Emotes").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD), this.width / 2, Math.max(4, this.gridTop() - 14), -1);
 
       List<Emote> emotes = this.pageEmotes();
       int tw = this.tileW();
@@ -133,32 +135,32 @@ public final class EmoteWheelScreen extends Screen {
          int y = this.slotY(i);
          boolean hovered = inside(mouseX, mouseY, x, y, tw, this.cellH());
          ctx.fill(x - 2, y - 2, x + tw + 2, y + this.cellH(), hovered ? 0xCC7A3F8F : 0xAA2A1533);
-         ctx.drawTexture(RenderPipelines.GUI_TEXTURED, imageOf(emotes.get(i)), x, y, 0.0F, 0.0F, tw, th, IMAGE_W, IMAGE_H, IMAGE_W, IMAGE_H);
-         Text label = Text.literal((i + 1) + " " + emotes.get(i).label()).formatted(hovered ? Formatting.WHITE : Formatting.LIGHT_PURPLE);
-         ctx.drawCenteredTextWithShadow(this.textRenderer, label, x + tw / 2, y + th + 3, -1);
+         ctx.blit(RenderPipelines.GUI_TEXTURED, imageOf(emotes.get(i)), x, y, 0.0F, 0.0F, tw, th, IMAGE_W, IMAGE_H, IMAGE_W, IMAGE_H);
+         Component label = Component.literal((i + 1) + " " + emotes.get(i).label()).withStyle(hovered ? ChatFormatting.WHITE : ChatFormatting.LIGHT_PURPLE);
+         ctx.centeredText(this.font, label, x + tw / 2, y + th + 3, -1);
       }
 
       int cy = this.controlsY();
       boolean stopHover = inside(mouseX, mouseY, this.stopX(), this.stopY(), STOP_W, STOP_H);
       ctx.fill(this.stopX(), this.stopY(), this.stopX() + STOP_W, this.stopY() + STOP_H, stopHover ? 0xCC8F3F3F : 0x88331515);
-      ctx.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Stop").formatted(Formatting.WHITE), this.width / 2, this.stopY() + 4, -1);
+      ctx.centeredText(this.font, Component.literal("Stop").withStyle(ChatFormatting.WHITE), this.width / 2, this.stopY() + 4, -1);
 
       int pages = pageCount(Emote.ALL.size());
       if (pages > 1) {
          this.drawArrow(ctx, this.width / 2 - this.gridW() / 2, cy, "<", this.page > 0, inPrev(mouseX, mouseY));
          this.drawArrow(ctx, this.width / 2 + this.gridW() / 2 - 22, cy, ">", this.page < pages - 1, inNext(mouseX, mouseY));
-         ctx.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Page " + (this.page + 1) + " / " + pages).formatted(Formatting.GRAY), this.width / 2, cy + STOP_H + 4, -1);
+         ctx.centeredText(this.font, Component.literal("Page " + (this.page + 1) + " / " + pages).withStyle(ChatFormatting.GRAY), this.width / 2, cy + STOP_H + 4, -1);
       }
 
       boolean connected = PresenceClient.INSTANCE.state() == PresenceClient.State.READY;
       String hint = (connected ? "Others on your realm can see them. " : "Others can't see yours until the player list connects (/buddy who). ")
          + "Emotes loop until you stop them.";
-      ctx.drawCenteredTextWithShadow(this.textRenderer, Text.literal(hint).formatted(Formatting.GRAY), this.width / 2, Math.min(this.height - 12, cy + STOP_H + 18), -1);
+      ctx.centeredText(this.font, Component.literal(hint).withStyle(ChatFormatting.GRAY), this.width / 2, Math.min(this.height - 12, cy + STOP_H + 18), -1);
    }
 
-   private void drawArrow(DrawContext ctx, int x, int y, String label, boolean active, boolean hovered) {
+   private void drawArrow(GuiGraphicsExtractor ctx, int x, int y, String label, boolean active, boolean hovered) {
       ctx.fill(x, y, x + 22, y + 16, active ? (hovered ? 0xCC7A3F8F : 0xAA2A1533) : 0x44221122);
-      ctx.drawCenteredTextWithShadow(this.textRenderer, Text.literal(label).formatted(active ? Formatting.WHITE : Formatting.DARK_GRAY), x + 11, y + 4, -1);
+      ctx.centeredText(this.font, Component.literal(label).withStyle(active ? ChatFormatting.WHITE : ChatFormatting.DARK_GRAY), x + 11, y + 4, -1);
    }
 
    // ------------------------------------------------------------------ input
@@ -168,20 +170,23 @@ public final class EmoteWheelScreen extends Screen {
    }
 
    @Override
-   public boolean mouseClicked(double mouseX, double mouseY, int button) {
+   public boolean mouseClicked(MouseButtonEvent inputEvent, boolean isDoubleClick) {
+      double mouseX = inputEvent.x();
+      double mouseY = inputEvent.y();
+      int button = inputEvent.button();
       if (button == 0) {
          List<Emote> emotes = this.pageEmotes();
          for (int i = 0; i < emotes.size(); i++) {
             if (inside(mouseX, mouseY, this.slotX(i), this.slotY(i), this.tileW(), this.cellH())) {
                EmoteClient.INSTANCE.toggle(emotes.get(i));
-               this.close();
+               this.onClose();
                return true;
             }
          }
 
          if (inside(mouseX, mouseY, this.stopX(), this.stopY(), STOP_W, STOP_H)) {
             EmoteClient.INSTANCE.stop();
-            this.close();
+            this.onClose();
             return true;
          }
 
@@ -196,7 +201,7 @@ public final class EmoteWheelScreen extends Screen {
          }
       }
 
-      return super.mouseClicked(mouseX, mouseY, button);
+      return super.mouseClicked(inputEvent, isDoubleClick);
    }
 
    @Override
@@ -210,7 +215,10 @@ public final class EmoteWheelScreen extends Screen {
    }
 
    @Override
-   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+   public boolean keyPressed(KeyEvent inputEvent) {
+      int keyCode = inputEvent.key();
+      int scanCode = inputEvent.scancode();
+      int modifiers = inputEvent.modifiers();
       if (keyCode == GLFW.GLFW_KEY_RIGHT) {
          this.turnPage(1);
          return true;
@@ -225,10 +233,10 @@ public final class EmoteWheelScreen extends Screen {
       int index = keyCode - GLFW.GLFW_KEY_1;
       if (index >= 0 && index < emotes.size()) {
          EmoteClient.INSTANCE.toggle(emotes.get(index));
-         this.close();
+         this.onClose();
          return true;
       }
 
-      return super.keyPressed(keyCode, scanCode, modifiers);
+      return super.keyPressed(inputEvent);
    }
 }

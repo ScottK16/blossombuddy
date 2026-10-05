@@ -2,10 +2,9 @@ package org.blossomsuite.core.ui;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 public abstract class NestedSuiteTab implements SuiteTab {
    protected final List<SuiteSubTab> subTabs = new ArrayList<>();
    protected SuiteSubTab current;
@@ -58,7 +57,7 @@ public abstract class NestedSuiteTab implements SuiteTab {
    }
 
    @Override
-   public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta) {
+   public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
       this.ensureInitialized();
       if (this.current != null) {
          this.current.renderText(screen, ctx, mouseX, mouseY, delta, this.subTabContentOffset(screen));
@@ -105,7 +104,7 @@ public abstract class NestedSuiteTab implements SuiteTab {
             if (needsScroll) {
                boolean canLeft = this.subTabScrollIndex > 0;
                boolean canRight = this.subTabScrollIndex < maxStart;
-               ButtonWidget left = StyledButton.of(Text.literal("<"), b -> {
+               Button left = StyledButton.of(Component.literal("<"), b -> {
                   this.subTabScrollIndex = Math.max(0, this.subTabScrollIndex - 1);
                   int idx = this.current == null ? -1 : this.subTabs.indexOf(this.current);
                   if (idx >= 0) {
@@ -128,10 +127,10 @@ public abstract class NestedSuiteTab implements SuiteTab {
                   screen.rebuildPreserveScroll();
                }).dimensions(drawX, y, 18, baseH).build();
                left.active = canLeft;
-               screen.addWidget(left);
+               screen.addPanelWidget(left);
                drawX += 18 + gap;
                int rightArrowX = x + w - 18;
-               ButtonWidget right = StyledButton.of(Text.literal(">"), b -> {
+               Button right = StyledButton.of(Component.literal(">"), b -> {
                   this.subTabScrollIndex = Math.min(maxStart, this.subTabScrollIndex + 1);
                   int idx = this.current == null ? -1 : this.subTabs.indexOf(this.current);
                   if (idx >= 0) {
@@ -154,11 +153,11 @@ public abstract class NestedSuiteTab implements SuiteTab {
                   screen.rebuildPreserveScroll();
                }).dimensions(rightArrowX, y, 18, baseH).build();
                right.active = canRight;
-               screen.addWidget(right);
+               screen.addPanelWidget(right);
                int trackX = x + 18 + gap;
                int trackW = w - (36 + gap * 2);
                int trackY = y + baseH + 2;
-               screen.addWidget(new SubTabScrollBarWidget(trackX, trackY, trackW, 10, count, visible, this.subTabScrollIndex, idx -> {
+               screen.addPanelWidget(new SubTabScrollBarWidget(trackX, trackY, trackW, 10, count, visible, this.subTabScrollIndex, idx -> {
                   this.subTabScrollIndex = Math.max(0, Math.min(maxStart, idx));
                   int curIdx = this.current == null ? -1 : this.subTabs.indexOf(this.current);
                   if (curIdx >= 0) {
@@ -190,7 +189,7 @@ public abstract class NestedSuiteTab implements SuiteTab {
                boolean selected = tab == this.current;
                int h = selected ? baseH + 2 : baseH;
                int yPos = selected ? y - 2 : y;
-               screen.addWidget(new TabButtonWidget(drawX, yPos, buttonW, h, Text.translatable(tab.titleKey()), selected, () -> {
+               screen.addPanelWidget(new TabButtonWidget(drawX, yPos, buttonW, h, Component.translatable(tab.titleKey()), selected, () -> {
                   if (this.current != tab) {
                      if (this.current != null) {
                         this.current.removed();

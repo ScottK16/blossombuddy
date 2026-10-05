@@ -1,13 +1,12 @@
 package org.blossomsuite.core.ui;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Drawable;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.gui.Selectable.SelectionType;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-
-public class DividerWidget implements Drawable, Element, Selectable {
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.narration.NarratableEntry.NarrationPriority;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+public class DividerWidget implements Renderable, GuiEventListener, NarratableEntry {
    private final int x;
    private final int y;
    private final int length;
@@ -16,7 +15,7 @@ public class DividerWidget implements Drawable, Element, Selectable {
    private final DividerWidget.Orientation orientation;
 
    @Override
-   public void appendNarrations(NarrationMessageBuilder builder) {
+   public void updateNarration(NarrationElementOutput builder) {
    }
 
    public DividerWidget(int x, int y, int length) {
@@ -41,7 +40,7 @@ public class DividerWidget implements Drawable, Element, Selectable {
    }
 
    @Override
-   public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+   public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
       if (this.orientation == DividerWidget.Orientation.HORIZONTAL) {
          ctx.fill(this.x, this.y, this.x + this.length, this.y + this.thickness, this.color);
       } else {
@@ -64,8 +63,8 @@ public class DividerWidget implements Drawable, Element, Selectable {
    }
 
    @Override
-   public SelectionType getType() {
-      return SelectionType.NONE;
+   public NarrationPriority narrationPriority() {
+      return NarrationPriority.NONE;
    }
 
    public enum Orientation {

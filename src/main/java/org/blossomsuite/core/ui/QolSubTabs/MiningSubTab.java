@@ -9,14 +9,13 @@ import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.ui.HoverLabelWidget;
 import org.blossomsuite.core.ui.SuiteSettingsScreen;
 import org.blossomsuite.core.ui.SuiteSubTab;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.Direction;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.network.chat.Component;
+import net.minecraft.core.Direction;
 public final class MiningSubTab implements SuiteSubTab {
    @Override
    public String titleKey() {
@@ -36,11 +35,11 @@ public final class MiningSubTab implements SuiteSubTab {
             y + 6,
             260,
             12,
-            Text.literal("Resume Mining After Drops"),
-            Tooltip.of(Text.literal("Prevents auto-drop/inventory actions from falsely releasing held-click mining."))
+            Component.literal("Resume Mining After Drops"),
+            Tooltip.create(Component.literal("Prevents auto-drop/inventory actions from falsely releasing held-click mining."))
          )
       );
-      ButtonWidget resumeBtn = StyledButton.of(Text.literal(cfg.QolConfig.miningResumeAfterDrops ? "ON" : "OFF"), b -> {
+      Button resumeBtn = StyledButton.of(Component.literal(cfg.QolConfig.miningResumeAfterDrops ? "ON" : "OFF"), b -> {
          cfg.QolConfig.miningResumeAfterDrops = !cfg.QolConfig.miningResumeAfterDrops;
          cfg.markDirty();
          ConfigIO.saveIfDirty();
@@ -54,15 +53,15 @@ public final class MiningSubTab implements SuiteSubTab {
             y + 6,
             220,
             12,
-            Text.literal("Mining Track Overlay"),
-            Tooltip.of(
-               Text.literal(
+            Component.literal("Mining Track Overlay"),
+            Tooltip.create(
+               Component.literal(
                   "Draws block outlines along your locked mining line.\nGreen = on track. Red = drifted off.\nUse Set Track while facing N/E/S/W to lock direction + axis."
                )
             )
          )
       );
-      ButtonWidget indicatorBtn = StyledButton.of(Text.literal(cfg.QolConfig.miningTrackIndicator ? "ON" : "OFF"), b -> {
+      Button indicatorBtn = StyledButton.of(Component.literal(cfg.QolConfig.miningTrackIndicator ? "ON" : "OFF"), b -> {
          cfg.QolConfig.miningTrackIndicator = !cfg.QolConfig.miningTrackIndicator;
          cfg.markDirty();
          ConfigIO.saveIfDirty();
@@ -77,20 +76,20 @@ public final class MiningSubTab implements SuiteSubTab {
             y + 6,
             Math.min(w, 360),
             12,
-            Text.literal(trackText),
-            Tooltip.of(Text.literal("Current locked track. Clear to disable the lock.\nSet Track uses your current facing and current X/Z."))
+            Component.literal(trackText),
+            Tooltip.create(Component.literal("Current locked track. Clear to disable the lock.\nSet Track uses your current facing and current X/Z."))
          )
       );
       int btnW = 110;
-      ButtonWidget setBtn = StyledButton.of(Text.literal("Set Track"), b -> {
-         MinecraftClient mc = MinecraftClient.getInstance();
+      Button setBtn = StyledButton.of(Component.literal("Set Track"), b -> {
+         Minecraft mc = Minecraft.getInstance();
          if (mc != null && mc.player != null) {
-            Direction d = mc.player.getHorizontalFacing();
-            cfg.QolConfig.miningTrackDir = d.asString();
+            Direction d = mc.player.getDirection();
+            cfg.QolConfig.miningTrackDir = d.getSerializedName();
             if (d != Direction.EAST && d != Direction.WEST) {
-               cfg.QolConfig.miningTrackCoord = mc.player.getBlockPos().getX();
+               cfg.QolConfig.miningTrackCoord = mc.player.blockPosition().getX();
             } else {
-               cfg.QolConfig.miningTrackCoord = mc.player.getBlockPos().getZ();
+               cfg.QolConfig.miningTrackCoord = mc.player.blockPosition().getZ();
             }
 
             cfg.markDirty();
@@ -98,16 +97,16 @@ public final class MiningSubTab implements SuiteSubTab {
             screen.rebuildPreserveScroll();
          }
       }).dimensions(x + w - (btnW * 2 + 8), y, btnW, 20).build();
-      setBtn.setTooltip(Tooltip.of(Text.literal("Locks to your current facing direction and current X/Z track coordinate.")));
+      setBtn.setTooltip(Tooltip.create(Component.literal("Locks to your current facing direction and current X/Z track coordinate.")));
       screen.addContentWidget(setBtn);
-      ButtonWidget clearBtn = StyledButton.of(Text.literal("Clear"), b -> {
+      Button clearBtn = StyledButton.of(Component.literal("Clear"), b -> {
          cfg.QolConfig.miningTrackDir = "";
          cfg.QolConfig.miningTrackCoord = 0;
          cfg.markDirty();
          ConfigIO.saveIfDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(x + w - btnW, y, btnW, 20).build();
-      clearBtn.setTooltip(Tooltip.of(Text.literal("Clears the locked track (indicator can stay ON).")));
+      clearBtn.setTooltip(Tooltip.create(Component.literal("Clears the locked track (indicator can stay ON).")));
       screen.addContentWidget(clearBtn);
       y += 28;
       String rangeLabel = cfg.QolConfig.miningTrackRangeBlocks <= 0 ? "Auto (view distance)" : cfg.QolConfig.miningTrackRangeBlocks + " blocks";
@@ -117,13 +116,13 @@ public final class MiningSubTab implements SuiteSubTab {
             y + 6,
             Math.min(w, 260),
             12,
-            Text.literal("Track Range: " + rangeLabel),
-            Tooltip.of(Text.literal("How far to render the mining track outlines.\nAuto uses your current view distance."))
+            Component.literal("Track Range: " + rangeLabel),
+            Tooltip.create(Component.literal("How far to render the mining track outlines.\nAuto uses your current view distance."))
          )
       );
       int small = 28;
       int gap = 6;
-      ButtonWidget minusBtn = StyledButton.of(Text.literal("-"), b -> {
+      Button minusBtn = StyledButton.of(Component.literal("-"), b -> {
          int v = cfg.QolConfig.miningTrackRangeBlocks;
          if (v <= 0) {
             v = 128;
@@ -135,9 +134,9 @@ public final class MiningSubTab implements SuiteSubTab {
          ConfigIO.saveIfDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(x + w - (small * 3 + gap * 2), y, small, 20).build();
-      minusBtn.setTooltip(Tooltip.of(Text.literal("Decrease range")));
+      minusBtn.setTooltip(Tooltip.create(Component.literal("Decrease range")));
       screen.addContentWidget(minusBtn);
-      ButtonWidget plusBtn = StyledButton.of(Text.literal("+"), b -> {
+      Button plusBtn = StyledButton.of(Component.literal("+"), b -> {
          int v = cfg.QolConfig.miningTrackRangeBlocks;
          if (v <= 0) {
             v = 128;
@@ -149,15 +148,15 @@ public final class MiningSubTab implements SuiteSubTab {
          ConfigIO.saveIfDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(x + w - (small * 2 + gap), y, small, 20).build();
-      plusBtn.setTooltip(Tooltip.of(Text.literal("Increase range")));
+      plusBtn.setTooltip(Tooltip.create(Component.literal("Increase range")));
       screen.addContentWidget(plusBtn);
-      ButtonWidget autoBtn = StyledButton.of(Text.literal("Auto"), b -> {
+      Button autoBtn = StyledButton.of(Component.literal("Auto"), b -> {
          cfg.QolConfig.miningTrackRangeBlocks = 0;
          cfg.markDirty();
          ConfigIO.saveIfDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(x + w - small, y, small, 20).build();
-      autoBtn.setTooltip(Tooltip.of(Text.literal("Use view distance")));
+      autoBtn.setTooltip(Tooltip.create(Component.literal("Use view distance")));
       screen.addContentWidget(autoBtn);
       y += 28;
       int t = cfg.QolConfig.miningTrackLineThickness;
@@ -176,11 +175,11 @@ public final class MiningSubTab implements SuiteSubTab {
             y + 6,
             Math.min(w, 240),
             12,
-            Text.literal("Line Thickness: " + showT),
-            Tooltip.of(Text.literal("Adjusts how bold the mining track outline appears."))
+            Component.literal("Line Thickness: " + showT),
+            Tooltip.create(Component.literal("Adjusts how bold the mining track outline appears."))
          )
       );
-      ButtonWidget tMinus = StyledButton.of(Text.literal("-"), b -> {
+      Button tMinus = StyledButton.of(Component.literal("-"), b -> {
          int v = cfg.QolConfig.miningTrackLineThickness;
          if (v < 1) {
             v = 1;
@@ -192,9 +191,9 @@ public final class MiningSubTab implements SuiteSubTab {
          ConfigIO.saveIfDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(x + w - (small * 2 + gap), y, small, 20).build();
-      tMinus.setTooltip(Tooltip.of(Text.literal("Thinner")));
+      tMinus.setTooltip(Tooltip.create(Component.literal("Thinner")));
       screen.addContentWidget(tMinus);
-      ButtonWidget tPlus = StyledButton.of(Text.literal("+"), b -> {
+      Button tPlus = StyledButton.of(Component.literal("+"), b -> {
          int v = cfg.QolConfig.miningTrackLineThickness;
          if (v < 1) {
             v = 1;
@@ -206,7 +205,7 @@ public final class MiningSubTab implements SuiteSubTab {
          ConfigIO.saveIfDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(x + w - small, y, small, 20).build();
-      tPlus.setTooltip(Tooltip.of(Text.literal("Thicker")));
+      tPlus.setTooltip(Tooltip.create(Component.literal("Thicker")));
       screen.addContentWidget(tPlus);
       y += 32;
       y = addColorSection(screen, cfg, "On Track Color", "Color used when you are on the locked mining track.", true, x, w, y, 20);
@@ -223,11 +222,11 @@ public final class MiningSubTab implements SuiteSubTab {
             y + 6,
             Math.min(w, 240),
             12,
-            Text.literal(label + ": " + colorModeLabel(mode)),
-            Tooltip.of(Text.literal(tooltip + "\nSolid uses the RGB sliders. Rainbow cycles colors along the track."))
+            Component.literal(label + ": " + colorModeLabel(mode)),
+            Tooltip.create(Component.literal(tooltip + "\nSolid uses the RGB sliders. Rainbow cycles colors along the track."))
          )
       );
-      ButtonWidget modeBtn = StyledButton.of(Text.literal("Mode"), b -> {
+      Button modeBtn = StyledButton.of(Component.literal("Mode"), b -> {
          QolConfig.MiningTrackColorMode next = nextColorMode(mode);
          if (onTrack) {
             q.miningTrackOnTrackColorMode = next;
@@ -239,7 +238,7 @@ public final class MiningSubTab implements SuiteSubTab {
          ConfigIO.saveIfDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(x + w - 80, y, 80, rowH).build();
-      modeBtn.setTooltip(Tooltip.of(Text.literal("Cycle Solid and Rainbow")));
+      modeBtn.setTooltip(Tooltip.create(Component.literal("Cycle Solid and Rainbow")));
       screen.addContentWidget(modeBtn);
       y += 30;
       if (mode != QolConfig.MiningTrackColorMode.RAINBOW) {
@@ -272,15 +271,15 @@ public final class MiningSubTab implements SuiteSubTab {
    private static int addColorSlider(
       SuiteSettingsScreen screen, SuiteConfig cfg, String label, int current, int x, int w, int y, int rowH, MiningSubTab.IntSetter setter
    ) {
-      screen.addContentWidget(new HoverLabelWidget(x, y, 130, 12, Text.literal(label), Tooltip.of(Text.literal(label + " channel (0 to 255)."))));
-      SliderWidget slider = new StyledSlider(x, y + 14, w, rowH, Text.empty(), colorToSlider(current)) {
+      screen.addContentWidget(new HoverLabelWidget(x, y, 130, 12, Component.literal(label), Tooltip.create(Component.literal(label + " channel (0 to 255)."))));
+      AbstractSliderButton slider = new StyledSlider(x, y + 14, w, rowH, Component.empty(), colorToSlider(current)) {
          {
             this.updateMessage();
          }
 
          @Override
          protected void updateMessage() {
-            this.setMessage(Text.literal(String.valueOf(MiningSubTab.sliderToColor(this.value))));
+            this.setMessage(Component.literal(String.valueOf(MiningSubTab.sliderToColor(this.value))));
          }
 
          @Override
@@ -319,7 +318,7 @@ public final class MiningSubTab implements SuiteSubTab {
    }
 
    @Override
-   public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
+   public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
    }
 
    @Override

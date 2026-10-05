@@ -4,11 +4,11 @@ import org.blossomsuite.core.config.ConfigIO;
 import org.blossomsuite.core.config.QolConfig;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.util.HudStyleUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import org.joml.Matrix3x2fStack;
 
 public final class MiningTrackHud {
@@ -106,7 +106,7 @@ public final class MiningTrackHud {
    private MiningTrackHud() {
    }
 
-   public static void render(DrawContext ctx, MinecraftClient client) {
+   public static void render(GuiGraphicsExtractor ctx, Minecraft client) {
       if (SuiteConfig.INSTANCE.MiningHudConfig.showHud) {
          if (client != null && client.player != null) {
             QolConfig q = SuiteConfig.INSTANCE.QolConfig;
@@ -122,20 +122,20 @@ public final class MiningTrackHud {
 
                Direction targetDir = parseCardinal(dirStr);
                if (targetDir != null) {
-                  Direction cur = client.player.getHorizontalFacing();
+                  Direction cur = client.player.getDirection();
                   boolean facingOk = cur == targetDir;
                   boolean alongX = targetDir == Direction.NORTH || targetDir == Direction.SOUTH;
-                  BlockPos p = client.player.getBlockPos();
+                  BlockPos p = client.player.blockPosition();
                   int lateral = alongX ? p.getX() : p.getZ();
                   int delta = lateral - q.miningTrackCoord;
                   String axis = alongX ? "X" : "Z";
                   String header = "Mining Track";
                   String line = shortDir(targetDir) + "  " + axis + "=" + q.miningTrackCoord + "  d" + axis + "=" + (delta >= 0 ? "+" : "") + delta;
-                  TextRenderer tr = client.textRenderer;
+                  Font tr = client.font;
                   int headerH = 14;
                   int pad = 4;
                   int rowH = 9;
-                  int baseW = Math.max(150, Math.max(tr.getWidth(header) + 12, tr.getWidth(line) + 12));
+                  int baseW = Math.max(150, Math.max(tr.width(header) + 12, tr.width(line) + 12));
                   if (baseW > 240) {
                      baseW = 240;
                   }
@@ -144,8 +144,8 @@ public final class MiningTrackHud {
                   int baseH = 2 + headerH + pad + rowH + pad + barH + pad + 2;
                   lastBaseW = baseW;
                   lastBaseH = baseH;
-                  int screenH = client.getWindow().getScaledHeight();
-                  int screenW = client.getWindow().getScaledWidth();
+                  int screenH = client.getWindow().getGuiScaledHeight();
+                  int screenW = client.getWindow().getGuiScaledWidth();
                   float scale = HudScaleUtil.scaleFor(SuiteConfig.INSTANCE.MiningHudConfig.scale, 0.1F, 2.0F, baseW, baseH, screenW, screenH);
                   int w = Math.round(baseW * scale);
                   int h = Math.round(baseH * scale);
@@ -157,7 +157,7 @@ public final class MiningTrackHud {
                   lastY = y;
                   lastW = w;
                   lastH = h;
-                  Matrix3x2fStack matrices = ctx.getMatrices();
+                  Matrix3x2fStack matrices = ctx.pose();
                   matrices.pushMatrix();
                   matrices.translate(x, y);
                   matrices.scale(scale, scale);
@@ -167,9 +167,9 @@ public final class MiningTrackHud {
                      ctx.fill(0, 0, baseW, baseH, HudStyleUtil.panelBg(opacity));
                      ctx.fill(0, 0, baseW, headerH, HudStyleUtil.panelHeader(opacity));
                      ctx.fill(0, headerH, baseW, headerH + 1, HudStyleUtil.panelDivider(opacity));
-                     ctx.drawTextWithShadow(tr, header, 6, 4, -1);
+                     ctx.text(tr, header, 6, 4, -1);
                      int color = delta == 0 && facingOk ? -8585348 : -37266;
-                     ctx.drawTextWithShadow(tr, line, 6, headerH + pad, color);
+                     ctx.text(tr, line, 6, headerH + pad, color);
                      drawDriftBar(ctx, baseW, headerH + pad + rowH + pad, barH, delta, facingOk);
                   } finally {
                      matrices.popMatrix();
@@ -180,7 +180,7 @@ public final class MiningTrackHud {
       }
    }
 
-   private static void drawDriftBar(DrawContext ctx, int baseW, int y, int barH, int delta, boolean facingOk) {
+   private static void drawDriftBar(GuiGraphicsExtractor ctx, int baseW, int y, int barH, int delta, boolean facingOk) {
       int barW = Math.min(180, Math.max(120, baseW - 24));
       int x = baseW / 2 - barW / 2;
       ctx.fill(x, y, x + barW, y + barH, 1711276032);

@@ -5,22 +5,21 @@ import org.blossomsuite.core.config.KeybindsConfig;
 import org.blossomsuite.core.config.SuiteConfig;
 import java.util.HashMap;
 import java.util.Map;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.client.util.InputUtil.Key;
-import net.minecraft.client.util.InputUtil.Type;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.InputConstants.Key;
+import com.mojang.blaze3d.platform.InputConstants.Type;
 public final class KeybindManager {
    private static final Map<KeybindActions.Action, Boolean> prevDown = new HashMap<>();
 
    private KeybindManager() {
    }
 
-   public static void tick(MinecraftClient client) {
+   public static void tick(Minecraft client) {
       if (client != null) {
-         if (client.currentScreen != null) {
-            if (client.currentScreen instanceof HandledScreen) {
+         if (client.screen != null) {
+            if (client.screen instanceof AbstractContainerScreen) {
                tickHandledScreenSortKeys(client);
             }
 
@@ -174,7 +173,7 @@ public final class KeybindManager {
       }
    }
 
-   private static void tickHandledScreenSortKeys(MinecraftClient client) {
+   private static void tickHandledScreenSortKeys(Minecraft client) {
       long window = KeybindUtil.windowHandle();
       if (window != 0L) {
          KeybindsConfig cfg = SuiteConfig.INSTANCE.KeybindsConfig;
@@ -227,15 +226,15 @@ public final class KeybindManager {
             return false;
          }
 
-         Key k = InputUtil.fromTranslationKey(chord.key);
+         Key k = InputConstants.getKey(chord.key);
          if (k == null) {
             return false;
          }
 
-         Key extra = chord.extraKey != null && !chord.extraKey.isBlank() ? InputUtil.fromTranslationKey(chord.extraKey) : null;
-         boolean currentInputMatches = k.getCategory() == type && k.getCode() == code;
+         Key extra = chord.extraKey != null && !chord.extraKey.isBlank() ? InputConstants.getKey(chord.extraKey) : null;
+         boolean currentInputMatches = k.getType() == type && k.getValue() == code;
          if (extra != null) {
-            currentInputMatches |= extra.getCategory() == type && extra.getCode() == code;
+            currentInputMatches |= extra.getType() == type && extra.getValue() == code;
          }
 
          if (!currentInputMatches) {
@@ -255,7 +254,7 @@ public final class KeybindManager {
       }
    }
 
-   private static void fireIfPressed(MinecraftClient client, KeybindActions.Action action, KeybindsConfig.Chord chord, long window, boolean allowExtraMods) {
+   private static void fireIfPressed(Minecraft client, KeybindActions.Action action, KeybindsConfig.Chord chord, long window, boolean allowExtraMods) {
       if (!KeybindActions.isAvailable(action)) {
          prevDown.put(action, false);
       } else {
@@ -282,7 +281,7 @@ public final class KeybindManager {
          return false;
       }
 
-      Key k = InputUtil.fromTranslationKey(chord.key);
+      Key k = InputConstants.getKey(chord.key);
       if (k == null) {
          return false;
       }
@@ -292,7 +291,7 @@ public final class KeybindManager {
       }
 
       if (chord.extraKey != null && !chord.extraKey.isBlank()) {
-         Key extra = InputUtil.fromTranslationKey(chord.extraKey);
+         Key extra = InputConstants.getKey(chord.extraKey);
          if (extra == null || !KeybindUtil.isKeyLikeDown(window, extra)) {
             return false;
          }

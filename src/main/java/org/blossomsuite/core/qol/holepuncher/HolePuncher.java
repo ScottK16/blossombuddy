@@ -3,19 +3,18 @@ package org.blossomsuite.core.qol.holepuncher;
 import org.blossomsuite.core.config.QolConfig;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.hud.ScreenNoticeOverlay;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
-import net.minecraft.registry.tag.ItemTags;
-import net.minecraft.text.Text;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.hit.HitResult.Type;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 public final class HolePuncher {
    private static final int GUIDE_STEP = 5;
    private static final int INVENTORY_RECOVERY_TICKS = 2;
@@ -33,7 +32,7 @@ public final class HolePuncher {
    private HolePuncher() {
    }
 
-   public static void onKeyPressed(MinecraftClient client) {
+   public static void onKeyPressed(Minecraft client) {
       if (client != null) {
          if (SuiteConfig.INSTANCE == null || SuiteConfig.INSTANCE.QolConfig == null || SuiteConfig.INSTANCE.QolConfig.holePuncherEnabled) {
             if (!running) {
@@ -43,15 +42,15 @@ public final class HolePuncher {
       }
    }
 
-   public static void tick(MinecraftClient client) {
-      if (client.player != null && client.world != null && client.interactionManager != null) {
+   public static void tick(Minecraft client) {
+      if (client.player != null && client.level != null && client.gameMode != null) {
          if (SuiteConfig.INSTANCE != null && SuiteConfig.INSTANCE.QolConfig != null && !SuiteConfig.INSTANCE.QolConfig.holePuncherEnabled) {
             if (running) {
                stop(client);
             }
          } else {
-            if (guideWorldRef != client.world) {
-               guideWorldRef = client.world;
+            if (guideWorldRef != client.level) {
+               guideWorldRef = client.level;
                guideAnchor = null;
             }
 
@@ -62,14 +61,14 @@ public final class HolePuncher {
       }
    }
 
-   private static void tryStartFromCrosshair(MinecraftClient client) {
-      if (client != null && client.player != null && client.world != null) {
-         HitResult hr = client.crosshairTarget;
+   private static void tryStartFromCrosshair(Minecraft client) {
+      if (client != null && client.player != null && client.level != null) {
+         HitResult hr = client.hitResult;
          if (hr != null && hr.getType() == Type.BLOCK) {
             BlockHitResult bhr = (BlockHitResult)hr;
             BlockPos target = bhr.getBlockPos();
-            Direction face = bhr.getSide();
-            BlockPos behind = target.offset(face.getOpposite());
+            Direction face = bhr.getDirection();
+            BlockPos behind = target.relative(face.getOpposite());
             if (!isValid(client, target, behind)) {
                reportFailure(client, HolePuncher.FailureReason.INVALID_BLOCKS);
             } else {
@@ -97,21 +96,21 @@ public final class HolePuncher {
    }
 
    private static boolean isAllowedBlock(BlockState s) {
-      return s.isOf(Blocks.STONE) || s.isOf(Blocks.DEEPSLATE) || s.isOf(Blocks.NETHERRACK);
+      return s.is(Blocks.STONE) || s.is(Blocks.DEEPSLATE) || s.is(Blocks.NETHERRACK);
    }
 
-   private static boolean isValid(MinecraftClient client, BlockPos a, BlockPos b) {
+   private static boolean isValid(Minecraft client, BlockPos a, BlockPos b) {
       if (a.equals(b)) {
          return false;
       }
 
-      BlockState wa = client.world.getBlockState(a);
-      BlockState wb = client.world.getBlockState(b);
+      BlockState wa = client.level.getBlockState(a);
+      BlockState wb = client.level.getBlockState(b);
       if (!wa.isAir() && !wb.isAir()) {
-         if (wa.getHardness(client.world, a) < 0.0F) {
+         if (wa.getDestroySpeed(client.level, a) < 0.0F) {
             return false;
          } else {
-            return wb.getHardness(client.world, b) < 0.0F ? false : isAllowedBlock(wa) && isAllowedBlock(wb);
+            return wb.getDestroySpeed(client.level, b) < 0.0F ? false : isAllowedBlock(wa) && isAllowedBlock(wb);
          }
       } else {
          return false;
@@ -140,19 +139,19 @@ public final class HolePuncher {
       return running;
    }
 
-   public static void onInventoryInterrupted(MinecraftClient client) {
+   public static void onInventoryInterrupted(Minecraft client) {
       if (running) {
          sentAttackForThisBlock = false;
          inventoryRecoveryTicks = Math.max(inventoryRecoveryTicks, 2);
-         if (client != null && client.interactionManager != null) {
-            client.interactionManager.cancelBlockBreaking();
+         if (client != null && client.gameMode != null) {
+            client.gameMode.stopDestroyBlock();
          }
       }
    }
 
-   public static void stopNow(MinecraftClient client) {
+   public static void stopNow(Minecraft client) {
       if (client != null) {
-         if (client.interactionManager != null) {
+         if (client.gameMode != null) {
             if (running) {
                stop(client);
             }
@@ -166,12 +165,12 @@ public final class HolePuncher {
       return p == null ? "(none)" : "(" + p.getX() + ", " + p.getY() + ", " + p.getZ() + ")";
    }
 
-   private static void tickSequence(MinecraftClient client) {
+   private static void tickSequence(Minecraft client) {
       if (inventoryRecoveryTicks > 0) {
          inventoryRecoveryTicks--;
       } else {
          BlockPos current = stage == 0 ? firstPos : secondPos;
-         if (client.world.isAir(current)) {
+         if (client.level.isEmptyBlock(current)) {
             if (stage == 0) {
                stage = 1;
                startOrContinueBreak(client, secondPos, hitFace);
@@ -184,8 +183,8 @@ public final class HolePuncher {
       }
    }
 
-   private static void startOrContinueBreak(MinecraftClient client, BlockPos pos, Direction face) {
-      if (client != null && client.player != null && client.interactionManager != null) {
+   private static void startOrContinueBreak(Minecraft client, BlockPos pos, Direction face) {
+      if (client != null && client.player != null && client.gameMode != null) {
          if (ensureAutoSwapSlot(client)) {
             if (!hasPickaxeInMainHand(client)) {
                reportFailure(client, HolePuncher.FailureReason.NO_PICKAXE);
@@ -194,30 +193,30 @@ public final class HolePuncher {
                if (miningPos == null || !miningPos.equals(pos)) {
                   miningPos = pos;
                   sentAttackForThisBlock = false;
-                  client.interactionManager.cancelBlockBreaking();
+                  client.gameMode.stopDestroyBlock();
                }
 
                if (!sentAttackForThisBlock) {
-                  client.interactionManager.attackBlock(pos, face);
+                  client.gameMode.startDestroyBlock(pos, face);
                   sentAttackForThisBlock = true;
                }
 
-               client.interactionManager.updateBlockBreakingProgress(pos, face);
+               client.gameMode.continueDestroyBlock(pos, face);
             }
          }
       }
    }
 
-   private static boolean hasPickaxeInMainHand(MinecraftClient client) {
+   private static boolean hasPickaxeInMainHand(Minecraft client) {
       if (client != null && client.player != null) {
-         ItemStack stack = client.player.getMainHandStack();
-         return stack != null && stack.isIn(ItemTags.PICKAXES);
+         ItemStack stack = client.player.getMainHandItem();
+         return stack != null && stack.is(ItemTags.PICKAXES);
       } else {
          return false;
       }
    }
 
-   private static boolean ensureAutoSwapSlot(MinecraftClient client) {
+   private static boolean ensureAutoSwapSlot(Minecraft client) {
       if (client == null || client.player == null) {
          return false;
       }
@@ -240,8 +239,8 @@ public final class HolePuncher {
          int desired = slot1to9 - 1;
          if (client.player.getInventory().getSelectedSlot() != desired) {
             client.player.getInventory().setSelectedSlot(desired);
-            if (client.getNetworkHandler() != null) {
-               client.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(desired));
+            if (client.getConnection() != null) {
+               client.getConnection().send(new ServerboundSetCarriedItemPacket(desired));
             }
 
             return false;
@@ -253,17 +252,17 @@ public final class HolePuncher {
       }
    }
 
-   private static void reportFailure(MinecraftClient client, HolePuncher.FailureReason reason) {
+   private static void reportFailure(Minecraft client, HolePuncher.FailureReason reason) {
       if (client != null && client.player != null && reason != null) {
          if (SuiteConfig.INSTANCE != null && SuiteConfig.INSTANCE.QolConfig != null) {
             QolConfig q = SuiteConfig.INSTANCE.QolConfig;
-            Text msg = Text.literal("Hole Puncher: " + reason.message);
+            Component msg = Component.literal("Hole Puncher: " + reason.message);
             if (q.holePuncherFailureScreenMessage) {
-               client.player.sendMessage(msg, true);
+               client.player.sendOverlayMessage(msg);
             }
 
             if (q.holePuncherFailureChatMessage) {
-               client.player.sendMessage(msg, false);
+               client.player.sendSystemMessage(msg);
             }
 
             if (q.holePuncherFailureNoticeMessage) {
@@ -273,7 +272,7 @@ public final class HolePuncher {
       }
    }
 
-   private static void stop(MinecraftClient client) {
+   private static void stop(Minecraft client) {
       running = false;
       stage = 0;
       firstPos = null;
@@ -281,7 +280,7 @@ public final class HolePuncher {
       miningPos = null;
       sentAttackForThisBlock = false;
       inventoryRecoveryTicks = 0;
-      client.interactionManager.cancelBlockBreaking();
+      client.gameMode.stopDestroyBlock();
    }
 
    private enum FailureReason {

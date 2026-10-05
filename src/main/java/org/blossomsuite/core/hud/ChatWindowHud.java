@@ -1,12 +1,12 @@
 package org.blossomsuite.core.hud;
 
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.chat.SecondaryChat;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.config.SuiteConfig;
@@ -58,24 +58,24 @@ public final class ChatWindowHud extends PanelHud {
       return new int[]{Math.max(6, screenW - w - 6), 40 + this.index * 80};
    }
 
-   public void render(DrawContext ctx, MinecraftClient client) {
+   public void render(GuiGraphicsExtractor ctx, Minecraft client) {
       FeatureConfig.ChatWindow cfg = this.cfg();
       if (!this.shown() || client.player == null || !SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
          return;
       }
 
-      TextRenderer tr = client.textRenderer;
+      Font tr = client.font;
       String filter = cfg.filter;
       int maxLines = Math.max(2, Math.min(20, cfg.lines));
 
       // like the main chat, you can only be scrolled back while the chat screen is open
-      if (!(client.currentScreen instanceof ChatScreen)) {
+      if (!(client.screen instanceof ChatScreen)) {
          this.state.reset();
       }
 
       this.state.update(SecondaryChat.INSTANCE.count(filter));
       int skip = this.state.scroll();
-      List<OrderedText> wrapped = SecondaryChatHud.wrap(tr, filter, skip, maxLines, WIDTH - 10);
+      List<FormattedCharSequence> wrapped = SecondaryChatHud.wrap(tr, filter, skip, maxLines, WIDTH - 10);
       while (skip > 0 && wrapped.size() < maxLines) {
          skip--;
          wrapped = SecondaryChatHud.wrap(tr, filter, skip, maxLines, WIDTH - 10);
@@ -89,24 +89,24 @@ public final class ChatWindowHud extends PanelHud {
       int lineCount = Math.max(wrapped.size(), sample ? 3 : 1);
       int baseH = HEADER_H + lineCount * LINE_H + 8;
       final int newer = skip;
-      final List<OrderedText> lines = wrapped;
+      final List<FormattedCharSequence> lines = wrapped;
       this.draw(ctx, client, WIDTH, baseH, true, c -> {
          float opacity = this.panel().opacity;
          c.fill(0, 0, WIDTH, HEADER_H, HudStyleUtil.panelHeader(opacity));
          c.fill(0, HEADER_H, WIDTH, HEADER_H + 1, HudStyleUtil.panelDivider(opacity));
-         c.drawTextWithShadow(tr, filter, 6, 4, 0xFFF48FB1);
+         c.text(tr, filter, 6, 4, 0xFFF48FB1);
          if (newer > 0) {
             String hint = newer + " newer";
-            c.drawTextWithShadow(tr, hint, WIDTH - 6 - tr.getWidth(hint), 4, 0xFFF48FB1);
+            c.text(tr, hint, WIDTH - 6 - tr.width(hint), 4, 0xFFF48FB1);
          }
 
          int y = HEADER_H + 5;
          if (lines.isEmpty()) {
-            c.drawTextWithShadow(tr, Text.literal(sample ? "Only " + filter + " lines show up here." : "Nothing yet."), 6, y, 0xFF8A8098);
+            c.text(tr, Component.literal(sample ? "Only " + filter + " lines show up here." : "Nothing yet."), 6, y, 0xFF8A8098);
          }
 
-         for (OrderedText line : lines) {
-            c.drawTextWithShadow(tr, line, 6, y, -1);
+         for (FormattedCharSequence line : lines) {
+            c.text(tr, line, 6, y, -1);
             y += LINE_H;
          }
       });

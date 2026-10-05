@@ -9,10 +9,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtSizeTracker;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtAccounter;
 import org.junit.jupiter.api.Test;
 
 class SchematicWriterTest {
@@ -22,12 +22,12 @@ class SchematicWriterTest {
 
    @Test
    void theHeaderDescribesAOneBlockTallStructureOfTheRightFootprint() {
-      NbtCompound nbt = SchematicWriter.build(2, 3, new int[]{1, 1, 1, 1, 1, 1}, palette());
-      assertEquals(SchematicWriter.DATA_VERSION, nbt.getInt("DataVersion", -1));
-      NbtList size = nbt.getListOrEmpty("size");
-      assertEquals(2, size.getInt(0, -1), "width");
-      assertEquals(1, size.getInt(1, -1), "map art is always one block tall");
-      assertEquals(3, size.getInt(2, -1), "height, stored as the Z size");
+      CompoundTag nbt = SchematicWriter.build(2, 3, new int[]{1, 1, 1, 1, 1, 1}, palette());
+      assertEquals(SchematicWriter.DATA_VERSION, nbt.getIntOr("DataVersion", -1));
+      ListTag size = nbt.getListOrEmpty("size");
+      assertEquals(2, size.getIntOr(0, -1), "width");
+      assertEquals(1, size.getIntOr(1, -1), "map art is always one block tall");
+      assertEquals(3, size.getIntOr(2, -1), "height, stored as the Z size");
    }
 
    @Test
@@ -36,43 +36,43 @@ class SchematicWriterTest {
       int h = 3;
       int[] blocks = new int[w * h];
       java.util.Arrays.fill(blocks, 1);
-      NbtCompound nbt = SchematicWriter.build(w, h, blocks, palette());
-      NbtList blockList = nbt.getListOrEmpty("blocks");
+      CompoundTag nbt = SchematicWriter.build(w, h, blocks, palette());
+      ListTag blockList = nbt.getListOrEmpty("blocks");
       assertEquals(w * h, blockList.size());
       for (int i = 0; i < blockList.size(); i++) {
-         NbtCompound entry = blockList.getCompoundOrEmpty(i);
-         assertEquals(0, entry.getListOrEmpty("pos").getInt(1, -1), "Y is always 0");
+         CompoundTag entry = blockList.getCompoundOrEmpty(i);
+         assertEquals(0, entry.getListOrEmpty("pos").getIntOr(1, -1), "Y is always 0");
       }
    }
 
    @Test
    void repeatedColoursShareOnePaletteEntryInsteadOfOnePerBlock() {
       int[] blocks = {1, 1, 1, 1, 1, 1, 1, 1, 1}; // 3x3, all grass
-      NbtCompound nbt = SchematicWriter.build(3, 3, blocks, palette());
-      NbtList palette = nbt.getListOrEmpty("palette");
+      CompoundTag nbt = SchematicWriter.build(3, 3, blocks, palette());
+      ListTag palette = nbt.getListOrEmpty("palette");
       assertEquals(1, palette.size());
-      assertEquals("minecraft:grass_block", palette.getCompoundOrEmpty(0).getString("Name", ""));
+      assertEquals("minecraft:grass_block", palette.getCompoundOrEmpty(0).getStringOr("Name", ""));
    }
 
    @Test
    void differentColoursEachGetTheirOwnPaletteEntryAndTheRightIndexPerCell() {
       // a 2x1 strip: grass then sand
-      NbtCompound nbt = SchematicWriter.build(2, 1, new int[]{1, 2}, palette());
-      NbtList palette = nbt.getListOrEmpty("palette");
+      CompoundTag nbt = SchematicWriter.build(2, 1, new int[]{1, 2}, palette());
+      ListTag palette = nbt.getListOrEmpty("palette");
       assertEquals(2, palette.size());
 
-      NbtList blockList = nbt.getListOrEmpty("blocks");
-      int grassState = blockList.getCompoundOrEmpty(0).getInt("state", -1);
-      int sandState = blockList.getCompoundOrEmpty(1).getInt("state", -1);
-      assertEquals("minecraft:grass_block", palette.getCompoundOrEmpty(grassState).getString("Name", ""));
-      assertEquals("minecraft:sand", palette.getCompoundOrEmpty(sandState).getString("Name", ""));
+      ListTag blockList = nbt.getListOrEmpty("blocks");
+      int grassState = blockList.getCompoundOrEmpty(0).getIntOr("state", -1);
+      int sandState = blockList.getCompoundOrEmpty(1).getIntOr("state", -1);
+      assertEquals("minecraft:grass_block", palette.getCompoundOrEmpty(grassState).getStringOr("Name", ""));
+      assertEquals("minecraft:sand", palette.getCompoundOrEmpty(sandState).getStringOr("Name", ""));
    }
 
    @Test
    void aColourIdMissingFromThePaletteMapFallsBackToWhiteWoolRatherThanFailing() {
-      NbtCompound nbt = SchematicWriter.build(1, 1, new int[]{999}, palette());
-      NbtList palette = nbt.getListOrEmpty("palette");
-      assertEquals("minecraft:white_wool", palette.getCompoundOrEmpty(0).getString("Name", ""));
+      CompoundTag nbt = SchematicWriter.build(1, 1, new int[]{999}, palette());
+      ListTag palette = nbt.getListOrEmpty("palette");
+      assertEquals("minecraft:white_wool", palette.getCompoundOrEmpty(0).getStringOr("Name", ""));
    }
 
    @Test
@@ -83,13 +83,13 @@ class SchematicWriterTest {
 
    @Test
    void theRealNbtWriterCanActuallyWriteAndReadThisBackGzippedAndAllNotJustBuildItInMemory() throws IOException {
-      NbtCompound nbt = SchematicWriter.build(2, 2, new int[]{1, 2, 3, 1}, palette());
+      CompoundTag nbt = SchematicWriter.build(2, 2, new int[]{1, 2, 3, 1}, palette());
       Path tmp = Files.createTempFile("blossombuddy-schematic-test", ".nbt");
       try {
          NbtIo.writeCompressed(nbt, tmp);
          assertTrue(Files.size(tmp) > 0);
-         NbtCompound readBack = NbtIo.readCompressed(tmp, NbtSizeTracker.ofUnlimitedBytes());
-         assertEquals(SchematicWriter.DATA_VERSION, readBack.getInt("DataVersion", -1));
+         CompoundTag readBack = NbtIo.readCompressed(tmp, NbtAccounter.unlimitedHeap());
+         assertEquals(SchematicWriter.DATA_VERSION, readBack.getIntOr("DataVersion", -1));
          assertEquals(4, readBack.getListOrEmpty("blocks").size());
          assertEquals(3, readBack.getListOrEmpty("palette").size());
       } finally {

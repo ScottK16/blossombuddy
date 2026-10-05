@@ -75,10 +75,9 @@ import java.util.function.Predicate;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.sound.SoundCategory;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.sounds.SoundSource;
 public final class SuiteClientBootstrap {
    private static final long MODINFO_POLL_MINUTES = 30L;
    private static final long VOTE_POLL_SECONDS = 30L;
@@ -138,11 +137,11 @@ public final class SuiteClientBootstrap {
             AutoFlyController.onServerSet(server, client, System.currentTimeMillis());
          }
 
-         if (client != null && client.getNetworkHandler() != null) {
+         if (client != null && client.getConnection() != null) {
             if (SuiteConfig.INSTANCE.JobsConfig.capture) {
-               client.getNetworkHandler().sendChatCommand("jobs toggle actionbar batched");
+               client.getConnection().sendCommand("jobs toggle actionbar batched");
             } else {
-               client.getNetworkHandler().sendChatCommand("jobs toggle actionbar off");
+               client.getConnection().sendCommand("jobs toggle actionbar off");
             }
 
             // Always probe which chat channel the player is in - PublicChatSendState (the welcome message / advertiser
@@ -189,7 +188,7 @@ public final class SuiteClientBootstrap {
       PresenceClient.INSTANCE.init();
       EmoteClient.INSTANCE.init();
       ConfigIO.load();
-      CooldownJingle.configure(() -> SuiteConfig.INSTANCE.CooldownsConfig.completeSoundVolume, SoundCategory.MASTER);
+      CooldownJingle.configure(() -> SuiteConfig.INSTANCE.CooldownsConfig.completeSoundVolume, SoundSource.MASTER);
       FishingAlertController.configure(
          () -> new FishingAlertController.Settings(
             SuiteConfig.INSTANCE.QolConfig.fishingEnabled,
@@ -197,7 +196,7 @@ public final class SuiteClientBootstrap {
             SuiteConfig.INSTANCE.QolConfig.fishingVolume,
             SuiteConfig.INSTANCE.QolConfig.fishingPitch,
             SuiteConfig.INSTANCE.QolConfig.fishingCooldownMs,
-            SoundCategory.MASTER
+            SoundSource.MASTER
          )
       );
 
@@ -306,7 +305,7 @@ public final class SuiteClientBootstrap {
                      return;
                   }
 
-                  MinecraftClient client = MinecraftClient.getInstance();
+                  Minecraft client = Minecraft.getInstance();
                   if (client.player == null) {
                      return;
                   }
@@ -450,8 +449,8 @@ public final class SuiteClientBootstrap {
       private final BiConsumer<String, Throwable> warnReporter;
       private final BiConsumer<String, Object[]> stateWarnReporter;
       private final BiConsumer<String, Throwable> errorReporter;
-      private final Consumer<MinecraftClient> settingsOpener;
-      private final Consumer<MinecraftClient> hudEditorOpener;
+      private final Consumer<Minecraft> settingsOpener;
+      private final Consumer<Minecraft> hudEditorOpener;
       private final Predicate<Screen> hudEditScreenPredicate;
       private final BooleanSupplier settingsOpenRequested;
       private final Runnable clearSettingsOpenRequest;
@@ -466,8 +465,8 @@ public final class SuiteClientBootstrap {
          BiConsumer<String, Throwable> warnReporter,
          BiConsumer<String, Object[]> stateWarnReporter,
          BiConsumer<String, Throwable> errorReporter,
-         Consumer<MinecraftClient> settingsOpener,
-         Consumer<MinecraftClient> hudEditorOpener,
+         Consumer<Minecraft> settingsOpener,
+         Consumer<Minecraft> hudEditorOpener,
          Predicate<Screen> hudEditScreenPredicate,
          BooleanSupplier settingsOpenRequested,
          Runnable clearSettingsOpenRequest,
@@ -505,8 +504,8 @@ public final class SuiteClientBootstrap {
             stateWarnReporter,
             errorReporter,
             client -> {
-               MinecraftClient mc = MinecraftClient.getInstance();
-               mc.setScreen(new SuiteSettingsScreen(mc.currentScreen));
+               Minecraft mc = Minecraft.getInstance();
+               mc.setScreen(new SuiteSettingsScreen(mc.screen));
             },
             client -> {
                HudEditState.editMode = true;
@@ -543,11 +542,11 @@ public final class SuiteClientBootstrap {
          return this.errorReporter;
       }
 
-      private Consumer<MinecraftClient> settingsOpener() {
+      private Consumer<Minecraft> settingsOpener() {
          return this.settingsOpener;
       }
 
-      private Consumer<MinecraftClient> hudEditorOpener() {
+      private Consumer<Minecraft> hudEditorOpener() {
          return this.hudEditorOpener;
       }
 

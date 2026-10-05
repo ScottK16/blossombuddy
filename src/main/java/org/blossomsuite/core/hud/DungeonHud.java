@@ -7,9 +7,9 @@ import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.dungeons.DungeonState;
 import org.blossomsuite.core.util.HudStyleUtil;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.joml.Matrix3x2fStack;
 
 public final class DungeonHud {
@@ -111,7 +111,7 @@ public final class DungeonHud {
       return SuiteConfig.INSTANCE.DungeonConfig.showHeader ? 38 : 24;
    }
 
-   public static void render(DrawContext ctx, MinecraftClient client) {
+   public static void render(GuiGraphicsExtractor ctx, Minecraft client) {
       DungeonConfig cfg = SuiteConfig.INSTANCE.DungeonConfig;
       if (cfg.showHud) {
          if (client != null && client.player != null) {
@@ -119,9 +119,9 @@ public final class DungeonHud {
             List<DungeonState.CooldownRow> rows = DungeonState.hudCooldownRows(now);
             String activeRunLine = DungeonState.activeRunLine(now);
             if (!rows.isEmpty() || activeRunLine != null || HudEditState.editMode) {
-               int screenH = client.getWindow().getScaledHeight();
-               int screenW = client.getWindow().getScaledWidth();
-               TextRenderer tr = client.textRenderer;
+               int screenH = client.getWindow().getGuiScaledHeight();
+               int screenW = client.getWindow().getGuiScaledWidth();
+               Font tr = client.font;
                String header = cfg.hudServerMode == DungeonConfig.HudServerMode.ALL_SERVERS ? "Dungeons" : "Dungeon";
                boolean showHeader = cfg.showHeader;
                int headerH = 14;
@@ -130,14 +130,14 @@ public final class DungeonHud {
                int activeRows = activeRunLine == null ? 0 : 1;
                int rowCount = Math.max(1, rows.size() + activeRows);
                int baseH = showHeader ? 2 + headerH + pad + rowCount * rowH + pad + 2 : 2 + pad + rowCount * rowH + pad + 2;
-               int textW = showHeader ? tr.getWidth(header) : 0;
+               int textW = showHeader ? tr.width(header) : 0;
                if (activeRunLine != null) {
-                  textW = Math.max(textW, tr.getWidth(activeRunLine));
+                  textW = Math.max(textW, tr.width(activeRunLine));
                }
 
                for (DungeonState.CooldownRow row : rows) {
                   String line = lineText(row, cfg.hudServerMode == DungeonConfig.HudServerMode.ALL_SERVERS);
-                  textW = Math.max(textW, tr.getWidth(line));
+                  textW = Math.max(textW, tr.width(line));
                }
 
                int baseW = Math.max(120, textW + 12);
@@ -166,7 +166,7 @@ public final class DungeonHud {
                lastY = y;
                lastW = w;
                lastH = h;
-               Matrix3x2fStack matrices = ctx.getMatrices();
+               Matrix3x2fStack matrices = ctx.pose();
                matrices.pushMatrix();
                matrices.translate(x, y);
                matrices.scale(scale, scale);
@@ -177,19 +177,19 @@ public final class DungeonHud {
                   if (showHeader) {
                      ctx.fill(0, 0, baseW, headerH, HudStyleUtil.panelHeader(opacity));
                      ctx.fill(0, headerH, baseW, headerH + 1, HudStyleUtil.panelDivider(opacity));
-                     ctx.drawTextWithShadow(tr, header, 6, 4, -1);
+                     ctx.text(tr, header, 6, 4, -1);
                   }
 
                   int rowY = showHeader ? headerH + pad : 2 + pad;
                   if (activeRunLine != null) {
-                     ctx.drawTextWithShadow(tr, trimToWidth(client, activeRunLine, baseW - 12), 6, rowY, -8054);
+                     ctx.text(tr, trimToWidth(client, activeRunLine, baseW - 12), 6, rowY, -8054);
                      rowY += rowH;
                   }
 
                   for (DungeonState.CooldownRow row : rows) {
                      String line = lineText(row, cfg.hudServerMode == DungeonConfig.HudServerMode.ALL_SERVERS);
                      int color = row.active() ? -4208683 : -8585317;
-                     ctx.drawTextWithShadow(tr, trimToWidth(client, line, baseW - 12), 6, rowY, color);
+                     ctx.text(tr, trimToWidth(client, line, baseW - 12), 6, rowY, color);
                      rowY += rowH;
                   }
 
@@ -212,17 +212,17 @@ public final class DungeonHud {
       return includeServer ? SuiteRuntime.profile().serverDisplayName(row.server()) + ": " + status : status;
    }
 
-   private static String trimToWidth(MinecraftClient client, String s, int maxW) {
-      if (client.textRenderer.getWidth(s) <= maxW) {
+   private static String trimToWidth(Minecraft client, String s, int maxW) {
+      if (client.font.width(s) <= maxW) {
          return s;
       }
 
       String ell = "...";
-      int ellW = client.textRenderer.getWidth(ell);
+      int ellW = client.font.width(ell);
 
       for (int len = s.length(); len > 0; len--) {
          String sub = s.substring(0, len);
-         if (client.textRenderer.getWidth(sub) + ellW <= maxW) {
+         if (client.font.width(sub) + ellW <= maxW) {
             return sub + ell;
          }
       }

@@ -1,5 +1,6 @@
 {
   "category.suitecore": "BlossomBuddy",
+  "key.category.suitecore.main": "BlossomBuddy",
 
   "key.suitecore.player_list": "Open Player List",
   "key.suitecore.xchat_mode": "Toggle Cross-Realm Chat Mode",

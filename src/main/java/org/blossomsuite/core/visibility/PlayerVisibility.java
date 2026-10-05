@@ -1,6 +1,6 @@
 package org.blossomsuite.core.visibility;
 
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.util.WorldGate;
 import org.blossomsuite.core.vote.VotePartySnapshot;
@@ -52,16 +52,16 @@ public final class PlayerVisibility {
    }
 
    /** Whether this player should be drawn: never you, and only players who really are in the tab list (server NPCs are left alone). */
-   public static boolean shouldSkip(net.minecraft.entity.Entity entity) {
-      MinecraftClient client = MinecraftClient.getInstance();
-      if (client == null || client.player == null || entity == client.player || !(entity instanceof net.minecraft.entity.player.PlayerEntity)) {
+   public static boolean shouldSkip(net.minecraft.world.entity.Entity entity) {
+      Minecraft client = Minecraft.getInstance();
+      if (client == null || client.player == null || entity == client.player || !(entity instanceof net.minecraft.world.entity.player.Player)) {
          return false;
       }
 
-      if (!hidden() || client.getNetworkHandler() == null) {
+      if (!hidden() || client.getConnection() == null) {
          return false;
       }
 
-      return client.getNetworkHandler().getPlayerListEntry(entity.getUuid()) != null;
+      return client.getConnection().getPlayerInfo(entity.getUUID()) != null;
    }
 }

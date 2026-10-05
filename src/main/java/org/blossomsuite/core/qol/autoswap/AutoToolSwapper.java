@@ -2,17 +2,16 @@ package org.blossomsuite.core.qol.autoswap;
 
 import org.blossomsuite.core.config.QolConfig;
 import org.blossomsuite.core.config.SuiteConfig;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.resources.Identifier;
 public final class AutoToolSwapper {
-   private static final TagKey<Block> C_ORES = TagKey.of(RegistryKeys.BLOCK, Identifier.of("c", "ores"));
+   private static final TagKey<Block> C_ORES = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("c", "ores"));
 
    public static int pickSlotFor(BlockState state) {
       QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
@@ -91,15 +90,15 @@ public final class AutoToolSwapper {
    }
 
    private static boolean isGlassLike(BlockState state) {
-      Identifier id = Registries.BLOCK.getId(state.getBlock());
+      Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
       String path = id.getPath();
       return path.endsWith("_glass") || path.endsWith("_glass_pane") || path.equals("glass") || path.equals("glass_pane") || path.equals("tinted_glass");
    }
 
    private static boolean isDecorativeLight(BlockState state) {
-      Identifier id = Registries.BLOCK.getId(state.getBlock());
+      Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
       String path = id.getPath();
-      return state.getLuminance() > 0
+      return state.getLightEmission() > 0
          && (
             path.contains("froglight")
                || path.equals("shroomlight")
@@ -122,7 +121,7 @@ public final class AutoToolSwapper {
    }
 
    private static boolean isRedstoneComponent(BlockState state) {
-      Identifier id = Registries.BLOCK.getId(state.getBlock());
+      Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
       String path = id.getPath();
       return path.contains("redstone")
          || path.endsWith("_button")
@@ -142,41 +141,41 @@ public final class AutoToolSwapper {
    }
 
    private static boolean isPathSuffix(BlockState state, String suffix) {
-      Identifier id = Registries.BLOCK.getId(state.getBlock());
+      Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
       return id.getPath().endsWith(suffix);
    }
 
    private static boolean isShearsLike(BlockState state) {
-      return state.isIn(BlockTags.LEAVES)
-         || state.isIn(BlockTags.WOOL)
-         || state.isOf(Blocks.VINE)
-         || state.isOf(Blocks.GLOW_LICHEN)
-         || state.isOf(Blocks.COBWEB)
-         || state.isOf(Blocks.TRIPWIRE)
-         || state.isOf(Blocks.DEAD_BUSH)
-         || state.isOf(Blocks.FERN)
-         || state.isOf(Blocks.SHORT_GRASS)
-         || state.isOf(Blocks.TALL_GRASS)
-         || state.isOf(Blocks.SEAGRASS)
-         || state.isOf(Blocks.TALL_SEAGRASS)
-         || state.isOf(Blocks.HANGING_ROOTS);
+      return state.is(BlockTags.LEAVES)
+         || state.is(BlockTags.WOOL)
+         || state.is(Blocks.VINE)
+         || state.is(Blocks.GLOW_LICHEN)
+         || state.is(Blocks.COBWEB)
+         || state.is(Blocks.TRIPWIRE)
+         || state.is(Blocks.DEAD_BUSH)
+         || state.is(Blocks.FERN)
+         || state.is(Blocks.SHORT_GRASS)
+         || state.is(Blocks.TALL_GRASS)
+         || state.is(Blocks.SEAGRASS)
+         || state.is(Blocks.TALL_SEAGRASS)
+         || state.is(Blocks.HANGING_ROOTS);
    }
 
    private static boolean isAmethystLike(BlockState state) {
-      return state.isOf(Blocks.AMETHYST_BLOCK)
-         || state.isOf(Blocks.BUDDING_AMETHYST)
-         || state.isOf(Blocks.SMALL_AMETHYST_BUD)
-         || state.isOf(Blocks.MEDIUM_AMETHYST_BUD)
-         || state.isOf(Blocks.LARGE_AMETHYST_BUD)
-         || state.isOf(Blocks.AMETHYST_CLUSTER);
+      return state.is(Blocks.AMETHYST_BLOCK)
+         || state.is(Blocks.BUDDING_AMETHYST)
+         || state.is(Blocks.SMALL_AMETHYST_BUD)
+         || state.is(Blocks.MEDIUM_AMETHYST_BUD)
+         || state.is(Blocks.LARGE_AMETHYST_BUD)
+         || state.is(Blocks.AMETHYST_CLUSTER);
    }
 
    private static boolean isOreLike(BlockState state) {
-      if (state.isIn(C_ORES)) {
+      if (state.is(C_ORES)) {
          return true;
       }
 
-      Identifier id = Registries.BLOCK.getId(state.getBlock());
+      Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
       String path = id.getPath();
       return path.endsWith("_ore") || path.contains("_ore_") || path.equals("ancient_debris");
    }
@@ -187,7 +186,7 @@ public final class AutoToolSwapper {
 
    private static boolean matchesCustomGroup(BlockState state, QolConfig cfg, String groupId) {
       if (cfg != null && groupId != null && !groupId.isBlank()) {
-         Identifier blockIdentifier = Registries.BLOCK.getId(state.getBlock());
+         Identifier blockIdentifier = BuiltInRegistries.BLOCK.getKey(state.getBlock());
          String blockId = blockIdentifier.toString();
 
          for (QolConfig.AutoSwapCustomGroup group : cfg.autoSwapperCustomGroups) {

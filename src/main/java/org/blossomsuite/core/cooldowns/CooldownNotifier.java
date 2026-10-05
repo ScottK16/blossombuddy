@@ -8,17 +8,16 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.Map.Entry;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
+import net.minecraft.resources.Identifier;
 public final class CooldownNotifier {
    private static final int READY_NOTICE_RGB = 5635925;
    private static final long READY_NOTICE_MS = 1800L;
@@ -27,7 +26,7 @@ public final class CooldownNotifier {
    private CooldownNotifier() {
    }
 
-   public static void tick(MinecraftClient client) {
+   public static void tick(Minecraft client) {
       if (client.player != null) {
          long now = System.currentTimeMillis();
 
@@ -55,7 +54,7 @@ public final class CooldownNotifier {
       return th <= 0 || totalMs >= th * 1000L;
    }
 
-   private static void playDoneSound(MinecraftClient client, ItemStack stack, CooldownRules.CooldownRule rule) {
+   private static void playDoneSound(Minecraft client, ItemStack stack, CooldownRules.CooldownRule rule) {
       SuiteConfig cfg = SuiteConfig.INSTANCE;
       if (cfg.CooldownsConfig.completeSound) {
          String override = rule.id() == null ? null : CooldownSoundStore.get(rule.id());
@@ -71,28 +70,28 @@ public final class CooldownNotifier {
    }
 
    /** True if a per-item sound override ({@code /buddy cooldown sound}) played instead of the default ready jingle. */
-   private static boolean playCustomReadySound(MinecraftClient client, String soundId, float volume) {
-      if (client.world == null || client.player == null) {
+   private static boolean playCustomReadySound(Minecraft client, String soundId, float volume) {
+      if (client.level == null || client.player == null) {
          return false;
       }
 
       Identifier id;
       try {
-         id = Identifier.of(soundId);
+         id = Identifier.parse(soundId);
       } catch (Exception e) {
          return false;
       }
 
-      SoundEvent sound = Registries.SOUND_EVENT.get(id);
-      if (sound == null || sound == SoundEvents.INTENTIONALLY_EMPTY) {
+      SoundEvent sound = BuiltInRegistries.SOUND_EVENT.getValue(id);
+      if (sound == null || sound == SoundEvents.EMPTY) {
          return false;
       }
 
-      client.world.playSound(client.player, client.player.getX(), client.player.getY(), client.player.getZ(), sound, SoundCategory.MASTER, volume, 1.0F);
+      client.level.playSound(client.player, client.player.getX(), client.player.getY(), client.player.getZ(), sound, SoundSource.MASTER, volume, 1.0F);
       return true;
    }
 
-   private static void sendReadyMessage(MinecraftClient client, ItemStack stack, CooldownRules.CooldownRule rule, boolean isAlt, String altName) {
+   private static void sendReadyMessage(Minecraft client, ItemStack stack, CooldownRules.CooldownRule rule, boolean isAlt, String altName) {
       SuiteConfig cfg = SuiteConfig.INSTANCE;
       CooldownsConfig.CompleteMessageLocation location = cfg.CooldownsConfig.completeMessageLocation;
       if (location == CooldownsConfig.CompleteMessageLocation.SCREEN) {
@@ -105,7 +104,7 @@ public final class CooldownNotifier {
    private static void showReadyNotice(ItemStack stack, CooldownRules.CooldownRule rule, boolean isAlt, String altName) {
       String itemName;
       if (stack != null && !stack.isEmpty()) {
-         itemName = TextUtil.stripLegacySectionCodes(stack.getName()).getString();
+         itemName = TextUtil.stripLegacySectionCodes(stack.getHoverName()).getString();
       } else {
          itemName = rule == null ? "Cooldown" : rule.fallback();
       }
@@ -118,24 +117,24 @@ public final class CooldownNotifier {
       ScreenNoticeOverlay.show(prefix + itemName + " is ready", stack == null ? ItemStack.EMPTY : stack, 5635925, 1800L);
    }
 
-   private static void sendReadyChat(MinecraftClient client, ItemStack stack, CooldownRules.CooldownRule rule, boolean isAlt, String altName) {
+   private static void sendReadyChat(Minecraft client, ItemStack stack, CooldownRules.CooldownRule rule, boolean isAlt, String altName) {
       if (client.player != null) {
-         Text itemName;
+         Component itemName;
          if (stack != null && !stack.isEmpty()) {
-            itemName = TextUtil.stripLegacySectionCodes(stack.getName()).copy();
+            itemName = TextUtil.stripLegacySectionCodes(stack.getHoverName()).copy();
          } else {
-            itemName = Text.literal(rule.fallback());
+            itemName = Component.literal(rule.fallback());
          }
 
-         itemName = itemName.copy().formatted(Formatting.AQUA);
-         MutableText msg = Text.literal("");
+         itemName = itemName.copy().withStyle(ChatFormatting.AQUA);
+         MutableComponent msg = Component.literal("");
          if (isAlt && altName != null && !altName.isBlank()) {
-            msg = msg.append(Text.literal("[").formatted(Formatting.DARK_GRAY))
-               .append(Text.literal(altName).formatted(Formatting.LIGHT_PURPLE))
-               .append(Text.literal("] ").formatted(Formatting.DARK_GRAY));
+            msg = msg.append(Component.literal("[").withStyle(ChatFormatting.DARK_GRAY))
+               .append(Component.literal(altName).withStyle(ChatFormatting.LIGHT_PURPLE))
+               .append(Component.literal("] ").withStyle(ChatFormatting.DARK_GRAY));
          }
 
-         msg = msg.append(itemName).append(Text.literal(" is ready").formatted(Formatting.GRAY));
+         msg = msg.append(itemName).append(Component.literal(" is ready").withStyle(ChatFormatting.GRAY));
          CooldownRuntime.sendChat(msg);
       }
    }
@@ -153,7 +152,7 @@ public final class CooldownNotifier {
    }
 
    public static void maybeNotifyRelayReady(String altName, String realm, String id, long prevEndsAt, long now) {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       String selfName = mc.player == null ? null : mc.player.getName().getString();
       if (selfName == null || altName == null || !altName.equalsIgnoreCase(selfName)) {
          String key = altName + "|" + id + "|" + prevEndsAt;
@@ -179,7 +178,7 @@ public final class CooldownNotifier {
                } else if (cfg.CooldownsConfig.completeMessageLocation == CooldownsConfig.CompleteMessageLocation.SCREEN) {
                   ScreenNoticeOverlay.show("[Alt] " + altName + ": " + id + " ready", 5635925, 1800L);
                } else if (mc.player != null) {
-                  mc.player.sendMessage(Text.literal("[Alt] " + altName + ": " + id + " ready"), false);
+                  mc.player.sendSystemMessage(Component.literal("[Alt] " + altName + ": " + id + " ready"));
                }
             }
          }

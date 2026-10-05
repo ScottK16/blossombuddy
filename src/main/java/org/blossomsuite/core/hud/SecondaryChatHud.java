@@ -2,12 +2,12 @@ package org.blossomsuite.core.hud;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.chat.SecondaryChat;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.util.HudStyleUtil;
@@ -43,23 +43,23 @@ public final class SecondaryChatHud extends PanelHud {
       return new int[]{6, Math.max(6, screenH - h - 60)};
    }
 
-   public void render(DrawContext ctx, MinecraftClient client) {
+   public void render(GuiGraphicsExtractor ctx, Minecraft client) {
       FeatureConfig.Chat cfg = FeatureConfig.INSTANCE.chat;
       if (!cfg.show || client.player == null || !SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
          return;
       }
 
-      TextRenderer tr = client.textRenderer;
+      Font tr = client.font;
       int maxLines = Math.max(2, Math.min(20, cfg.lines));
       String selected = SecondaryChat.INSTANCE.selectedName();
 
       // like the main chat, you can only be scrolled back while the chat screen is open
-      if (SecondaryChat.INSTANCE.scroll() > 0 && !(client.currentScreen instanceof ChatScreen)) {
+      if (SecondaryChat.INSTANCE.scroll() > 0 && !(client.screen instanceof ChatScreen)) {
          SecondaryChat.INSTANCE.resetScroll();
       }
 
       int skip = SecondaryChat.INSTANCE.scroll();
-      List<OrderedText> wrapped = wrap(tr, selected, skip, maxLines);
+      List<FormattedCharSequence> wrapped = wrap(tr, selected, skip, maxLines);
       // at the oldest line the window should still be full, so step back towards the newest until it is
       while (skip > 0 && wrapped.size() < maxLines) {
          skip--;
@@ -75,7 +75,7 @@ public final class SecondaryChatHud extends PanelHud {
       boolean sample = wrapped.isEmpty() && HudEditState.editMode;
       int lineCount = Math.max(wrapped.size(), sample ? 3 : 1);
       int baseH = HEADER_H + lineCount * LINE_H + 8;
-      final List<OrderedText> lines = wrapped;
+      final List<FormattedCharSequence> lines = wrapped;
       this.draw(ctx, client, WIDTH, baseH, true, c -> {
          float opacity = cfg.panel.opacity;
          c.fill(0, 0, WIDTH, HEADER_H, HudStyleUtil.panelHeader(opacity));
@@ -90,28 +90,28 @@ public final class SecondaryChatHud extends PanelHud {
 
          if (newer > 0) {
             String hint = newer + " newer";
-            c.drawTextWithShadow(tr, hint, WIDTH - 6 - tr.getWidth(hint), 4, 0xFFF48FB1);
+            c.text(tr, hint, WIDTH - 6 - tr.width(hint), 4, 0xFFF48FB1);
          }
 
          int y = HEADER_H + 5;
          if (lines.isEmpty()) {
-            c.drawTextWithShadow(tr, Text.literal(sample ? "Filtered chat shows up here." : "Nothing yet."), 6, y, 0xFF8A8098);
+            c.text(tr, Component.literal(sample ? "Filtered chat shows up here." : "Nothing yet."), 6, y, 0xFF8A8098);
          }
 
-         for (OrderedText line : lines) {
-            c.drawTextWithShadow(tr, line, 6, y, -1);
+         for (FormattedCharSequence line : lines) {
+            c.text(tr, line, 6, y, -1);
             y += LINE_H;
          }
       });
    }
 
    /** Wraps the lines of {@code filter}, skipping the newest {@code skip}, so the window ends on the last one shown. */
-   private static List<OrderedText> wrap(TextRenderer tr, String filter, int skip, int maxLines) {
+   private static List<FormattedCharSequence> wrap(Font tr, String filter, int skip, int maxLines) {
       return wrap(tr, filter, skip, maxLines, WIDTH - 10);
    }
 
    /** The same, wrapped to {@code wrapWidth} pixels (the extra chat windows are narrower). */
-   static List<OrderedText> wrap(TextRenderer tr, String filter, int skip, int maxLines, int wrapWidth) {
+   static List<FormattedCharSequence> wrap(Font tr, String filter, int skip, int maxLines, int wrapWidth) {
       // Wrapping every line of every chat window every frame is real work (a gradient name is one text piece per letter), and the
       // answer only changes when a line arrives, so keep it until then (or half a second, so a settings change still shows up soon).
       long version = SecondaryChat.INSTANCE.version();
@@ -122,7 +122,7 @@ public final class SecondaryChatHud extends PanelHud {
          return hit.lines;
       }
 
-      List<OrderedText> built = wrapNow(tr, filter, skip, maxLines, wrapWidth);
+      List<FormattedCharSequence> built = wrapNow(tr, filter, skip, maxLines, wrapWidth);
       if (WRAPS.size() >= 32) {
          WRAPS.clear();
       }
@@ -131,16 +131,16 @@ public final class SecondaryChatHud extends PanelHud {
       return built;
    }
 
-   private record WrapCache(long version, long at, List<OrderedText> lines) {
+   private record WrapCache(long version, long at, List<FormattedCharSequence> lines) {
    }
 
    private static final java.util.Map<String, WrapCache> WRAPS = new java.util.HashMap<>();
 
-   private static List<OrderedText> wrapNow(TextRenderer tr, String filter, int skip, int maxLines, int wrapWidth) {
-      List<OrderedText> wrapped = new ArrayList<>();
+   private static List<FormattedCharSequence> wrapNow(Font tr, String filter, int skip, int maxLines, int wrapWidth) {
+      List<FormattedCharSequence> wrapped = new ArrayList<>();
       List<SecondaryChat.Line> shown = SecondaryChat.INSTANCE.window(filter, skip, maxLines);
       for (int i = shown.size() - 1; i >= 0 && wrapped.size() < maxLines; i--) {
-         List<OrderedText> parts = tr.wrapLines(shown.get(i).text(), wrapWidth);
+         List<FormattedCharSequence> parts = tr.split(shown.get(i).text(), wrapWidth);
          for (int p = parts.size() - 1; p >= 0 && wrapped.size() < maxLines; p--) {
             wrapped.add(0, parts.get(p));
          }
@@ -170,8 +170,8 @@ public final class SecondaryChatHud extends PanelHud {
       return true;
    }
 
-   private static int tab(DrawContext c, TextRenderer tr, int x, String name, boolean on) {
-      c.drawTextWithShadow(tr, name, x, 4, on ? 0xFFF48FB1 : 0xFFA79BB8);
-      return x + tr.getWidth(name) + 9;
+   private static int tab(GuiGraphicsExtractor c, Font tr, int x, String name, boolean on) {
+      c.text(tr, name, x, 4, on ? 0xFFF48FB1 : 0xFFA79BB8);
+      return x + tr.width(name) + 9;
    }
 }

@@ -1,7 +1,6 @@
 package org.blossomsuite.core.ui;
 
-import net.minecraft.client.gui.DrawContext;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 public final class SubTabSuiteTab implements SuiteTab {
    private final SuiteSubTab subTab;
 
@@ -38,7 +37,7 @@ public final class SubTabSuiteTab implements SuiteTab {
    }
 
    @Override
-   public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta) {
+   public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
       this.subTab.renderText(screen, ctx, mouseX, mouseY, delta, 0);
    }
 

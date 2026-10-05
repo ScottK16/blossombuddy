@@ -1,20 +1,19 @@
 package org.blossomsuite.core.ui;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.network.chat.Component;
 /** Drop-in for {@link SliderWidget} with the BlossomBuddy look: a pink filled track and a round-edged knob. */
-public abstract class StyledSlider extends SliderWidget {
+public abstract class StyledSlider extends AbstractSliderButton {
    private static final int KNOB_W = 8;
 
-   public StyledSlider(int x, int y, int width, int height, Text message, double value) {
+   public StyledSlider(int x, int y, int width, int height, Component message, double value) {
       super(x, y, width, height, message, value);
    }
 
    @Override
-   public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+   public void extractWidgetRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
       boolean hot = this.isHovered() || this.isFocused();
       int x1 = this.getX();
       int y1 = this.getY();
@@ -27,6 +26,6 @@ public abstract class StyledSlider extends SliderWidget {
       Theme.roundRect(context, knobX, y1 + 1, knobX + KNOB_W, y2 - 1, 3, hot ? Theme.ACCENT : Theme.ACCENT_DIM);
 
       int textY = y1 + (this.getHeight() - 8) / 2;
-      context.drawCenteredTextWithShadow(MinecraftClient.getInstance().textRenderer, this.getMessage(), x1 + this.getWidth() / 2, textY, Theme.TEXT);
+      context.centeredText(Minecraft.getInstance().font, this.getMessage(), x1 + this.getWidth() / 2, textY, Theme.TEXT);
    }
 }

@@ -1,31 +1,29 @@
 package org.blossomsuite.core.mixin.client;
 
-import net.minecraft.client.render.LightmapTextureManager;
+import net.minecraft.client.renderer.Lightmap;
+import net.minecraft.client.renderer.LightmapRenderStateExtractor;
+import net.minecraft.client.renderer.state.LightmapRenderState;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Full Bright: {@code pack(block, sky)} is the one place every rendered vertex's lightmap coordinate gets built
- * (block/fluid/entity/particle rendering all funnel through it), so forcing both inputs to their max here makes
- * everything sample the brightest texel of the lightmap texture the game already generates - lava, water and dark
- * caves included - without needing to touch how that texture itself is built.
+ * Full bright: the game's own night-vision and brightness settings, pushed to their maximum for the lightmap, so every
+ * light level shows fully lit. A visual change only - it doesn't reveal anything hidden, it just brightens what is already there.
  */
-@Mixin(LightmapTextureManager.class)
-public abstract class LightmapTextureManagerMixin {
-   @ModifyVariable(method = "pack", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-   private static int suitecore$fullBrightBlock(int block) {
-      return suitecore$active() ? 15 : block;
-   }
-
-   @ModifyVariable(method = "pack", at = @At("HEAD"), argsOnly = true, ordinal = 1)
-   private static int suitecore$fullBrightSky(int sky) {
-      return suitecore$active() ? 15 : sky;
-   }
-
-   private static boolean suitecore$active() {
-      return SuiteConfig.INSTANCE.isEnabledForCurrentWorld() && FeatureConfig.INSTANCE.render.fullBright;
+@Mixin(Lightmap.class)
+public class LightmapTextureManagerMixin {
+   @Inject(method = "render", at = @At("HEAD"))
+   private void suitecore$fullBright(LightmapRenderState state, CallbackInfo ci) {
+      if (SuiteConfig.INSTANCE.isEnabledForCurrentWorld() && FeatureConfig.INSTANCE.render.fullBright) {
+         state.needsUpdate = true; // the game only rebuilds the lightmap when something changed
+         state.nightVisionEffectIntensity = 1.0F;
+         state.nightVisionColor = LightmapRenderStateExtractor.WHITE;
+         state.brightness = 1.0F;
+         state.darknessEffectScale = 0.0F;
+      }
    }
 }

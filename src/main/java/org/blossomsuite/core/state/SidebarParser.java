@@ -29,17 +29,17 @@ import org.blossomsuite.core.vote.VoteRuntime;
 import org.blossomsuite.core.vote.VoteState;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.hud.InGameHud;
-import net.minecraft.scoreboard.ReadableScoreboardScore;
-import net.minecraft.scoreboard.ScoreHolder;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.scoreboard.Team;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.world.scores.ReadOnlyScoreInfo;
+import net.minecraft.world.scores.ScoreHolder;
+import net.minecraft.world.scores.Scoreboard;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
+import net.minecraft.resources.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -64,7 +64,7 @@ public final class SidebarParser {
    private SidebarParser() {
    }
 
-   public static void process(ScoreboardObjective objective) {
+   public static void process(Objective objective) {
       if (objective != null) {
          if (SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
             long now = System.currentTimeMillis();
@@ -78,17 +78,17 @@ public final class SidebarParser {
                Boolean detectedStaffChatEnabled = null;
                AltResourceState.ScoreboardParse detectedResources = new AltResourceState.ScoreboardParse(null, null, null);
 
-               for (ScoreHolder holder : scoreboard.getKnownScoreHolders()) {
-                  ReadableScoreboardScore score = scoreboard.getScore(holder, objective);
+               for (ScoreHolder holder : scoreboard.getTrackedPlayers()) {
+                  ReadOnlyScoreInfo score = scoreboard.getPlayerScoreInfo(holder, objective);
                   if (score != null) {
-                     String entry = holder.getNameForScoreboard();
-                     Team team = scoreboard.getScoreHolderTeam(entry);
-                     String prefix = team != null && team.getPrefix() != null ? team.getPrefix().getString() : "";
-                     String suffix = team != null && team.getSuffix() != null ? team.getSuffix().getString() : "";
+                     String entry = holder.getScoreboardName();
+                     PlayerTeam team = scoreboard.getPlayersTeam(entry);
+                     String prefix = team != null && team.getPlayerPrefix() != null ? team.getPlayerPrefix().getString() : "";
+                     String suffix = team != null && team.getPlayerSuffix() != null ? team.getPlayerSuffix().getString() : "";
                      String[] candidates = new String[]{entry.trim(), (prefix + suffix).trim(), (prefix + entry + suffix).trim()};
 
                      for (String visible : candidates) {
-                        String normalized = normalizeSidebarText(Formatting.strip(visible));
+                        String normalized = normalizeSidebarText(ChatFormatting.stripFormatting(visible));
                         if (!normalized.isBlank()) {
                            AltResourceState.ScoreboardParse resources = AltResourceState.parseScoreboardLine(normalized);
                            if (resources.hasAny()) {

@@ -7,21 +7,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import net.fabricmc.fabric.api.event.client.player.ClientPlayerBlockBreakEvents;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 public final class CooldownModule {
    public static void init() {
       ClientPlayerBlockBreakEvents.AFTER.register((world, player, pos, state) -> {
          if (SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
             if (player != null) {
-               ItemStack held = player.getMainHandStack();
+               ItemStack held = player.getMainHandItem();
                CooldownRules.CooldownRule rule = null;
                String id = SuiteItemIdUtil.getBestId(held);
-               if (!held.isEmpty() && player.isSneaking()) {
+               if (!held.isEmpty() && player.isShiftKeyDown()) {
                   rule = CooldownRules.resolveRule(id, CooldownRules.Trigger.SNEAK_BREAK, held);
                   if (!CooldownRules.matchesBreakBlock(rule, state)) {
                      rule = null;
@@ -43,7 +42,7 @@ public final class CooldownModule {
                Set<CooldownRules.CooldownRule> fired = new HashSet<>();
                Set<String> handledItems = new HashSet<>();
                int max = 8;
-               if (player.isSneaking()) {
+               if (player.isShiftKeyDown()) {
                   fireSlotRules(player, CooldownRules.Trigger.SNEAK_BREAK, state, now, fired, handledItems, max);
                   fireSlotRules(player, CooldownRules.Trigger.BREAK, state, now, fired, handledItems, max);
                } else {
@@ -55,7 +54,7 @@ public final class CooldownModule {
    }
 
    private static void fireSlotRules(
-      PlayerEntity player,
+      Player player,
       CooldownRules.Trigger trigger,
       BlockState brokenState,
       long now,
@@ -67,7 +66,7 @@ public final class CooldownModule {
          List<CooldownRules.CooldownRule> rules = CooldownRules.getSlotRules(trigger);
          if (!rules.isEmpty()) {
             CooldownsConfig cfg = SuiteConfig.INSTANCE.CooldownsConfig;
-            PlayerInventory inv = player.getInventory();
+            Inventory inv = player.getInventory();
 
             for (CooldownRules.CooldownRule r : rules) {
                if (fired.size() >= max) {
@@ -84,26 +83,26 @@ public final class CooldownModule {
 
                         int size;
                         try {
-                           size = inv.size();
+                           size = inv.getContainerSize();
                         } catch (Throwable t) {
                            size = 0;
                         }
 
                         if (idx >= 0 && idx < size) {
-                           ItemStack s = inv.getStack(idx);
+                           ItemStack s = inv.getItem(idx);
                            tryFireSlotRule(r, CooldownRules.SlotKind.INDEX, idx, CooldownRules.ArmorSlot.ANY, s, now, fired, handledItems);
                         }
                         break;
                      }
                      case HOTBAR: {
                         for (int idx = 0; idx <= 8 && fired.size() < max; idx++) {
-                           ItemStack s = inv.getStack(idx);
+                           ItemStack s = inv.getItem(idx);
                            tryFireSlotRule(r, CooldownRules.SlotKind.INDEX, idx, CooldownRules.ArmorSlot.ANY, s, now, fired, handledItems);
                         }
                         break;
                      }
                      case MAINHAND: {
-                        ItemStack s = player.getMainHandStack();
+                        ItemStack s = player.getMainHandItem();
                         int selected = -1;
 
                         try {
@@ -116,7 +115,7 @@ public final class CooldownModule {
                      }
                      case OFFHAND: {
                         if (cfg == null || cfg.trackOffhand) {
-                           ItemStack s = player.getOffHandStack();
+                           ItemStack s = player.getOffhandItem();
                            tryFireSlotRule(r, CooldownRules.SlotKind.OFFHAND, -1, CooldownRules.ArmorSlot.ANY, s, now, fired, handledItems);
                         }
                         break;
@@ -131,18 +130,18 @@ public final class CooldownModule {
                         if (cfg == null || cfg.trackInventory) {
                            int size;
                            try {
-                              size = inv.size();
+                              size = inv.getContainerSize();
                            } catch (Throwable t) {
                               size = 0;
                            }
 
                            for (int idx = 0; idx < size && fired.size() < max; idx++) {
-                              ItemStack s = inv.getStack(idx);
+                              ItemStack s = inv.getItem(idx);
                               tryFireSlotRule(r, CooldownRules.SlotKind.INDEX, idx, CooldownRules.ArmorSlot.ANY, s, now, fired, handledItems);
                            }
 
                            if (cfg == null || cfg.trackOffhand) {
-                              ItemStack off = player.getOffHandStack();
+                              ItemStack off = player.getOffhandItem();
                               tryFireSlotRule(r, CooldownRules.SlotKind.OFFHAND, -1, CooldownRules.ArmorSlot.ANY, off, now, fired, handledItems);
                            }
 
@@ -159,7 +158,7 @@ public final class CooldownModule {
    }
 
    private static void fireArmor(
-      PlayerEntity player, CooldownRules.CooldownRule r, long now, Set<CooldownRules.CooldownRule> fired, Set<String> handledItems, int max
+      Player player, CooldownRules.CooldownRule r, long now, Set<CooldownRules.CooldownRule> fired, Set<String> handledItems, int max
    ) {
       if (player != null && fired.size() < max) {
          EquipmentSlot[] armorSlots = new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
@@ -169,7 +168,7 @@ public final class CooldownModule {
 
          for (int i = 0; i < armorSlots.length && fired.size() < max; i++) {
             if (r.armorSlot() == null || r.armorSlot() == CooldownRules.ArmorSlot.ANY || r.armorSlot() == armorKinds[i]) {
-               ItemStack s = player.getEquippedStack(armorSlots[i]);
+               ItemStack s = player.getItemBySlot(armorSlots[i]);
                tryFireSlotRule(r, CooldownRules.SlotKind.ARMOR, -1, armorKinds[i], s, now, fired, handledItems);
             }
          }

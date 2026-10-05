@@ -1,15 +1,14 @@
 package org.blossomsuite.core.qol.fishing;
 
 import java.util.function.Supplier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.projectile.FishingBobberEntity;
-import net.minecraft.registry.Registries;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Box;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.projectile.FishingHook;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.phys.AABB;
 public final class FishingAlertController {
    private static long lastAlertAt = 0L;
    private static Supplier<FishingAlertController.Settings> settingsSupplier = () -> FishingAlertController.Settings.disabled();
@@ -26,19 +25,19 @@ public final class FishingAlertController {
    }
 
    public static boolean shouldReplaceVanillaSplash(double soundX, double soundY, double soundZ) {
-      MinecraftClient client = MinecraftClient.getInstance();
-      if (client != null && client.player != null && client.world != null) {
+      Minecraft client = Minecraft.getInstance();
+      if (client != null && client.player != null && client.level != null) {
          FishingAlertController.Settings settings = settings();
          if (!settings.enabled()) {
             return false;
          }
 
          double r = 3.0;
-         Box search = new Box(soundX - 3.0, soundY - 3.0, soundZ - 3.0, soundX + 3.0, soundY + 3.0, soundZ + 3.0);
-         FishingBobberEntity nearest = null;
+         AABB search = new AABB(soundX - 3.0, soundY - 3.0, soundZ - 3.0, soundX + 3.0, soundY + 3.0, soundZ + 3.0);
+         FishingHook nearest = null;
          double nearestDistSq = Double.POSITIVE_INFINITY;
 
-         for (FishingBobberEntity bobber : client.world.getEntitiesByClass(FishingBobberEntity.class, search, b -> true)) {
+         for (FishingHook bobber : client.level.getEntitiesOfClass(FishingHook.class, search, b -> true)) {
             double dx = bobber.getX() - soundX;
             double dy = bobber.getY() - soundY;
             double dz = bobber.getZ() - soundZ;
@@ -80,21 +79,21 @@ public final class FishingAlertController {
    }
 
    public static void playConfiguredAlert() {
-      MinecraftClient client = MinecraftClient.getInstance();
-      if (client != null && client.player != null && client.world != null) {
+      Minecraft client = Minecraft.getInstance();
+      if (client != null && client.player != null && client.level != null) {
          FishingAlertController.Settings settings = settings();
          if (settings.enabled()) {
             Identifier id;
             try {
-               id = Identifier.of(settings.soundId());
+               id = Identifier.parse(settings.soundId());
             } catch (Exception ignored) {
                playFallback(client, settings);
                return;
             }
 
-            SoundEvent sound = Registries.SOUND_EVENT.get(id);
-            if (sound != null && sound != SoundEvents.INTENTIONALLY_EMPTY) {
-               client.world
+            SoundEvent sound = BuiltInRegistries.SOUND_EVENT.getValue(id);
+            if (sound != null && sound != SoundEvents.EMPTY) {
+               client.level
                   .playSound(
                      client.player,
                      client.player.getX(),
@@ -117,15 +116,15 @@ public final class FishingAlertController {
       return settings == null ? FishingAlertController.Settings.disabled() : settings;
    }
 
-   private static void playFallback(MinecraftClient client, FishingAlertController.Settings settings) {
-      if (client != null && client.player != null && client.world != null) {
-         client.world
+   private static void playFallback(Minecraft client, FishingAlertController.Settings settings) {
+      if (client != null && client.player != null && client.level != null) {
+         client.level
             .playSound(
                client.player,
                client.player.getX(),
                client.player.getY(),
                client.player.getZ(),
-               SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP,
+               SoundEvents.EXPERIENCE_ORB_PICKUP,
                settings.soundCategory(),
                settings.volume(),
                settings.pitch()
@@ -133,17 +132,17 @@ public final class FishingAlertController {
       }
    }
 
-   public record Settings(boolean enabled, String soundId, float volume, float pitch, int cooldownMs, SoundCategory soundCategory) {
+   public record Settings(boolean enabled, String soundId, float volume, float pitch, int cooldownMs, SoundSource soundCategory) {
       public Settings {
          soundId = soundId != null && !soundId.isBlank() ? soundId : "minecraft:entity.experience_orb.pickup";
          volume = Math.max(0.0F, volume);
          pitch = Math.max(0.0F, pitch);
          cooldownMs = Math.max(0, cooldownMs);
-         soundCategory = soundCategory == null ? SoundCategory.MASTER : soundCategory;
+         soundCategory = soundCategory == null ? SoundSource.MASTER : soundCategory;
       }
 
       public static FishingAlertController.Settings disabled() {
-         return new FishingAlertController.Settings(false, "minecraft:entity.experience_orb.pickup", 1.0F, 1.0F, 250, SoundCategory.MASTER);
+         return new FishingAlertController.Settings(false, "minecraft:entity.experience_orb.pickup", 1.0F, 1.0F, 250, SoundSource.MASTER);
       }
    }
 }

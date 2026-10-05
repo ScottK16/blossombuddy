@@ -14,11 +14,10 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.Slot;
 public final class AltResourceState {
    private static final Pattern BALANCE_PATTERN = Pattern.compile(
       "(?i)\\b(?:balance|bal|money|cash)\\b\\s*[:\\-]?\\s*\\$?\\s*([0-9][0-9,]*(?:\\.[0-9]+)?\\s*[kmbt]?)"
@@ -97,7 +96,7 @@ public final class AltResourceState {
       }
    }
 
-   public static void tickInventoryScan(MinecraftClient client, String serverName, long nowMs) {
+   public static void tickInventoryScan(Minecraft client, String serverName, long nowMs) {
       if (nowMs - lastInventoryScanMs >= 1000L) {
          lastInventoryScanMs = nowMs;
          scanInventoryNow(client, serverName, nowMs);
@@ -105,7 +104,7 @@ public final class AltResourceState {
       }
    }
 
-   public static void scanInventoryNow(MinecraftClient client, String serverName, long nowMs) {
+   public static void scanInventoryNow(Minecraft client, String serverName, long nowMs) {
       if (client != null && client.player != null) {
          if (serverName != null && !serverName.isBlank()) {
             if (isTrackedServer(serverName)) {
@@ -114,10 +113,10 @@ public final class AltResourceState {
                   scanInventoryAndOpenContainerNow(client, serverName, openSource, nowMs);
                } else {
                   int resources = 0;
-                  PlayerInventory inventory = client.player.getInventory();
+                  Inventory inventory = client.player.getInventory();
 
-                  for (int i = 0; i < inventory.size(); i++) {
-                     ItemStack stack = inventory.getStack(i);
+                  for (int i = 0; i < inventory.getContainerSize(); i++) {
+                     ItemStack stack = inventory.getItem(i);
                      if (isTrackedResource(stack)) {
                         resources += stack.getCount();
                      }
@@ -130,8 +129,8 @@ public final class AltResourceState {
       }
    }
 
-   public static void scanOpenContainerNow(MinecraftClient client, String serverName, long nowMs) {
-      if (client != null && client.player != null && client.currentScreen != null) {
+   public static void scanOpenContainerNow(Minecraft client, String serverName, long nowMs) {
+      if (client != null && client.player != null && client.screen != null) {
          if (serverName != null && !serverName.isBlank()) {
             if (isTrackedServer(serverName)) {
                AltResourceState.ResourceSource source = classifyCurrentOpenContainer(client);
@@ -143,12 +142,12 @@ public final class AltResourceState {
       }
    }
 
-   private static void scanInventoryAndOpenContainerNow(MinecraftClient client, String serverName, AltResourceState.ResourceSource source, long nowMs) {
+   private static void scanInventoryAndOpenContainerNow(Minecraft client, String serverName, AltResourceState.ResourceSource source, long nowMs) {
       int inventoryResource = 0;
-      PlayerInventory playerInventory = client.player.getInventory();
+      Inventory playerInventory = client.player.getInventory();
 
-      for (int i = 0; i < playerInventory.size(); i++) {
-         ItemStack stack = playerInventory.getStack(i);
+      for (int i = 0; i < playerInventory.getContainerSize(); i++) {
+         ItemStack stack = playerInventory.getItem(i);
          if (isTrackedResource(stack)) {
             inventoryResource += stack.getCount();
          }
@@ -156,9 +155,9 @@ public final class AltResourceState {
 
       int resources = 0;
 
-      for (Slot slot : client.player.currentScreenHandler.slots) {
-         if (slot != null && slot.inventory != playerInventory) {
-            ItemStack stack = slot.getStack();
+      for (Slot slot : client.player.containerMenu.slots) {
+         if (slot != null && slot.container != playerInventory) {
+            ItemStack stack = slot.getItem();
             if (isTrackedResource(stack)) {
                resources += stack.getCount();
             }
@@ -396,14 +395,14 @@ public final class AltResourceState {
       }
    }
 
-   private static AltResourceState.ResourceSource classifyCurrentOpenContainer(MinecraftClient client) {
-      return client != null && client.currentScreen != null ? classifyOpenContainer(client.currentScreen.getTitle().getString()) : null;
+   private static AltResourceState.ResourceSource classifyCurrentOpenContainer(Minecraft client) {
+      return client != null && client.screen != null ? classifyOpenContainer(client.screen.getTitle().getString()) : null;
    }
 
    private static boolean isTrackedResource(ItemStack stack) {
       if (stack != null && !stack.isEmpty()) {
          String itemId = SuiteItemIdUtil.getBestId(stack);
-         String foldedName = TextUtil.foldToLettersDigitsSpace(stack.getName().getString());
+         String foldedName = TextUtil.foldToLettersDigitsSpace(stack.getHoverName().getString());
          String compactName = foldedName.replace(" ", "");
          return SuiteRuntime.profile().matchesAnyTrackedResource(itemId, foldedName, compactName);
       } else {

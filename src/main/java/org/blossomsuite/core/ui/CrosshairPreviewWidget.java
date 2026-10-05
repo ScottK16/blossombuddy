@@ -4,17 +4,16 @@ import org.blossomsuite.core.config.QolConfig;
 import org.blossomsuite.core.util.CrosshairShapeRenderer;
 import org.blossomsuite.core.util.CrosshairTintUtil;
 import java.util.function.Supplier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Drawable;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.gui.Selectable.SelectionType;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.text.Text;
-
-public final class CrosshairPreviewWidget implements Drawable, Element, Selectable {
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.narration.NarratableEntry.NarrationPriority;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.network.chat.Component;
+public final class CrosshairPreviewWidget implements Renderable, GuiEventListener, NarratableEntry {
    private final int x;
    private final int y;
    private final int w;
@@ -30,9 +29,9 @@ public final class CrosshairPreviewWidget implements Drawable, Element, Selectab
    }
 
    @Override
-   public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+   public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
       ctx.fill(this.x, this.y, this.x + this.w, this.y + this.h, -15461356);
-      ctx.drawBorder(this.x, this.y, this.w, this.h, -12961222);
+      ctx.outline(this.x, this.y, this.w, this.h, -12961222);
       int pad = 6;
       int bgX1 = this.x + pad;
       int bgY1 = this.y + pad;
@@ -60,10 +59,10 @@ public final class CrosshairPreviewWidget implements Drawable, Element, Selectab
          CrosshairShapeRenderer.draw(ctx, cx, cy, preview, argb);
       }
 
-      TextRenderer tr = MinecraftClient.getInstance().textRenderer;
-      Text status = tintEnabled ? Text.literal("Preview") : Text.literal("Preview (Tint OFF)");
+      Font tr = Minecraft.getInstance().font;
+      Component status = tintEnabled ? Component.literal("Preview") : Component.literal("Preview (Tint OFF)");
       int textColor = tintEnabled ? -2236963 : -5592406;
-      ctx.drawTextWithShadow(tr, status, this.x + 8, this.y + 6, textColor);
+      ctx.text(tr, status, this.x + 8, this.y + 6, textColor);
    }
 
    @Override
@@ -81,11 +80,11 @@ public final class CrosshairPreviewWidget implements Drawable, Element, Selectab
    }
 
    @Override
-   public SelectionType getType() {
-      return SelectionType.NONE;
+   public NarrationPriority narrationPriority() {
+      return NarrationPriority.NONE;
    }
 
    @Override
-   public void appendNarrations(NarrationMessageBuilder builder) {
+   public void updateNarration(NarrationElementOutput builder) {
    }
 }

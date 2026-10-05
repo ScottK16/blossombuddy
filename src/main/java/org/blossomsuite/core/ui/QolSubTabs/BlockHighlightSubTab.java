@@ -10,12 +10,11 @@ import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.ui.HoverLabelWidget;
 import org.blossomsuite.core.ui.SuiteSettingsScreen;
 import org.blossomsuite.core.ui.SuiteSubTab;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.network.chat.Component;
 public class BlockHighlightSubTab implements SuiteSubTab {
    @Override
    public String titleKey() {
@@ -45,11 +44,11 @@ public class BlockHighlightSubTab implements SuiteSubTab {
       if (q.targetBlockOutlineEnabled) {
          screen.addContentWidget(
             new HoverLabelWidget(
-               x, y + 6, 160, 12, Text.literal("Color Mode"), Tooltip.of(Text.literal("Solid uses the RGB sliders. Rainbow cycles the outline color."))
+               x, y + 6, 160, 12, Component.literal("Color Mode"), Tooltip.create(Component.literal("Solid uses the RGB sliders. Rainbow cycles the outline color."))
             )
          );
-         ButtonWidget mode = StyledButton.of(
-               Text.literal(q.targetBlockOutlineColorMode == QolConfig.TargetBlockOutlineColorMode.RAINBOW ? "Rainbow" : "Solid"),
+         Button mode = StyledButton.of(
+               Component.literal(q.targetBlockOutlineColorMode == QolConfig.TargetBlockOutlineColorMode.RAINBOW ? "Rainbow" : "Solid"),
                b -> {
                   q.targetBlockOutlineColorMode = q.targetBlockOutlineColorMode == QolConfig.TargetBlockOutlineColorMode.RAINBOW
                      ? QolConfig.TargetBlockOutlineColorMode.SOLID
@@ -69,8 +68,8 @@ public class BlockHighlightSubTab implements SuiteSubTab {
             y = addColorSlider(screen, cfg, "Blue", q.targetBlockOutlineB, x, w, y, rowH, v -> q.targetBlockOutlineB = v);
          }
 
-         screen.addContentWidget(new HoverLabelWidget(x, y, 120, 12, Text.literal("Alpha"), Tooltip.of(Text.literal("Target block outline opacity."))));
-         SliderWidget alpha = new StyledSlider(x, y + 14, w, rowH, Text.empty(), clamp01(q.targetBlockOutlineA)) {
+         screen.addContentWidget(new HoverLabelWidget(x, y, 120, 12, Component.literal("Alpha"), Tooltip.create(Component.literal("Target block outline opacity."))));
+         AbstractSliderButton alpha = new StyledSlider(x, y + 14, w, rowH, Component.empty(), clamp01(q.targetBlockOutlineA)) {
             {
                this.updateMessage();
             }
@@ -78,7 +77,7 @@ public class BlockHighlightSubTab implements SuiteSubTab {
             @Override
             protected void updateMessage() {
                int pct = (int)Math.round(this.value * 100.0);
-               this.setMessage(Text.literal(pct + "%"));
+               this.setMessage(Component.literal(pct + "%"));
             }
 
             @Override
@@ -92,7 +91,7 @@ public class BlockHighlightSubTab implements SuiteSubTab {
    }
 
    @Override
-   public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
+   public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
    }
 
    @Override
@@ -119,8 +118,8 @@ public class BlockHighlightSubTab implements SuiteSubTab {
    private static int addToggleRow(
       SuiteSettingsScreen screen, SuiteConfig cfg, int x, int w, int y, int rowH, String label, boolean enabled, String tooltip, Runnable onPress
    ) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 180, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      ButtonWidget button = StyledButton.of(Text.literal(enabled ? "ON" : "OFF"), b -> {
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 180, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      Button button = StyledButton.of(Component.literal(enabled ? "ON" : "OFF"), b -> {
          onPress.run();
          cfg.markDirty();
          ConfigIO.saveIfDirty();
@@ -133,15 +132,15 @@ public class BlockHighlightSubTab implements SuiteSubTab {
    private static int addColorSlider(
       SuiteSettingsScreen screen, SuiteConfig cfg, String label, int current, int x, int w, int y, int rowH, BlockHighlightSubTab.IntSetter setter
    ) {
-      screen.addContentWidget(new HoverLabelWidget(x, y, 120, 12, Text.literal(label), Tooltip.of(Text.literal(label + " channel (0 to 255)."))));
-      SliderWidget slider = new StyledSlider(x, y + 14, w, rowH, Text.empty(), colorToSlider(current)) {
+      screen.addContentWidget(new HoverLabelWidget(x, y, 120, 12, Component.literal(label), Tooltip.create(Component.literal(label + " channel (0 to 255)."))));
+      AbstractSliderButton slider = new StyledSlider(x, y + 14, w, rowH, Component.empty(), colorToSlider(current)) {
          {
             this.updateMessage();
          }
 
          @Override
          protected void updateMessage() {
-            this.setMessage(Text.literal(String.valueOf(BlockHighlightSubTab.sliderToColor(this.value))));
+            this.setMessage(Component.literal(String.valueOf(BlockHighlightSubTab.sliderToColor(this.value))));
          }
 
          @Override

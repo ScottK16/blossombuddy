@@ -7,12 +7,12 @@ import org.blossomsuite.core.qol.holepuncher.HolePuncher;
 import org.blossomsuite.core.util.HudStyleUtil;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult.Type;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.core.BlockPos;
 import org.joml.Matrix3x2fStack;
 
 public final class HolePuncherHud {
@@ -116,10 +116,10 @@ public final class HolePuncherHud {
       return 2 + (SuiteConfig.INSTANCE.HolePuncherHudConfig.showHeader ? 18 : 4) + rows * 9 + Math.max(0, rows - 1) * 4 + 4 + 2;
    }
 
-   public static void render(DrawContext ctx, MinecraftClient client) {
+   public static void render(GuiGraphicsExtractor ctx, Minecraft client) {
       if (SuiteConfig.INSTANCE.HolePuncherHudConfig.showHud) {
          if (client != null && client.player != null) {
-            TextRenderer tr = client.textRenderer;
+            Font tr = client.font;
             List<HolePuncherHud.Row> rows = buildRows(client);
             if (!rows.isEmpty()) {
                String header = "Hole Puncher";
@@ -131,10 +131,10 @@ public final class HolePuncherHud {
                int baseH = showHeader
                   ? 2 + headerH + pad + rows.size() * rowH + Math.max(0, rows.size() - 1) * rowGap + pad + 2
                   : 2 + pad + rows.size() * rowH + Math.max(0, rows.size() - 1) * rowGap + pad + 2;
-               int baseW = Math.max(120, tr.getWidth(header) + 12);
+               int baseW = Math.max(120, tr.width(header) + 12);
 
                for (HolePuncherHud.Row row : rows) {
-                  baseW = Math.max(baseW, tr.getWidth(row.text) + 12);
+                  baseW = Math.max(baseW, tr.width(row.text) + 12);
                }
 
                if (baseW > 240) {
@@ -143,8 +143,8 @@ public final class HolePuncherHud {
 
                lastBaseW = baseW;
                lastBaseH = baseH;
-               int screenH = client.getWindow().getScaledHeight();
-               int screenW = client.getWindow().getScaledWidth();
+               int screenH = client.getWindow().getGuiScaledHeight();
+               int screenW = client.getWindow().getGuiScaledWidth();
                float scale = HudScaleUtil.scaleFor(SuiteConfig.INSTANCE.HolePuncherHudConfig.scale, 0.1F, 2.0F, baseW, baseH, screenW, screenH);
                int w = Math.round(baseW * scale);
                int h = Math.round(baseH * scale);
@@ -164,7 +164,7 @@ public final class HolePuncherHud {
                lastY = y;
                lastW = w;
                lastH = h;
-               Matrix3x2fStack matrices = ctx.getMatrices();
+               Matrix3x2fStack matrices = ctx.pose();
                matrices.pushMatrix();
                matrices.translate(x, y);
                matrices.scale(scale, scale);
@@ -175,13 +175,13 @@ public final class HolePuncherHud {
                   if (showHeader) {
                      ctx.fill(0, 0, baseW, headerH, HudStyleUtil.panelHeader(opacity));
                      ctx.fill(0, headerH, baseW, headerH + 1, HudStyleUtil.panelDivider(opacity));
-                     ctx.drawTextWithShadow(tr, header, 6, 4, -1);
+                     ctx.text(tr, header, 6, 4, -1);
                   }
 
                   int yy = showHeader ? headerH + pad : 2 + pad;
 
                   for (HolePuncherHud.Row row : rows) {
-                     ctx.drawTextWithShadow(tr, row.text, 6, yy, row.color);
+                     ctx.text(tr, row.text, 6, yy, row.color);
                      yy += rowH + rowGap;
                   }
                } finally {
@@ -192,7 +192,7 @@ public final class HolePuncherHud {
       }
    }
 
-   private static List<HolePuncherHud.Row> buildRows(MinecraftClient client) {
+   private static List<HolePuncherHud.Row> buildRows(Minecraft client) {
       QolConfig q = SuiteConfig.INSTANCE.QolConfig;
       List<HolePuncherHud.Row> rows = new ArrayList<>();
       rows.add(new HolePuncherHud.Row("Status: " + (q.holePuncherEnabled ? "ON" : "OFF"), q.holePuncherEnabled ? -8585348 : -5197648));
@@ -201,8 +201,8 @@ public final class HolePuncherHud {
          BlockPos anchor = HolePuncher.getGuideAnchor();
          if (anchor == null) {
             rows.add(new HolePuncherHud.Row("Grid: anchor not set", -5197648));
-         } else if (client.crosshairTarget != null && client.crosshairTarget.getType() == Type.BLOCK) {
-            BlockPos target = ((BlockHitResult)client.crosshairTarget).getBlockPos();
+         } else if (client.hitResult != null && client.hitResult.getType() == Type.BLOCK) {
+            BlockPos target = ((BlockHitResult)client.hitResult).getBlockPos();
             int dx = target.getX() - anchor.getX();
             int dz = target.getZ() - anchor.getZ();
             boolean ok = Math.floorMod(dx, 5) == 0 && Math.floorMod(dz, 5) == 0;

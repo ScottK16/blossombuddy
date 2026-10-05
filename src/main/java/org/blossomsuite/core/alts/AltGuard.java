@@ -1,8 +1,8 @@
 package org.blossomsuite.core.alts;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.util.WorldGate;
 
@@ -34,7 +34,7 @@ public final class AltGuard {
       return Math.max(MIN_LIMIT, Math.min(MAX_LIMIT, limit));
    }
 
-   public static void tick(MinecraftClient client) {
+   public static void tick(Minecraft client) {
       if (client.player != lastPlayer) {
          lastPlayer = client.player;
          joinedAtMs = System.currentTimeMillis();
@@ -46,15 +46,15 @@ public final class AltGuard {
          return;
       }
 
-      ClientPlayNetworkHandler handler = client.getNetworkHandler();
+      ClientPacketListener handler = client.getConnection();
       if (handler == null || !WorldGate.isActive() || System.currentTimeMillis() - joinedAtMs < SETTLE_MS) {
          return;
       }
 
-      int online = handler.getListedPlayerListEntries().size();
+      int online = handler.getListedOnlinePlayers().size();
       int limit = clampLimit(cfg.playerLimit);
       if (shouldLeave(cfg.leaveWhenCrowded, limit, online)) {
-         handler.getConnection().disconnect(Text.literal("BlossomBuddy: left because " + online + " players are online (alt limit " + limit + "). Turn this off in /buddy > General."));
+         handler.getConnection().disconnect(Component.literal("BlossomBuddy: left because " + online + " players are online (alt limit " + limit + "). Turn this off in /buddy > General."));
       }
    }
 }

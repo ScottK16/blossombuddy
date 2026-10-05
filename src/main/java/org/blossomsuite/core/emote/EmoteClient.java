@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.GameOptions;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.config.SuiteConfig;
@@ -394,29 +394,29 @@ public final class EmoteClient {
 
       @Override
       public boolean canRun() {
-         MinecraftClient mc = MinecraftClient.getInstance();
+         Minecraft mc = Minecraft.getInstance();
          SuiteHttp http = SuiteState.INSTANCE.http;
          return mc.player != null && SuiteConfig.INSTANCE.isEnabledForCurrentWorld() && http != null && http.enabled();
       }
 
       @Override
       public UUID selfId() {
-         MinecraftClient mc = MinecraftClient.getInstance();
-         return mc.player == null ? null : mc.player.getUuid();
+         Minecraft mc = Minecraft.getInstance();
+         return mc.player == null ? null : mc.player.getUUID();
       }
 
       @Override
       public boolean wantsToMove() {
-         GameOptions o = MinecraftClient.getInstance().options;
-         return o.forwardKey.isPressed() || o.backKey.isPressed() || o.leftKey.isPressed() || o.rightKey.isPressed()
-            || o.jumpKey.isPressed() || o.sneakKey.isPressed() || o.attackKey.isPressed();
+         Options o = Minecraft.getInstance().options;
+         return o.keyUp.isDown() || o.keyDown.isDown() || o.keyLeft.isDown() || o.keyRight.isDown()
+            || o.keyJump.isDown() || o.keyShift.isDown() || o.keyAttack.isDown();
       }
    }
 
    private static final class GameSink implements Sink {
       @Override
       public void notice(String text) {
-         MinecraftClient.getInstance().execute(() -> ChatOutput.info(text));
+         Minecraft.getInstance().execute(() -> ChatOutput.info(text));
       }
    }
 }

@@ -6,13 +6,12 @@ import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.cooldowns.CooldownsMode;
 import java.util.Locale;
 import java.util.Random;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
 public class CooldownsTab extends NestedSuiteTab {
    @Override
    public String titleKey() {
@@ -38,18 +37,18 @@ public class CooldownsTab extends NestedSuiteTab {
    }
 
    private int addToggleRow(SuiteSettingsScreen screen, int x, int w, int y, int rowH, String label, boolean enabled, String tooltip, Runnable onPress) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 180, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      ButtonWidget button = StyledButton.of(Text.literal(enabled ? "ON" : "OFF"), b -> onPress.run()).dimensions(x + w - 80, y, 80, rowH).build();
-      button.setTooltip(Tooltip.of(Text.literal(tooltip)));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 180, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      Button button = StyledButton.of(Component.literal(enabled ? "ON" : "OFF"), b -> onPress.run()).dimensions(x + w - 80, y, 80, rowH).build();
+      button.setTooltip(Tooltip.create(Component.literal(tooltip)));
       screen.addContentWidget(button);
       return y + 24;
    }
 
    private static String generateRelayId() {
       String name = "relay";
-      MinecraftClient client = MinecraftClient.getInstance();
-      if (client != null && client.getSession() != null) {
-         String username = client.getSession().getUsername();
+      Minecraft client = Minecraft.getInstance();
+      if (client != null && client.getUser() != null) {
+         String username = client.getUser().getName();
          if (username != null && !username.isBlank()) {
             name = username;
          }
@@ -63,9 +62,9 @@ public class CooldownsTab extends NestedSuiteTab {
    }
 
    private int addButtonRow(SuiteSettingsScreen screen, int x, int w, int y, int rowH, String label, String buttonText, String tooltip, Runnable onPress) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 180, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      ButtonWidget button = StyledButton.of(Text.literal(buttonText), b -> onPress.run()).dimensions(x + w - 120, y, 120, rowH).build();
-      button.setTooltip(Tooltip.of(Text.literal(tooltip)));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 180, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      Button button = StyledButton.of(Component.literal(buttonText), b -> onPress.run()).dimensions(x + w - 120, y, 120, rowH).build();
+      button.setTooltip(Tooltip.create(Component.literal(tooltip)));
       screen.addContentWidget(button);
       return y + 24;
    }
@@ -159,30 +158,30 @@ public class CooldownsTab extends NestedSuiteTab {
          int rowH = 20;
          int gapX = 6;
          screen.addContentWidget(
-            new HoverLabelWidget(x, y, 160, 12, Text.literal("Alt Cooldowns"), Tooltip.of(Text.literal("Share cooldown data between linked clients.")))
+            new HoverLabelWidget(x, y, 160, 12, Component.literal("Alt Cooldowns"), Tooltip.create(Component.literal("Share cooldown data between linked clients.")))
          );
          y += 14;
          screen.addContentWidget(
             new HoverLabelWidget(
-               x, y + 6, 180, 12, Text.literal("Link ID"), Tooltip.of(Text.literal("Clients using the same Link ID can relay cooldown data."))
+               x, y + 6, 180, 12, Component.literal("Link ID"), Tooltip.create(Component.literal("Clients using the same Link ID can relay cooldown data."))
             )
          );
          int generateW = 80;
          int fieldW = 170;
          int fieldX = x + w - generateW - 6 - fieldW;
          int generateX = x + w - generateW;
-         TextFieldWidget linkField = new TextFieldWidget(screen.getTextRenderer(), fieldX, y, fieldW, 20, Text.empty());
+         EditBox linkField = new EditBox(screen.getFont(), fieldX, y, fieldW, 20, Component.empty());
          linkField.setMaxLength(128);
-         linkField.setText(relay.linkId == null ? "" : relay.linkId);
-         linkField.setTooltip(Tooltip.of(Text.literal("Editable relay link id.")));
-         linkField.setChangedListener(relay::setLinkId);
+         linkField.setValue(relay.linkId == null ? "" : relay.linkId);
+         linkField.setTooltip(Tooltip.create(Component.literal("Editable relay link id.")));
+         linkField.setResponder(relay::setLinkId);
          screen.addContentWidget(linkField);
-         ButtonWidget generateButton = StyledButton.of(Text.literal("Generate"), b -> {
+         Button generateButton = StyledButton.of(Component.literal("Generate"), b -> {
             String generated = CooldownsTab.generateRelayId();
             relay.setLinkId(generated);
             screen.rebuildPreserveScroll();
          }).dimensions(generateX, y, generateW, 20).build();
-         generateButton.setTooltip(Tooltip.of(Text.literal("Generates a new relay link id using your current Minecraft name.")));
+         generateButton.setTooltip(Tooltip.create(Component.literal("Generates a new relay link id using your current Minecraft name.")));
          screen.addContentWidget(generateButton);
          y += 24;
          y = CooldownsTab.this.addToggleRow(
@@ -223,7 +222,7 @@ public class CooldownsTab extends NestedSuiteTab {
          int y = screen.bodyContentY() - screen.scrollOffset() + contentTopOffset;
          int rowH = 20;
          screen.addContentWidget(
-            new HoverLabelWidget(x, y, 160, 12, Text.literal("Notifications"), Tooltip.of(Text.literal("Notification settings for completed cooldowns.")))
+            new HoverLabelWidget(x, y, 160, 12, Component.literal("Notifications"), Tooltip.create(Component.literal("Notification settings for completed cooldowns.")))
          );
          y += 14;
          y = CooldownsTab.this.addToggleRow(screen, x, w, y, 20, "Complete Sound", cfg.completeSound, "Plays a sound when a cooldown completes.", () -> {
@@ -234,18 +233,18 @@ public class CooldownsTab extends NestedSuiteTab {
             int labelY = y + 2;
             int sliderY = y + 16;
             screen.addContentWidget(
-               new HoverLabelWidget(x, labelY, 180, 12, Text.literal("Sound Volume"), Tooltip.of(Text.literal("Volume for the cooldown-complete sound.")))
+               new HoverLabelWidget(x, labelY, 180, 12, Component.literal("Sound Volume"), Tooltip.create(Component.literal("Volume for the cooldown-complete sound.")))
             );
-            SliderWidget volumeSlider = new StyledSlider(x, sliderY, w, 20, Text.empty(), cfg.completeSoundVolume) {
+            AbstractSliderButton volumeSlider = new StyledSlider(x, sliderY, w, 20, Component.empty(), cfg.completeSoundVolume) {
                {
                   this.updateMessage();
-                  this.setTooltip(Tooltip.of(Text.literal("Current completion sound volume.")));
+                  this.setTooltip(Tooltip.create(Component.literal("Current completion sound volume.")));
                }
 
                @Override
                protected void updateMessage() {
                   int pct = Math.round((float)this.value * 100.0F);
-                  this.setMessage(Text.literal(pct + "%"));
+                  this.setMessage(Component.literal(pct + "%"));
                }
 
                @Override
@@ -286,20 +285,20 @@ public class CooldownsTab extends NestedSuiteTab {
                thresholdLabelY,
                220,
                12,
-               Text.literal("Cooldown Completion Threshold"),
-               Tooltip.of(Text.literal("Only notify for cooldowns at or above this length.\n0 = no threshold."))
+               Component.literal("Cooldown Completion Threshold"),
+               Tooltip.create(Component.literal("Only notify for cooldowns at or above this length.\n0 = no threshold."))
             )
          );
-         SliderWidget thresholdSlider = new StyledSlider(x, thresholdSliderY, w, 20, Text.empty(), CooldownsTab.thresholdToSlider(cfg.completeThresholdInSecs)) {
+         AbstractSliderButton thresholdSlider = new StyledSlider(x, thresholdSliderY, w, 20, Component.empty(), CooldownsTab.thresholdToSlider(cfg.completeThresholdInSecs)) {
             {
                this.updateMessage();
-               this.setTooltip(Tooltip.of(Text.literal("Minimum cooldown length required before completion alerts are shown.")));
+               this.setTooltip(Tooltip.create(Component.literal("Minimum cooldown length required before completion alerts are shown.")));
             }
 
             @Override
             protected void updateMessage() {
                int secs = CooldownsTab.sliderToThreshold(this.value);
-               this.setMessage(Text.literal(secs == 0 ? "Off" : secs + " sec"));
+               this.setMessage(Component.literal(secs == 0 ? "Off" : secs + " sec"));
             }
 
             @Override
@@ -340,8 +339,8 @@ public class CooldownsTab extends NestedSuiteTab {
                y,
                140,
                12,
-               Text.literal("Tracking"),
-               Tooltip.of(Text.literal("Choose which equipment and inventory slots participate in cooldown tracking."))
+               Component.literal("Tracking"),
+               Tooltip.create(Component.literal("Choose which equipment and inventory slots participate in cooldown tracking."))
             )
          );
          y += 14;
@@ -415,7 +414,7 @@ public class CooldownsTab extends NestedSuiteTab {
          int y = screen.bodyContentY() - screen.scrollOffset() + contentTopOffset;
          int rowH = 20;
          screen.addContentWidget(
-            new HoverLabelWidget(x, y, 120, 12, Text.literal("HUD Options"), Tooltip.of(Text.literal("Controls how cooldowns are shown on screen.")))
+            new HoverLabelWidget(x, y, 120, 12, Component.literal("HUD Options"), Tooltip.create(Component.literal("Controls how cooldowns are shown on screen.")))
          );
          y += 14;
          y = CooldownsTab.this.addToggleRow(screen, x, w, y, 20, "Show HUD", cfg.showHud, "Shows or hides the cooldown HUD overlay.", () -> {

@@ -4,13 +4,12 @@ import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.config.QolConfig;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.hud.ScreenNoticeOverlay;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.core.BlockPos;
 public final class ToolLock {
    private static final long REPORT_DEBOUNCE_MS = 650L;
    private static long lastReportAtMs = 0L;
@@ -18,7 +17,7 @@ public final class ToolLock {
    private ToolLock() {
    }
 
-   public static boolean shouldBlockRightClick(PlayerEntity player, Hand hand, ItemStack stack, BlockHitResult hitResult) {
+   public static boolean shouldBlockRightClick(Player player, InteractionHand hand, ItemStack stack, BlockHitResult hitResult) {
       if (player == null || hand == null) {
          return false;
       }
@@ -27,11 +26,11 @@ public final class ToolLock {
          return false;
       }
 
-      if (!player.isSneaking()) {
+      if (!player.isShiftKeyDown()) {
          return false;
       }
 
-      if (hand != Hand.MAIN_HAND) {
+      if (hand != InteractionHand.MAIN_HAND) {
          return false;
       }
 
@@ -59,7 +58,7 @@ public final class ToolLock {
       }
    }
 
-   public static boolean shouldBlockLeftClick(PlayerEntity player) {
+   public static boolean shouldBlockLeftClick(Player player) {
       if (player == null) {
          return false;
       } else {
@@ -97,7 +96,7 @@ public final class ToolLock {
       return cfg == null ? null : cfg.QolConfig;
    }
 
-   private static int selectedHotbarSlot(PlayerEntity player) {
+   private static int selectedHotbarSlot(Player player) {
       try {
          int selected = player.getInventory().getSelectedSlot();
          return selected >= 0 && selected <= 8 ? selected : -1;
@@ -106,12 +105,12 @@ public final class ToolLock {
       }
    }
 
-   private static boolean isProbablyInteractiveBlock(PlayerEntity player, BlockHitResult hitResult) {
+   private static boolean isProbablyInteractiveBlock(Player player, BlockHitResult hitResult) {
       if (player == null || hitResult == null) {
          return false;
       }
 
-      if (player.getWorld() == null) {
+      if (player.level() == null) {
          return false;
       }
 
@@ -121,14 +120,14 @@ public final class ToolLock {
       }
 
       try {
-         if (player.getWorld().getBlockEntity(pos) != null) {
+         if (player.level().getBlockEntity(pos) != null) {
             return true;
          }
       } catch (Throwable var5) {
       }
 
       try {
-         return player.getWorld().getBlockState(pos).hasBlockEntity();
+         return player.level().getBlockState(pos).hasBlockEntity();
       } catch (Throwable ignored) {
          return false;
       }

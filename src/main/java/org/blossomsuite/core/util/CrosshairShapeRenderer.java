@@ -1,13 +1,12 @@
 package org.blossomsuite.core.util;
 
 import org.blossomsuite.core.config.QolConfig;
-import net.minecraft.client.gui.DrawContext;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 public final class CrosshairShapeRenderer {
    private CrosshairShapeRenderer() {
    }
 
-   public static void draw(DrawContext ctx, int cx, int cy, QolConfig q, int argb) {
+   public static void draw(GuiGraphicsExtractor ctx, int cx, int cy, QolConfig q, int argb) {
       if (ctx != null && q != null) {
          QolConfig.CrosshairShape shape = q.crosshairShape == null ? QolConfig.CrosshairShape.VANILLA : q.crosshairShape;
          int size = clamp(q.crosshairSize, 1, maxSize(shape));
@@ -42,7 +41,7 @@ public final class CrosshairShapeRenderer {
       }
    }
 
-   private static void drawPlus(DrawContext ctx, int cx, int cy, int size, int gap, int thick, int argb) {
+   private static void drawPlus(GuiGraphicsExtractor ctx, int cx, int cy, int size, int gap, int thick, int argb) {
       int h = thick / 2;
       int x1 = cx - h;
       int x2 = x1 + thick;
@@ -58,19 +57,19 @@ public final class CrosshairShapeRenderer {
       ctx.fill(rightStart, y1, rightStart + size, y2, argb);
    }
 
-   private static void drawT(DrawContext ctx, int cx, int cy, int size, int thick, int argb) {
+   private static void drawT(GuiGraphicsExtractor ctx, int cx, int cy, int size, int thick, int argb) {
       int x1 = centeredStart(cx, thick);
       int y1 = centeredStart(cy, thick);
       ctx.fill(cx - size, y1, cx + size + 1, y1 + thick, argb);
       ctx.fill(x1, cy, x1 + thick, cy + size + 1, argb);
    }
 
-   private static void drawDot(DrawContext ctx, int cx, int cy, int thick, int argb) {
+   private static void drawDot(GuiGraphicsExtractor ctx, int cx, int cy, int thick, int argb) {
       int size = Math.max(2, thick + 1);
       drawCenteredSquare(ctx, cx, cy, makeOdd(size), argb);
    }
 
-   private static void drawCenterDot(DrawContext ctx, int cx, int cy, int thick, int argb) {
+   private static void drawCenterDot(GuiGraphicsExtractor ctx, int cx, int cy, int thick, int argb) {
       int size = thick >= 3 ? 3 : 1;
       drawCenteredSquare(ctx, cx, cy, size, argb);
    }
@@ -82,7 +81,7 @@ public final class CrosshairShapeRenderer {
       };
    }
 
-   private static void drawCenteredSquare(DrawContext ctx, int cx, int cy, int size, int argb) {
+   private static void drawCenteredSquare(GuiGraphicsExtractor ctx, int cx, int cy, int size, int argb) {
       int h = size / 2;
       ctx.fill(cx - h, cy - h, cx + h + 1, cy + h + 1, argb);
    }
@@ -95,14 +94,14 @@ public final class CrosshairShapeRenderer {
       return value % 2 == 0 ? value + 1 : value;
    }
 
-   private static void drawSquare(DrawContext ctx, int cx, int cy, int radius, int thick, int argb) {
+   private static void drawSquare(GuiGraphicsExtractor ctx, int cx, int cy, int radius, int thick, int argb) {
       ctx.fill(cx - radius, cy - radius, cx + radius + 1, cy - radius + thick, argb);
       ctx.fill(cx - radius, cy + radius - thick + 1, cx + radius + 1, cy + radius + 1, argb);
       ctx.fill(cx - radius, cy - radius, cx - radius + thick, cy + radius + 1, argb);
       ctx.fill(cx + radius - thick + 1, cy - radius, cx + radius + 1, cy + radius + 1, argb);
    }
 
-   private static void drawCircle(DrawContext ctx, int cx, int cy, int radius, int thick, int argb) {
+   private static void drawCircle(GuiGraphicsExtractor ctx, int cx, int cy, int radius, int thick, int argb) {
       int r2 = radius * radius;
       int inner = Math.max(0, radius - thick);
       int inner2 = inner * inner;
@@ -117,7 +116,7 @@ public final class CrosshairShapeRenderer {
       }
    }
 
-   private static void drawX(DrawContext ctx, int cx, int cy, int radius, int thick, int argb) {
+   private static void drawX(GuiGraphicsExtractor ctx, int cx, int cy, int radius, int thick, int argb) {
       int h = Math.max(0, (thick - 1) / 2);
 
       for (int i = -radius; i <= radius; i++) {

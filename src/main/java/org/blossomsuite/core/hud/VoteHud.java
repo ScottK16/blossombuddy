@@ -10,9 +10,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.joml.Matrix3x2fStack;
 
 public final class VoteHud {
@@ -111,7 +111,7 @@ public final class VoteHud {
    private VoteHud() {
    }
 
-   public static void render(DrawContext ctx, MinecraftClient client) {
+   public static void render(GuiGraphicsExtractor ctx, Minecraft client) {
       if (SuiteConfig.INSTANCE.VoteConfig.showHud) {
          if (client.player != null) {
             if (HudEditState.editMode || VoteRuntime.isActiveWorld()) {
@@ -123,8 +123,8 @@ public final class VoteHud {
                }
 
                servers.sort(Comparator.comparing(a -> safeName(a.getValue()), String.CASE_INSENSITIVE_ORDER));
-               int screenH = client.getWindow().getScaledHeight();
-               int screenW = client.getWindow().getScaledWidth();
+               int screenH = client.getWindow().getGuiScaledHeight();
+               int screenW = client.getWindow().getGuiScaledWidth();
                int baseW = 118;
                int rowH = 9;
                int rowGap = 4;
@@ -160,7 +160,7 @@ public final class VoteHud {
                   lastY = y;
                   lastW = w;
                   lastH = h;
-                  Matrix3x2fStack matrices = ctx.getMatrices();
+                  Matrix3x2fStack matrices = ctx.pose();
                   matrices.pushMatrix();
                   matrices.translate(x, y);
                   matrices.scale(scale, scale);
@@ -170,7 +170,7 @@ public final class VoteHud {
                      ctx.fill(0, 0, baseW, baseH, HudStyleUtil.panelBg(opacity));
                      ctx.fill(0, 0, baseW, headerH, HudStyleUtil.panelHeader(opacity));
                      ctx.fill(0, headerH, baseW, headerH + 1, HudStyleUtil.panelDivider(opacity));
-                     ctx.drawTextWithShadow(client.textRenderer, "Vote Party", 6, 4, -1);
+                     ctx.text(client.font, "Vote Party", 6, 4, -1);
                      long now = System.currentTimeMillis();
                      int y0 = headerH + pad;
                      int maxRows = 12;
@@ -206,15 +206,15 @@ public final class VoteHud {
 
                         int rowY = y0 + drawn * (rowH + rowGap);
                         int gap = 6;
-                        int midW = client.textRenderer.getWidth(mid);
+                        int midW = client.font.width(mid);
                         int leftMaxW = Math.max(0, baseW - 12 - 6 - midW);
-                        String leftDraw = truncateToWidth(client.textRenderer, left, leftMaxW);
-                        int leftW = client.textRenderer.getWidth(leftDraw);
+                        String leftDraw = truncateToWidth(client.font, left, leftMaxW);
+                        int leftW = client.font.width(leftDraw);
                         int groupW = leftW + (leftDraw.isBlank() ? 0 : 6) + midW;
                         int leftX = Math.max(6, baseW / 2 - groupW / 2);
                         int midX = leftX + leftW + (leftDraw.isBlank() ? 0 : 6);
-                        ctx.drawTextWithShadow(client.textRenderer, leftDraw, leftX, rowY, rowColor);
-                        ctx.drawTextWithShadow(client.textRenderer, mid, midX, rowY, midColor);
+                        ctx.text(client.font, leftDraw, leftX, rowY, rowColor);
+                        ctx.text(client.font, mid, midX, rowY, midColor);
                         drawn++;
                      }
 
@@ -226,15 +226,15 @@ public final class VoteHud {
                            int midColor = i == 0 ? -171 : (i == 1 ? -11141291 : -4208683);
                            String right = "";
                            int gap = 6;
-                           int midW = client.textRenderer.getWidth(mid);
+                           int midW = client.font.width(mid);
                            int leftMaxW = Math.max(0, baseW - 12 - 6 - midW);
-                           String leftDraw = truncateToWidth(client.textRenderer, left, leftMaxW);
-                           int leftW = client.textRenderer.getWidth(leftDraw);
+                           String leftDraw = truncateToWidth(client.font, left, leftMaxW);
+                           int leftW = client.font.width(leftDraw);
                            int groupW = leftW + (leftDraw.isBlank() ? 0 : 6) + midW;
                            int leftX = Math.max(6, baseW / 2 - groupW / 2);
                            int midX = leftX + leftW + (leftDraw.isBlank() ? 0 : 6);
-                           ctx.drawTextWithShadow(client.textRenderer, leftDraw, leftX, rowY, -1);
-                           ctx.drawTextWithShadow(client.textRenderer, mid, midX, rowY, midColor);
+                           ctx.text(client.font, leftDraw, leftX, rowY, -1);
+                           ctx.text(client.font, mid, midX, rowY, midColor);
                         }
                      }
 
@@ -334,7 +334,7 @@ public final class VoteHud {
       return rounded > 0 ? rounded + "s" : "";
    }
 
-   private static String truncateToWidth(TextRenderer tr, String s, int maxW) {
+   private static String truncateToWidth(Font tr, String s, int maxW) {
       if (s == null || s.isBlank()) {
          return "";
       }
@@ -343,19 +343,19 @@ public final class VoteHud {
          return "";
       }
 
-      if (tr.getWidth(s) <= maxW) {
+      if (tr.width(s) <= maxW) {
          return s;
       }
 
       String suffix = "...";
-      int suffixW = tr.getWidth("...");
+      int suffixW = tr.width("...");
       if (suffixW >= maxW) {
          return "";
       }
 
       String cur = s;
 
-      while (!cur.isEmpty() && tr.getWidth(cur) + suffixW > maxW) {
+      while (!cur.isEmpty() && tr.width(cur) + suffixW > maxW) {
          cur = cur.substring(0, cur.length() - 1);
       }
 

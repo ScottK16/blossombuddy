@@ -1,15 +1,14 @@
 package org.blossomsuite.core.hud;
 
 import org.blossomsuite.core.vote.VoteNotifier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 public final class VoteNotificationOverlay {
    private VoteNotificationOverlay() {
    }
 
-   public static void render(DrawContext ctx, MinecraftClient client) {
-      if (client != null && client.player != null && !client.options.hudHidden) {
+   public static void render(GuiGraphicsExtractor ctx, Minecraft client) {
+      if (client != null && client.player != null && !client.options.hideGui) {
          long now = System.currentTimeMillis();
          if (VoteNotifier.hasActiveOngoing(now)) {
             renderBox(ctx, client, "Vote Party", VoteNotifier.activeOngoingServer() + " ongoing", -11141291);
@@ -23,18 +22,18 @@ public final class VoteNotificationOverlay {
       }
    }
 
-   private static void renderBox(DrawContext ctx, MinecraftClient client, String title, String line, int accentColor) {
-      int screenW = client.getWindow().getScaledWidth();
-      int screenH = client.getWindow().getScaledHeight();
-      int titleW = client.textRenderer.getWidth(title);
-      int lineW = client.textRenderer.getWidth(line);
+   private static void renderBox(GuiGraphicsExtractor ctx, Minecraft client, String title, String line, int accentColor) {
+      int screenW = client.getWindow().getGuiScaledWidth();
+      int screenH = client.getWindow().getGuiScaledHeight();
+      int titleW = client.font.width(title);
+      int lineW = client.font.width(line);
       int boxW = Math.max(titleW, lineW) + 18;
       int boxH = 31;
       int x = (screenW - boxW) / 2;
       int y = Math.max(34, screenH / 2 - 96);
       ctx.fill(x, y, x + boxW, y + boxH, -1441787369);
       ctx.fill(x, y, x + boxW, y + 1, accentColor);
-      ctx.drawTextWithShadow(client.textRenderer, title, x + (boxW - titleW) / 2, y + 6, accentColor);
-      ctx.drawTextWithShadow(client.textRenderer, line, x + (boxW - lineW) / 2, y + 18, -1);
+      ctx.text(client.font, title, x + (boxW - titleW) / 2, y + 6, accentColor);
+      ctx.text(client.font, line, x + (boxW - lineW) / 2, y + 18, -1);
    }
 }

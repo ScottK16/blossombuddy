@@ -2,11 +2,10 @@ package org.blossomsuite.core.keybinds;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 public final class KeybindRuntime {
-   private static Consumer<MinecraftClient> settingsOpener = client -> {};
-   private static Consumer<MinecraftClient> hudEditorOpener = client -> {};
+   private static Consumer<Minecraft> settingsOpener = client -> {};
+   private static Consumer<Minecraft> hudEditorOpener = client -> {};
    private static Runnable rentalsPauseToggler = () -> {};
    private static Runnable expiredRentalsClearer = () -> {};
    private static BiConsumer<String, Throwable> warnReporter = (message, throwable) -> {};
@@ -14,11 +13,11 @@ public final class KeybindRuntime {
    private KeybindRuntime() {
    }
 
-   public static void setSettingsOpener(Consumer<MinecraftClient> opener) {
+   public static void setSettingsOpener(Consumer<Minecraft> opener) {
       settingsOpener = opener != null ? opener : client -> {};
    }
 
-   public static void setHudEditorOpener(Consumer<MinecraftClient> opener) {
+   public static void setHudEditorOpener(Consumer<Minecraft> opener) {
       hudEditorOpener = opener != null ? opener : client -> {};
    }
 
@@ -34,11 +33,11 @@ public final class KeybindRuntime {
       warnReporter = reporter != null ? reporter : (message, throwable) -> {};
    }
 
-   static void openSettings(MinecraftClient client) {
+   static void openSettings(Minecraft client) {
       settingsOpener.accept(client);
    }
 
-   static void openHudEditor(MinecraftClient client) {
+   static void openHudEditor(Minecraft client) {
       hudEditorOpener.accept(client);
    }
 

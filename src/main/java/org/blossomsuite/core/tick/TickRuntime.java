@@ -4,18 +4,17 @@ import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 public final class TickRuntime {
    private static Predicate<Screen> hudEditScreenPredicate = screen -> false;
    private static Runnable settingsRequestClearer = () -> {};
    private static BooleanSupplier settingsRequestSupplier = () -> false;
-   private static Consumer<MinecraftClient> settingsOpener = client -> {};
+   private static Consumer<Minecraft> settingsOpener = client -> {};
    private static BooleanSupplier hudEditOpenRequestSupplier = () -> false;
    private static Runnable hudEditOpenRequestClearer = () -> {};
    private static Runnable hudEditOpenRequestRequeuer = () -> {};
-   private static Consumer<MinecraftClient> hudEditOpener = client -> {};
+   private static Consumer<Minecraft> hudEditOpener = client -> {};
    private static BooleanSupplier hudEditCloseRequestSupplier = () -> false;
    private static Runnable hudEditCloseRequestClearer = () -> {};
    private static BiConsumer<String, Throwable> warnReporter = (message, throwable) -> {};
@@ -27,7 +26,7 @@ public final class TickRuntime {
       hudEditScreenPredicate = predicate != null ? predicate : screen -> false;
    }
 
-   public static void setSettingsRequestHandlers(BooleanSupplier supplier, Runnable clearer, Consumer<MinecraftClient> opener) {
+   public static void setSettingsRequestHandlers(BooleanSupplier supplier, Runnable clearer, Consumer<Minecraft> opener) {
       settingsRequestSupplier = supplier != null ? supplier : () -> false;
       settingsRequestClearer = clearer != null ? clearer : () -> {};
       settingsOpener = opener != null ? opener : client -> {};
@@ -37,7 +36,7 @@ public final class TickRuntime {
       BooleanSupplier openSupplier,
       Runnable openClearer,
       Runnable openRequeuer,
-      Consumer<MinecraftClient> opener,
+      Consumer<Minecraft> opener,
       BooleanSupplier closeSupplier,
       Runnable closeClearer
    ) {
@@ -66,7 +65,7 @@ public final class TickRuntime {
       return true;
    }
 
-   static void openSettings(MinecraftClient client) {
+   static void openSettings(Minecraft client) {
       settingsOpener.accept(client);
    }
 
@@ -87,7 +86,7 @@ public final class TickRuntime {
       hudEditOpenRequestRequeuer.run();
    }
 
-   static void openHudEdit(MinecraftClient client) {
+   static void openHudEdit(Minecraft client) {
       hudEditOpener.accept(client);
    }
 

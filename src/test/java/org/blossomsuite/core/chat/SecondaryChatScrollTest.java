@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,7 +23,7 @@ class SecondaryChatScrollTest {
    private static SecondaryChat withLines(int n) {
       SecondaryChat chat = new SecondaryChat();
       for (int i = 1; i <= n; i++) {
-         chat.addExternal(Text.literal("line " + i));
+         chat.addExternal(Component.literal("line " + i));
       }
 
       return chat;
@@ -60,8 +60,8 @@ class SecondaryChatScrollTest {
       chat.scrollBy(3);
       String before = texts(chat.window(null, chat.scroll(), 3));
 
-      chat.addExternal(Text.literal("line 11"));
-      chat.addExternal(Text.literal("line 12"));
+      chat.addExternal(Component.literal("line 11"));
+      chat.addExternal(Component.literal("line 12"));
 
       assertEquals(5, chat.scroll(), "moved back by the number of new lines");
       assertEquals(before, texts(chat.window(null, chat.scroll(), 3)), "so you are still reading the same lines");
@@ -70,7 +70,7 @@ class SecondaryChatScrollTest {
    @Test
    void aFollowingReaderKeepsFollowing() {
       SecondaryChat chat = withLines(3);
-      chat.addExternal(Text.literal("line 4"));
+      chat.addExternal(Component.literal("line 4"));
       assertEquals(0, chat.scroll());
    }
 
@@ -81,7 +81,7 @@ class SecondaryChatScrollTest {
       chat.scrollBy(3);
       assertEquals(3, chat.scroll());
 
-      chat.onMessage(Text.literal("TELEPORT ~Marv has requested to teleport to you."));
+      chat.onMessage(Component.literal("TELEPORT ~Marv has requested to teleport to you."));
       assertEquals(1, chat.count("Teleports"), "the line really was filed under another tab");
       assertEquals(3, chat.scroll(), "a teleport line is filed under Teleports, not the Realms tab being read");
    }

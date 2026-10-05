@@ -1,8 +1,8 @@
 package org.blossomsuite.core.hud;
 
 import java.util.function.IntPredicate;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.inventory.ContainerInput;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.qol.locks.SlotProtection;
@@ -16,8 +16,8 @@ public final class HotbarCycler {
    private HotbarCycler() {
    }
 
-   private static boolean ready(MinecraftClient client) {
-      return client != null && client.player != null && client.interactionManager != null && client.currentScreen == null;
+   private static boolean ready(Minecraft client) {
+      return client != null && client.player != null && client.gameMode != null && client.screen == null;
    }
 
    private static int rows() {
@@ -29,20 +29,20 @@ public final class HotbarCycler {
     *
     * @param up true brings the row above the hotbar down into it (row1 -> hotbar); false sends the hotbar up
     */
-   public static void cycle(MinecraftClient client, boolean up) {
+   public static void cycle(Minecraft client, boolean up) {
       if (!ready(client)) {
          return;
       }
 
       int rows = rows();
-      int syncId = client.player.playerScreenHandler.syncId;
+      int syncId = client.player.inventoryMenu.containerId;
       for (int col = 0; col < 9; col++) {
          if (!columnFree(rows, col, SlotProtection::isLocked)) {
             continue;
          }
 
          for (int slot : order(rows, up, col)) {
-            client.interactionManager.clickSlot(syncId, slot, col, SlotActionType.SWAP, client.player);
+            client.gameMode.handleContainerInput(syncId, slot, col, ContainerInput.SWAP, client.player);
          }
       }
    }
@@ -52,7 +52,7 @@ public final class HotbarCycler {
     *
     * @param row 1 = the row directly above the hotbar ("hotbar 2"), 2 = the row above that ("hotbar 3")
     */
-   public static void swapWithRow(MinecraftClient client, int row) {
+   public static void swapWithRow(Minecraft client, int row) {
       if (!ready(client)) {
          return;
       }
@@ -62,14 +62,14 @@ public final class HotbarCycler {
          return;
       }
 
-      int syncId = client.player.playerScreenHandler.syncId;
+      int syncId = client.player.inventoryMenu.containerId;
       for (int col = 0; col < 9; col++) {
          int slot = ExtraHotbarHud.inventoryIndex(row, col);
          if (SlotProtection.isLocked(col) || SlotProtection.isLocked(slot)) {
             continue;
          }
 
-         client.interactionManager.clickSlot(syncId, slot, col, SlotActionType.SWAP, client.player);
+         client.gameMode.handleContainerInput(syncId, slot, col, ContainerInput.SWAP, client.player);
       }
    }
 

@@ -1,8 +1,8 @@
 package org.blossomsuite.core.mixin.client;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.hud.BossBarHud;
-import net.minecraft.entity.boss.BossBar;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.BossHealthOverlay;
+import net.minecraft.world.BossEvent;
 import org.blossomsuite.core.jobs.overflow.OverflowTracker;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -13,14 +13,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Draws the cosmetic "levels" bar for a maxed-out Jobs boss bar in place of the vanilla one.
  * Based on Jobs Overflow XP (MIT, Mills).
  */
-@Mixin(BossBarHud.class)
+@Mixin(BossHealthOverlay.class)
 public abstract class BossBarHudMixin {
    private static final int BAR_WIDTH = 182;
    private static final int BAR_HEIGHT = 5;
 
-   @Inject(method = "renderBossBar(Lnet/minecraft/client/gui/DrawContext;IILnet/minecraft/entity/boss/BossBar;)V", at = @At("HEAD"), cancellable = true)
-   private void suitecore$levelsBar(DrawContext context, int x, int y, BossBar bossBar, CallbackInfo ci) {
-      OverflowTracker.LevelsBar bar = OverflowTracker.INSTANCE.levelsBarFor(bossBar.getUuid());
+   @Inject(method = "extractBar(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IILnet/minecraft/world/BossEvent;)V", at = @At("HEAD"), cancellable = true)
+   private void suitecore$levelsBar(GuiGraphicsExtractor context, int x, int y, BossEvent bossBar, CallbackInfo ci) {
+      OverflowTracker.LevelsBar bar = OverflowTracker.INSTANCE.levelsBarFor(bossBar.getId());
       if (bar == null) {
          return;
       }

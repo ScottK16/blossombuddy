@@ -20,24 +20,23 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult.Type;
-
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.TagKey;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult.Type;
 public class AutoSwapperSubTab implements SuiteSubTab {
-   private static final TagKey<Block> C_ORES = TagKey.of(RegistryKeys.BLOCK, Identifier.of("c", "ores"));
+   private static final TagKey<Block> C_ORES = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("c", "ores"));
    private static final int BLOCK_EDITOR_ROWS = 6;
    private static final int BLOCK_EDITOR_ROW_HEIGHT = 24;
    private static final int BLOCK_EDITOR_SCROLL_EDGE_GUTTER = 36;
@@ -82,16 +81,16 @@ public class AutoSwapperSubTab implements SuiteSubTab {
          this.addCustomGroupSection(screen, cfg.QolConfig, x, w, y, 20, 6);
       } else {
          screen.addContentWidget(
-            new HoverLabelWidget(x, y + 6, 120, 12, Text.translatable("suitecore.option.enabled"), Tooltip.of(Text.literal("Master toggle for AutoSwapper.")))
+            new HoverLabelWidget(x, y + 6, 120, 12, Component.translatable("suitecore.option.enabled"), Tooltip.create(Component.literal("Master toggle for AutoSwapper.")))
          );
          int toggleW = 80;
          int toggleX = x + w - toggleW;
-         ButtonWidget enabledButton = StyledButton.of(Text.literal(cfg.QolConfig.autoSwapperEnabled ? "ON" : "OFF"), b -> {
+         Button enabledButton = StyledButton.of(Component.literal(cfg.QolConfig.autoSwapperEnabled ? "ON" : "OFF"), b -> {
             cfg.QolConfig.autoSwapperEnabled = !cfg.QolConfig.autoSwapperEnabled;
             cfg.markDirty();
             screen.rebuildPreserveScroll();
          }).dimensions(toggleX, y, toggleW, 20).build();
-         enabledButton.setTooltip(Tooltip.of(Text.literal("Turns AutoSwapper on or off.")));
+         enabledButton.setTooltip(Tooltip.create(Component.literal("Turns AutoSwapper on or off.")));
          screen.addContentWidget(enabledButton);
          y += 28;
          screen.addContentWidget(
@@ -100,29 +99,29 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                y + 6,
                180,
                12,
-               Text.literal("Status HUD"),
-               Tooltip.of(Text.literal("Shows a draggable AutoSwapper status HUD.\nUse HUD Edit Mode to move or resize it."))
+               Component.literal("Status HUD"),
+               Tooltip.create(Component.literal("Shows a draggable AutoSwapper status HUD.\nUse HUD Edit Mode to move or resize it."))
             )
          );
-         ButtonWidget hudButton = StyledButton.of(Text.literal(cfg.AutoSwapperHudConfig.showHud ? "ON" : "OFF"), b -> {
+         Button hudButton = StyledButton.of(Component.literal(cfg.AutoSwapperHudConfig.showHud ? "ON" : "OFF"), b -> {
             cfg.AutoSwapperHudConfig.toggleShowHud();
             ConfigIO.saveIfDirty();
             screen.rebuildPreserveScroll();
          }).dimensions(toggleX, y, toggleW, 20).build();
-         hudButton.setTooltip(Tooltip.of(Text.literal("Shows or hides the AutoSwapper status HUD.")));
+         hudButton.setTooltip(Tooltip.create(Component.literal("Shows or hides the AutoSwapper status HUD.")));
          screen.addContentWidget(hudButton);
          y += 28;
          screen.addContentWidget(
             new HoverLabelWidget(
-               x, y + 6, 180, 12, Text.literal("HUD Header"), Tooltip.of(Text.literal("Shows or hides the AutoSwapper title bar on its HUD."))
+               x, y + 6, 180, 12, Component.literal("HUD Header"), Tooltip.create(Component.literal("Shows or hides the AutoSwapper title bar on its HUD."))
             )
          );
-         ButtonWidget hudHeaderButton = StyledButton.of(Text.literal(cfg.AutoSwapperHudConfig.showHeader ? "ON" : "OFF"), b -> {
+         Button hudHeaderButton = StyledButton.of(Component.literal(cfg.AutoSwapperHudConfig.showHeader ? "ON" : "OFF"), b -> {
             cfg.AutoSwapperHudConfig.toggleShowHeader();
             ConfigIO.saveIfDirty();
             screen.rebuildPreserveScroll();
          }).dimensions(toggleX, y, toggleW, 20).build();
-         hudHeaderButton.setTooltip(Tooltip.of(Text.literal("Shows or hides the AutoSwapper HUD header.")));
+         hudHeaderButton.setTooltip(Tooltip.create(Component.literal("Shows or hides the AutoSwapper HUD header.")));
          screen.addContentWidget(hudHeaderButton);
          if (!cfg.QolConfig.autoSwapperEnabled) {
             screen.addContentWidget(
@@ -131,8 +130,8 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                   y + 34,
                   260,
                   12,
-                  Text.translatable("suitecore.option.disabled_hint"),
-                  Tooltip.of(Text.literal("Enable AutoSwapper to configure profiles and rules."))
+                  Component.translatable("suitecore.option.disabled_hint"),
+                  Tooltip.create(Component.literal("Enable AutoSwapper to configure profiles and rules."))
                )
             );
          } else {
@@ -161,18 +160,18 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                      y + 6,
                      220,
                      12,
-                     Text.literal("HolePuncher Tool"),
-                     Tooltip.of(Text.literal("When HolePuncher is enabled, pressing its hotkey will switch to this hotbar slot first."))
+                     Component.literal("HolePuncher Tool"),
+                     Tooltip.create(Component.literal("When HolePuncher is enabled, pressing its hotkey will switch to this hotbar slot first."))
                   )
                );
-               ButtonWidget hpSlotBtn = StyledButton.of(Text.literal(hpSlotText), b -> {
+               Button hpSlotBtn = StyledButton.of(Component.literal(hpSlotText), b -> {
                   if (cfg.QolConfig.holePuncherEnabled) {
                      cfg.QolConfig.cycleHolePuncherAutoSwapSlot();
                      cfg.markDirty();
                      screen.rebuildPreserveScroll();
                   }
                }).dimensions(toggleX - 60, y, toggleW + 60, 20).build();
-               hpSlotBtn.setTooltip(Tooltip.of(Text.literal(hpEnabled ? "Click to cycle slot 1..9." : "HolePuncher is OFF.")));
+               hpSlotBtn.setTooltip(Tooltip.create(Component.literal(hpEnabled ? "Click to cycle slot 1..9." : "HolePuncher is OFF.")));
                screen.addContentWidget(hpSlotBtn);
             }
 
@@ -185,24 +184,24 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                   debounceLabelY,
                   140,
                   12,
-                  Text.literal("Debounce (ms)"),
-                  Tooltip.of(
-                     Text.literal(
+                  Component.literal("Debounce (ms)"),
+                  Tooltip.create(
+                     Component.literal(
                         "Adjusts the delay before AutoSwapper swaps tools.\nLower = faster response.\nHigher = safer on touchy servers.\nThis applies to all profiles.\nDefault: 100 ms"
                      )
                   )
                )
             );
-            SliderWidget debounceSlider = new StyledSlider(x, debounceSliderY, w, 20, Text.empty(), msToSlider(cfg.QolConfig.autoSwapperDebounceMs)) {
+            AbstractSliderButton debounceSlider = new StyledSlider(x, debounceSliderY, w, 20, Component.empty(), msToSlider(cfg.QolConfig.autoSwapperDebounceMs)) {
                {
                   this.updateMessage();
-                  this.setTooltip(Tooltip.of(Text.literal("Current debounce delay in milliseconds.")));
+                  this.setTooltip(Tooltip.create(Component.literal("Current debounce delay in milliseconds.")));
                }
 
                @Override
                protected void updateMessage() {
                   int ms = AutoSwapperSubTab.sliderToMs(this.value);
-                  this.setMessage(Text.literal(ms + " ms"));
+                  this.setMessage(Component.literal(ms + " ms"));
                }
 
                @Override
@@ -219,14 +218,14 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                   y + 6,
                   120,
                   12,
-                  Text.literal("Profile"),
-                  Tooltip.of(Text.literal("AutoSwapper profiles let you keep separate setups for different tasks."))
+                  Component.literal("Profile"),
+                  Tooltip.create(Component.literal("AutoSwapper profiles let you keep separate setups for different tasks."))
                )
             );
             int deleteW = 70;
             int addW = 70;
             int profileW = w - deleteW - addW - 12;
-            ButtonWidget profileButton = StyledButton.of(Text.literal(currentProfileTitle(cfg.QolConfig)), b -> {
+            Button profileButton = StyledButton.of(Component.literal(currentProfileTitle(cfg.QolConfig)), b -> {
                if (!cfg.QolConfig.autoSwapperProfiles.isEmpty()) {
                   cfg.QolConfig.autoSwapperActiveProfile++;
                   if (cfg.QolConfig.autoSwapperActiveProfile >= cfg.QolConfig.autoSwapperProfiles.size()) {
@@ -237,9 +236,9 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                   screen.rebuildPreserveScroll();
                }
             }).dimensions(x, y + 20, profileW, 20).build();
-            profileButton.setTooltip(Tooltip.of(Text.literal("Cycles through your AutoSwapper profiles.")));
+            profileButton.setTooltip(Tooltip.create(Component.literal("Cycles through your AutoSwapper profiles.")));
             screen.addContentWidget(profileButton);
-            ButtonWidget addProfileButton = StyledButton.of(Text.literal("+ Add"), b -> {
+            Button addProfileButton = StyledButton.of(Component.literal("+ Add"), b -> {
                QolConfig.AutoSwapperProfile p = new QolConfig.AutoSwapperProfile();
                p.name = nextProfileName(cfg.QolConfig);
                cfg.QolConfig.autoSwapperProfiles.add(p);
@@ -247,9 +246,9 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                cfg.markDirty();
                screen.rebuildPreserveScroll();
             }).dimensions(x + profileW + 6, y + 20, addW, 20).build();
-            addProfileButton.setTooltip(Tooltip.of(Text.literal("Adds a new AutoSwapper profile.")));
+            addProfileButton.setTooltip(Tooltip.create(Component.literal("Adds a new AutoSwapper profile.")));
             screen.addContentWidget(addProfileButton);
-            ButtonWidget deleteProfileButton = StyledButton.of(Text.literal("Delete"), b -> {
+            Button deleteProfileButton = StyledButton.of(Component.literal("Delete"), b -> {
                if (!cfg.QolConfig.autoSwapperProfiles.isEmpty()) {
                   int idx = clampActiveProfileIndex(cfg.QolConfig);
                   cfg.QolConfig.autoSwapperProfiles.remove(idx);
@@ -261,7 +260,7 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                   screen.rebuildPreserveScroll();
                }
             }).dimensions(x + profileW + 6 + addW + 6, y + 20, deleteW, 20).build();
-            deleteProfileButton.setTooltip(Tooltip.of(Text.literal("Deletes the current AutoSwapper profile.")));
+            deleteProfileButton.setTooltip(Tooltip.create(Component.literal("Deletes the current AutoSwapper profile.")));
             screen.addContentWidget(deleteProfileButton);
             QolConfig.AutoSwapperProfile profile = getActiveProfile(cfg.QolConfig);
             if (profile == null) {
@@ -271,16 +270,16 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                      y + 52,
                      280,
                      12,
-                     Text.literal("No profiles yet. Add one to start."),
-                     Tooltip.of(Text.literal("Create a profile for mining, map art, or any other setup you want."))
+                     Component.literal("No profiles yet. Add one to start."),
+                     Tooltip.create(Component.literal("Create a profile for mining, map art, or any other setup you want."))
                   )
                );
             } else {
-               TextFieldWidget profileNameField = new TextFieldWidget(screen.getTextRenderer(), x, y + 46, w, 20, Text.empty());
+               EditBox profileNameField = new EditBox(screen.getFont(), x, y + 46, w, 20, Component.empty());
                profileNameField.setMaxLength(32);
-               profileNameField.setText(profile.name == null ? "" : profile.name);
-               profileNameField.setTooltip(Tooltip.of(Text.literal("Rename the current AutoSwapper profile.")));
-               profileNameField.setChangedListener(newText -> {
+               profileNameField.setValue(profile.name == null ? "" : profile.name);
+               profileNameField.setTooltip(Tooltip.create(Component.literal("Rename the current AutoSwapper profile.")));
+               profileNameField.setResponder(newText -> {
                   profile.name = newText != null && !newText.isBlank() ? newText : "Profile";
                   cfg.markDirty();
                });
@@ -292,28 +291,28 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                      y + 6,
                      140,
                      12,
-                     Text.literal("Default Slot"),
-                     Tooltip.of(Text.literal("When no rule matches, this profile can fall back to a default hotbar slot."))
+                     Component.literal("Default Slot"),
+                     Tooltip.create(Component.literal("When no rule matches, this profile can fall back to a default hotbar slot."))
                   )
                );
                int defaultToggleW = 120;
                int defaultToggleX = x + w - defaultToggleW;
-               ButtonWidget defaultToggle = StyledButton.of(Text.literal(profile.useDefaultTool ? "Use Default" : "No Default"), b -> {
+               Button defaultToggle = StyledButton.of(Component.literal(profile.useDefaultTool ? "Use Default" : "No Default"), b -> {
                   profile.useDefaultTool = !profile.useDefaultTool;
                   cfg.markDirty();
                   screen.rebuildPreserveScroll();
                }).dimensions(defaultToggleX, y, defaultToggleW, 20).build();
-               defaultToggle.setTooltip(Tooltip.of(Text.literal("Enable or disable use of the default slot when no rule applies for this profile.")));
+               defaultToggle.setTooltip(Tooltip.create(Component.literal("Enable or disable use of the default slot when no rule applies for this profile.")));
                screen.addContentWidget(defaultToggle);
                if (profile.useDefaultTool) {
                   int slotW = 90;
                   int slotX = defaultToggleX - 6 - slotW;
-                  ButtonWidget slotButton = StyledButton.of(Text.literal("Slot " + profile.defaultSlot), b -> {
+                  Button slotButton = StyledButton.of(Component.literal("Slot " + profile.defaultSlot), b -> {
                      profile.defaultSlot = nextSlot(profile.defaultSlot);
                      cfg.markDirty();
                      screen.rebuildPreserveScroll();
                   }).dimensions(slotX, y, slotW, 20).build();
-                  slotButton.setTooltip(Tooltip.of(Text.literal("Cycles the default hotbar slot used when no rule matches for this profile.")));
+                  slotButton.setTooltip(Tooltip.create(Component.literal("Cycles the default hotbar slot used when no rule matches for this profile.")));
                   screen.addContentWidget(slotButton);
                }
 
@@ -333,8 +332,8 @@ public class AutoSwapperSubTab implements SuiteSubTab {
             y,
             240,
             12,
-            Text.literal("Rules (Top rule has priority)"),
-            Tooltip.of(Text.literal("Each rule matches a block group or exact block and picks a hotbar slot.\nHigher rules win if more than one matches."))
+            Component.literal("Rules (Top rule has priority)"),
+            Tooltip.create(Component.literal("Each rule matches a block group or exact block and picks a hotbar slot.\nHigher rules win if more than one matches."))
          )
       );
       y += 18;
@@ -353,7 +352,7 @@ public class AutoSwapperSubTab implements SuiteSubTab {
       for (int i = 0; i < profile.rules.size(); i++) {
          QolConfig.AutoSwapRule rule = profile.rules.get(i);
          int rowY = y + i * gapY;
-         ButtonWidget typeButton = StyledButton.of(Text.literal(typeLabel(rule.type)), b -> {
+         Button typeButton = StyledButton.of(Component.literal(typeLabel(rule.type)), b -> {
             rule.type = nextTargetType(rule.type);
             if (rule.type == QolConfig.AutoSwapTargetType.CUSTOM) {
                QolConfig.AutoSwapCustomGroup group = getActiveCustomGroup(cfg.QolConfig);
@@ -365,32 +364,32 @@ public class AutoSwapperSubTab implements SuiteSubTab {
             cfg.markDirty();
             screen.rebuildPreserveScroll();
          }).dimensions(x, rowY, 90, rowH).build();
-         typeButton.setTooltip(Tooltip.of(Text.literal("Cycles between built-in groups, exact blocks, and custom block groups.")));
+         typeButton.setTooltip(Tooltip.create(Component.literal("Cycles between built-in groups, exact blocks, and custom block groups.")));
          screen.addContentWidget(typeButton);
          if (rule.type == QolConfig.AutoSwapTargetType.GROUP) {
-            ButtonWidget groupButton = StyledButton.of(Text.translatable(groupTitleKey(rule.group)), b -> {
+            Button groupButton = StyledButton.of(Component.translatable(groupTitleKey(rule.group)), b -> {
                rule.group = nextGroup(rule.group);
                cfg.markDirty();
                screen.rebuildPreserveScroll();
             }).dimensions(fieldX, rowY, fieldW, rowH).build();
-            groupButton.setTooltip(Tooltip.of(Text.literal("Cycles the block grouping used by this rule.")));
+            groupButton.setTooltip(Tooltip.create(Component.literal("Cycles the block grouping used by this rule.")));
             screen.addContentWidget(groupButton);
          } else if (rule.type == QolConfig.AutoSwapTargetType.CUSTOM) {
-            ButtonWidget customButton = StyledButton.of(Text.literal(customRuleGroupTitle(cfg.QolConfig, rule)), b -> {
+            Button customButton = StyledButton.of(Component.literal(customRuleGroupTitle(cfg.QolConfig, rule)), b -> {
                cycleRuleCustomGroup(cfg.QolConfig, rule);
                cfg.markDirty();
                screen.rebuildPreserveScroll();
             }).dimensions(fieldX, rowY, fieldW, rowH).build();
-            customButton.setTooltip(Tooltip.of(Text.literal("Cycles through your custom AutoSwapper block groups.")));
+            customButton.setTooltip(Tooltip.create(Component.literal("Cycles through your custom AutoSwapper block groups.")));
             customButton.active = !cfg.QolConfig.autoSwapperCustomGroups.isEmpty();
             screen.addContentWidget(customButton);
          } else {
             int actualFieldW = fieldW - gapX - 54;
-            ButtonWidget pickButton = StyledButton.of(Text.literal("Pick"), b -> {
-               MinecraftClient mc = MinecraftClient.getInstance();
-               if (mc.crosshairTarget instanceof BlockHitResult bhr && mc.crosshairTarget.getType() == Type.BLOCK && mc.world != null) {
-                  BlockState state = mc.world.getBlockState(bhr.getBlockPos());
-                  Identifier id = Registries.BLOCK.getId(state.getBlock());
+            Button pickButton = StyledButton.of(Component.literal("Pick"), b -> {
+               Minecraft mc = Minecraft.getInstance();
+               if (mc.hitResult instanceof BlockHitResult bhr && mc.hitResult.getType() == Type.BLOCK && mc.level != null) {
+                  BlockState state = mc.level.getBlockState(bhr.getBlockPos());
+                  Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
                   if (id != null) {
                      rule.blockId = id.toString();
                      cfg.markDirty();
@@ -398,27 +397,27 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                   }
                }
             }).dimensions(fieldX, rowY, 54, rowH).build();
-            pickButton.setTooltip(Tooltip.of(Text.literal("Uses the block you are currently looking at.")));
+            pickButton.setTooltip(Tooltip.create(Component.literal("Uses the block you are currently looking at.")));
             screen.addContentWidget(pickButton);
-            TextFieldWidget field = new TextFieldWidget(screen.getTextRenderer(), fieldX + 54 + gapX, rowY, actualFieldW, rowH, Text.empty());
+            EditBox field = new EditBox(screen.getFont(), fieldX + 54 + gapX, rowY, actualFieldW, rowH, Component.empty());
             field.setMaxLength(128);
-            field.setText(rule.blockId == null ? "" : rule.blockId);
-            field.setTooltip(Tooltip.of(Text.literal("Enter a block id, such as minecraft:stone")));
-            field.setChangedListener(newText -> {
+            field.setValue(rule.blockId == null ? "" : rule.blockId);
+            field.setTooltip(Tooltip.create(Component.literal("Enter a block id, such as minecraft:stone")));
+            field.setResponder(newText -> {
                rule.blockId = newText;
                cfg.markDirty();
             });
             screen.addContentWidget(field);
          }
 
-         ButtonWidget slotButton = StyledButton.of(Text.literal("Slot " + rule.slot), b -> {
+         Button slotButton = StyledButton.of(Component.literal("Slot " + rule.slot), b -> {
             rule.slot = nextSlot(rule.slot);
             cfg.markDirty();
             screen.rebuildPreserveScroll();
          }).dimensions(slotX, rowY, 70, rowH).build();
-         slotButton.setTooltip(Tooltip.of(Text.literal("Selects the hotbar slot to swap to when this rule matches.")));
+         slotButton.setTooltip(Tooltip.create(Component.literal("Selects the hotbar slot to swap to when this rule matches.")));
          screen.addContentWidget(slotButton);
-         ButtonWidget upButton = StyledButton.of(Text.literal("^"), b -> {
+         Button upButton = StyledButton.of(Component.literal("^"), b -> {
             int idx = profile.rules.indexOf(rule);
             if (idx > 0) {
                Collections.swap(profile.rules, idx, idx - 1);
@@ -426,9 +425,9 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                screen.rebuildPreserveScroll();
             }
          }).dimensions(upX, rowY, 22, rowH).build();
-         upButton.setTooltip(Tooltip.of(Text.literal("Moves this rule up. Higher rules have higher priority.")));
+         upButton.setTooltip(Tooltip.create(Component.literal("Moves this rule up. Higher rules have higher priority.")));
          screen.addContentWidget(upButton);
-         ButtonWidget downButton = StyledButton.of(Text.literal("v"), b -> {
+         Button downButton = StyledButton.of(Component.literal("v"), b -> {
             int idx = profile.rules.indexOf(rule);
             if (idx < profile.rules.size() - 1) {
                Collections.swap(profile.rules, idx, idx + 1);
@@ -436,25 +435,25 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                screen.rebuildPreserveScroll();
             }
          }).dimensions(downX, rowY, 22, rowH).build();
-         downButton.setTooltip(Tooltip.of(Text.literal("Moves this rule down.")));
+         downButton.setTooltip(Tooltip.create(Component.literal("Moves this rule down.")));
          screen.addContentWidget(downButton);
-         ButtonWidget removeButton = StyledButton.of(Text.literal("X"), b -> {
+         Button removeButton = StyledButton.of(Component.literal("X"), b -> {
             profile.rules.remove(rule);
             cfg.markDirty();
             screen.rebuildPreserveScroll();
          }).dimensions(removeX, rowY, 22, rowH).build();
-         removeButton.setTooltip(Tooltip.of(Text.literal("Removes this rule.")));
+         removeButton.setTooltip(Tooltip.create(Component.literal("Removes this rule.")));
          screen.addContentWidget(removeButton);
       }
 
       int addY = y + profile.rules.size() * gapY + 8;
-      ButtonWidget addRuleButton = StyledButton.of(Text.literal("+ Add Rule"), b -> {
+      Button addRuleButton = StyledButton.of(Component.literal("+ Add Rule"), b -> {
          QolConfig.AutoSwapRule r = new QolConfig.AutoSwapRule();
          profile.rules.add(r);
          cfg.markDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(x, addY, 120, rowH).build();
-      addRuleButton.setTooltip(Tooltip.of(Text.literal("Adds a new AutoSwapper rule.")));
+      addRuleButton.setTooltip(Tooltip.create(Component.literal("Adds a new AutoSwapper rule.")));
       screen.addContentWidget(addRuleButton);
       return addY + rowH + 12;
    }
@@ -498,20 +497,20 @@ public class AutoSwapperSubTab implements SuiteSubTab {
       }
 
       screen.addContentWidget(
-         new HoverLabelWidget(x, y, 220, 12, Text.literal("Custom Groups"), Tooltip.of(Text.literal("Create reusable block groups for AutoSwapper rules.")))
+         new HoverLabelWidget(x, y, 220, 12, Component.literal("Custom Groups"), Tooltip.create(Component.literal("Create reusable block groups for AutoSwapper rules.")))
       );
       y += 18;
       int importW = 76;
       int exportW = 76;
-      ButtonWidget importButton = StyledButton.of(Text.literal("Import"), b -> {
+      Button importButton = StyledButton.of(Component.literal("Import"), b -> {
          this.importingGroupCode = true;
          this.groupImportCode = "";
          this.closeBlockEditor();
          screen.rebuildFromTab();
       }).dimensions(x, y, importW, rowH).build();
-      importButton.setTooltip(Tooltip.of(Text.literal("Paste an AutoSwapper group share code.")));
+      importButton.setTooltip(Tooltip.create(Component.literal("Paste an AutoSwapper group share code.")));
       screen.addContentWidget(importButton);
-      ButtonWidget exportButton = StyledButton.of(Text.literal("Export"), b -> {
+      Button exportButton = StyledButton.of(Component.literal("Export"), b -> {
          QolConfig.AutoSwapCustomGroup groupx = getActiveCustomGroup(cfg);
          if (groupx != null) {
             copyToClipboard(GroupShareCodec.exportAutoSwapGroup(groupx));
@@ -520,12 +519,12 @@ public class AutoSwapperSubTab implements SuiteSubTab {
          }
       }).dimensions(x + importW + gapX, y, exportW, rowH).build();
       exportButton.active = active != null;
-      exportButton.setTooltip(Tooltip.of(Text.literal("Copies the selected AutoSwapper group share code.")));
+      exportButton.setTooltip(Tooltip.create(Component.literal("Copies the selected AutoSwapper group share code.")));
       screen.addContentWidget(exportButton);
       y += 28;
       if (this.hasGroupShareNotice()) {
          screen.addContentWidget(
-            new HoverLabelWidget(x, y + 2, Math.min(w, 260), 12, Text.literal(this.groupShareNotice), Tooltip.of(Text.literal(this.groupShareNotice)))
+            new HoverLabelWidget(x, y + 2, Math.min(w, 260), 12, Component.literal(this.groupShareNotice), Tooltip.create(Component.literal(this.groupShareNotice)))
          );
          y += 18;
       }
@@ -534,9 +533,9 @@ public class AutoSwapperSubTab implements SuiteSubTab {
       int addW = 70;
       int labelW = w - deleteW - addW - gapX * 2;
       screen.addContentWidget(
-         new HoverLabelWidget(x, y + 4, labelW, 12, Text.literal("Groups"), Tooltip.of(Text.literal("Select the custom block group you want to edit.")))
+         new HoverLabelWidget(x, y + 4, labelW, 12, Component.literal("Groups"), Tooltip.create(Component.literal("Select the custom block group you want to edit.")))
       );
-      ButtonWidget addButton = StyledButton.of(Text.literal("+ New"), b -> {
+      Button addButton = StyledButton.of(Component.literal("+ New"), b -> {
          QolConfig.AutoSwapCustomGroup groupx = new QolConfig.AutoSwapCustomGroup();
          groupx.id = nextCustomGroupId(cfg);
          groupx.name = nextCustomGroupName(cfg);
@@ -546,9 +545,9 @@ public class AutoSwapperSubTab implements SuiteSubTab {
          SuiteConfig.INSTANCE.markDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(x + labelW + gapX, y, addW, rowH).build();
-      addButton.setTooltip(Tooltip.of(Text.literal("Creates a new custom block group.")));
+      addButton.setTooltip(Tooltip.create(Component.literal("Creates a new custom block group.")));
       screen.addContentWidget(addButton);
-      ButtonWidget deleteButton = StyledButton.of(Text.literal("Delete"), b -> {
+      Button deleteButton = StyledButton.of(Component.literal("Delete"), b -> {
          QolConfig.AutoSwapCustomGroup groupx = getActiveCustomGroup(cfg);
          if (groupx != null) {
             String removedId = groupx.id;
@@ -570,7 +569,7 @@ public class AutoSwapperSubTab implements SuiteSubTab {
          }
       }).dimensions(x + labelW + gapX + addW + gapX, y, deleteW, rowH).build();
       deleteButton.active = !cfg.autoSwapperCustomGroups.isEmpty();
-      deleteButton.setTooltip(Tooltip.of(Text.literal("Deletes the selected custom group.")));
+      deleteButton.setTooltip(Tooltip.create(Component.literal("Deletes the selected custom group.")));
       screen.addContentWidget(deleteButton);
       y += 24;
 
@@ -578,7 +577,7 @@ public class AutoSwapperSubTab implements SuiteSubTab {
          QolConfig.AutoSwapCustomGroup group = cfg.autoSwapperCustomGroups.get(i);
          int idx = i;
          String name = group.name != null && !group.name.isBlank() ? group.name : "Custom Group";
-         ButtonWidget groupRow = StyledButton.of(Text.literal(name), b -> {
+         Button groupRow = StyledButton.of(Component.literal(name), b -> {
             cfg.autoSwapperActiveCustomGroup = idx;
             this.closeBlockEditor();
             SuiteConfig.INSTANCE.markDirty();
@@ -598,19 +597,19 @@ public class AutoSwapperSubTab implements SuiteSubTab {
                y,
                Math.min(w, 340),
                12,
-               Text.literal("Create a group to add blocks and use it in rules."),
-               Tooltip.of(Text.literal("Custom groups can be selected by rules using the Custom target type."))
+               Component.literal("Create a group to add blocks and use it in rules."),
+               Tooltip.create(Component.literal("Custom groups can be selected by rules using the Custom target type."))
             )
          );
          return y + 24;
       }
 
-      screen.addContentWidget(new HoverLabelWidget(x, y + 2, 180, 12, Text.literal("Group Name"), Tooltip.of(Text.literal("Name shown in AutoSwapper rules."))));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 2, 180, 12, Component.literal("Group Name"), Tooltip.create(Component.literal("Name shown in AutoSwapper rules."))));
       y += 16;
-      TextFieldWidget nameField = new TextFieldWidget(screen.getTextRenderer(), x, y, w, rowH, Text.empty());
+      EditBox nameField = new EditBox(screen.getFont(), x, y, w, rowH, Component.empty());
       nameField.setMaxLength(48);
-      nameField.setText(group.name == null ? "" : group.name);
-      nameField.setChangedListener(s -> {
+      nameField.setValue(group.name == null ? "" : group.name);
+      nameField.setResponder(s -> {
          group.name = s != null && !s.isBlank() ? s : "Custom Group";
          SuiteConfig.INSTANCE.markDirty();
       });
@@ -622,11 +621,11 @@ public class AutoSwapperSubTab implements SuiteSubTab {
             y,
             180,
             12,
-            Text.literal("Group Blocks (" + group.blockIds.size() + ")"),
-            Tooltip.of(Text.literal("Blocks in this group can be selected by AutoSwapper rules using the Custom target type."))
+            Component.literal("Group Blocks (" + group.blockIds.size() + ")"),
+            Tooltip.create(Component.literal("Blocks in this group can be selected by AutoSwapper rules using the Custom target type."))
          )
       );
-      ButtonWidget addBlock = StyledButton.of(Text.literal("+ Add Block"), b -> {
+      Button addBlock = StyledButton.of(Component.literal("+ Add Block"), b -> {
          this.startAddingBlock();
          screen.rebuildFromTab();
       }).dimensions(x + w - 104, y - 4, 104, rowH).build();
@@ -635,7 +634,7 @@ public class AutoSwapperSubTab implements SuiteSubTab {
       if (group.blockIds.isEmpty()) {
          screen.addContentWidget(
             new HoverLabelWidget(
-               x, y + 4, Math.min(w, 280), 12, Text.literal("No blocks added yet."), Tooltip.of(Text.literal("Use Add Block to search and add blocks."))
+               x, y + 4, Math.min(w, 280), 12, Component.literal("No blocks added yet."), Tooltip.create(Component.literal("Use Add Block to search and add blocks."))
             )
          );
          return y + 24;
@@ -645,11 +644,11 @@ public class AutoSwapperSubTab implements SuiteSubTab {
          AutoSwapperSubTab.BlockChoice choice = choiceById(id);
          String label = shorten(choice == null ? id : choice.label, 42);
          Block block = choice == null ? null : choice.block;
-         BlockEntryButtonWidget row = new BlockEntryButtonWidget(x, y, w - 76, 22, block, Text.literal(label), () -> {});
-         row.setTooltip(Tooltip.of(Text.literal(id)));
+         BlockEntryButtonWidget row = new BlockEntryButtonWidget(x, y, w - 76, 22, block, Component.literal(label), () -> {});
+         row.setTooltip(Tooltip.create(Component.literal(id)));
          screen.addContentWidget(row);
          String removeId = id;
-         ButtonWidget remove = StyledButton.of(Text.literal("Remove"), b -> {
+         Button remove = StyledButton.of(Component.literal("Remove"), b -> {
             group.blockIds.remove(removeId);
             SuiteConfig.INSTANCE.markDirty();
             screen.rebuildPreserveScroll();
@@ -664,24 +663,24 @@ public class AutoSwapperSubTab implements SuiteSubTab {
    private int addCustomGroupImportEditor(SuiteSettingsScreen screen, QolConfig cfg, int x, int w, int y, int rowH, int gapX) {
       screen.addContentWidget(
          new HoverLabelWidget(
-            x, y + 4, 220, 12, Text.literal("Import AutoSwapper Group"), Tooltip.of(Text.literal("Paste a BSWAP1 share code from another player."))
+            x, y + 4, 220, 12, Component.literal("Import AutoSwapper Group"), Tooltip.create(Component.literal("Paste a BSWAP1 share code from another player."))
          )
       );
-      ButtonWidget cancel = StyledButton.of(Text.literal("Cancel"), b -> {
+      Button cancel = StyledButton.of(Component.literal("Cancel"), b -> {
          this.importingGroupCode = false;
          this.groupImportCode = "";
          screen.rebuildFromTab();
       }).dimensions(x + w - 80, y, 80, rowH).build();
       screen.addContentWidget(cancel);
       y += 28;
-      TextFieldWidget field = new TextFieldWidget(screen.getTextRenderer(), x, y, w, rowH, Text.empty());
+      EditBox field = new EditBox(screen.getFont(), x, y, w, rowH, Component.empty());
       field.setMaxLength(12000);
-      field.setText(this.groupImportCode);
-      field.setPlaceholder(Text.literal("Paste share code..."));
-      field.setChangedListener(s -> this.groupImportCode = s == null ? "" : s.trim());
+      field.setValue(this.groupImportCode);
+      field.setHint(Component.literal("Paste share code..."));
+      field.setResponder(s -> this.groupImportCode = s == null ? "" : s.trim());
       screen.addContentWidget(field);
       y += 28;
-      ButtonWidget importButton = StyledButton.of(Text.literal("Import Group"), b -> {
+      Button importButton = StyledButton.of(Component.literal("Import Group"), b -> {
          GroupShareCodec.ImportResult result = GroupShareCodec.importAutoSwapGroup(cfg, this.groupImportCode);
          if (result.success()) {
             this.importingGroupCode = false;
@@ -700,19 +699,19 @@ public class AutoSwapperSubTab implements SuiteSubTab {
 
    private int addCustomGroupBlockEditor(SuiteSettingsScreen screen, QolConfig.AutoSwapCustomGroup group, int x, int w, int y, int rowH, int gapX) {
       screen.addContentWidget(
-         new HoverLabelWidget(x, y + 4, 180, 12, Text.literal("Add Block"), Tooltip.of(Text.literal("Choose the block for this custom AutoSwapper group.")))
+         new HoverLabelWidget(x, y + 4, 180, 12, Component.literal("Add Block"), Tooltip.create(Component.literal("Choose the block for this custom AutoSwapper group.")))
       );
-      ButtonWidget back = StyledButton.of(Text.literal("Back"), b -> {
+      Button back = StyledButton.of(Component.literal("Back"), b -> {
          this.closeBlockEditor();
          screen.rebuildFromTab();
       }).dimensions(x + w - 74, y, 74, rowH).build();
       screen.addContentWidget(back);
       y += 28;
-      TextFieldWidget searchField = new TextFieldWidget(screen.getTextRenderer(), x, y, w, rowH, Text.empty());
+      EditBox searchField = new EditBox(screen.getFont(), x, y, w, rowH, Component.empty());
       searchField.setMaxLength(80);
-      searchField.setText(this.blockEditorSearch);
-      searchField.setPlaceholder(Text.literal("Search blocks..."));
-      searchField.setChangedListener(s -> {
+      searchField.setValue(this.blockEditorSearch);
+      searchField.setHint(Component.literal("Search blocks..."));
+      searchField.setResponder(s -> {
          String nextSearch = s == null ? "" : s;
          if (!nextSearch.equals(this.blockEditorSearch)) {
             this.blockEditorSearch = nextSearch;
@@ -733,9 +732,9 @@ public class AutoSwapperSubTab implements SuiteSubTab {
             y + 4,
             Math.min(w, 260),
             12,
-            Text.literal("Blocks " + (filtered.isEmpty() ? 0 : start + 1) + "-" + end + " of " + filtered.size() + this.selectedBlockCountLabel()),
-            Tooltip.of(
-               Text.literal("Scroll this block list with the mouse wheel while hovering over it. Use the open space to the right to scroll the main page.")
+            Component.literal("Blocks " + (filtered.isEmpty() ? 0 : start + 1) + "-" + end + " of " + filtered.size() + this.selectedBlockCountLabel()),
+            Tooltip.create(
+               Component.literal("Scroll this block list with the mouse wheel while hovering over it. Use the open space to the right to scroll the main page.")
             )
          )
       );
@@ -748,26 +747,26 @@ public class AutoSwapperSubTab implements SuiteSubTab {
       for (int i = start; i < end; i++) {
          AutoSwapperSubTab.BlockChoice choice = filtered.get(i);
          boolean selectedChoice = this.blockEditorSelectedIds.contains(choice.id);
-         BlockEntryButtonWidget row = new BlockEntryButtonWidget(x, y, w, 22, choice.block, Text.literal(choice.label), () -> {
+         BlockEntryButtonWidget row = new BlockEntryButtonWidget(x, y, w, 22, choice.block, Component.literal(choice.label), () -> {
             this.toggleSelectedBlock(choice.id);
             this.editingDraftBlockId = this.firstSelectedBlockId();
             SuiteConfig.INSTANCE.markDirty();
             screen.rebuildPreserveScroll();
          });
          row.setHighlighted(selectedChoice);
-         row.setTooltip(Tooltip.of(Text.literal(choice.id)));
+         row.setTooltip(Tooltip.create(Component.literal(choice.id)));
          screen.addContentWidget(row);
          y += 24;
       }
 
       if (filtered.isEmpty()) {
-         screen.addContentWidget(new HoverLabelWidget(x, y + 4, Math.min(w, 280), 12, Text.literal("No matching blocks."), null));
+         screen.addContentWidget(new HoverLabelWidget(x, y + 4, Math.min(w, 280), 12, Component.literal("No matching blocks."), null));
          y += 24;
       }
 
       y = Math.max(y, this.blockEditorListBottom);
       y += 8;
-      ButtonWidget save = StyledButton.of(Text.literal(this.addBlockSaveLabel()), b -> {
+      Button save = StyledButton.of(Component.literal(this.addBlockSaveLabel()), b -> {
          this.saveBlockEditor(group);
          SuiteConfig.INSTANCE.markDirty();
          screen.rebuildPreserveScroll();
@@ -796,9 +795,9 @@ public class AutoSwapperSubTab implements SuiteSubTab {
    }
 
    private static void copyToClipboard(String value) {
-      MinecraftClient client = MinecraftClient.getInstance();
-      if (client != null && client.keyboard != null && value != null) {
-         client.keyboard.setClipboard(value);
+      Minecraft client = Minecraft.getInstance();
+      if (client != null && client.keyboardHandler != null && value != null) {
+         client.keyboardHandler.setClipboard(value);
       }
    }
 
@@ -999,13 +998,12 @@ public class AutoSwapperSubTab implements SuiteSubTab {
    private static List<AutoSwapperSubTab.BlockChoice> buildBlockChoices() {
       List<AutoSwapperSubTab.BlockChoice> out = new ArrayList<>();
 
-      for (Block block : Registries.BLOCK) {
+      for (Block block : BuiltInRegistries.BLOCK) {
          if (block != null) {
-            ItemStack stack = new ItemStack(block.asItem());
-            if (!stack.isEmpty()) {
-               Identifier id = Registries.BLOCK.getId(block);
+            if (block.asItem() != net.minecraft.world.item.Items.AIR) {
+               Identifier id = BuiltInRegistries.BLOCK.getKey(block);
                if (id != null) {
-                  String label = stack.getName().getString();
+                  String label = Component.translatable(block.asItem().getDescriptionId()).getString(); // not an ItemStack: those can't be built before a world is loaded
                   if (label == null || label.isBlank()) {
                      label = prettyBlockName(id.toString());
                   }
@@ -1094,15 +1092,15 @@ public class AutoSwapperSubTab implements SuiteSubTab {
    }
 
    private static String pickLookedAtBlockId() {
-      MinecraftClient client = MinecraftClient.getInstance();
-      if (client != null && client.world != null) {
-         if (client.crosshairTarget instanceof BlockHitResult bhr) {
-            BlockState state = client.world.getBlockState(bhr.getBlockPos());
+      Minecraft client = Minecraft.getInstance();
+      if (client != null && client.level != null) {
+         if (client.hitResult instanceof BlockHitResult bhr) {
+            BlockState state = client.level.getBlockState(bhr.getBlockPos());
             if (state == null) {
                return null;
             }
 
-            Identifier id = Registries.BLOCK.getId(state.getBlock());
+            Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
             return id == null ? null : id.toString();
          } else {
             return null;

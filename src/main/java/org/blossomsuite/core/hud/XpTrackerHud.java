@@ -2,9 +2,9 @@ package org.blossomsuite.core.hud;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.util.HudStyleUtil;
 import org.blossomsuite.core.config.SuiteConfig;
@@ -39,7 +39,7 @@ public final class XpTrackerHud extends PanelHud {
       return new int[]{6, Math.max(6, screenH / 2 - h / 2)};
    }
 
-   public void render(DrawContext ctx, MinecraftClient client) {
+   public void render(GuiGraphicsExtractor ctx, Minecraft client) {
       FeatureConfig.Xp cfg = FeatureConfig.INSTANCE.xp;
       if (!cfg.show || client.player == null || !SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
          return;
@@ -57,7 +57,7 @@ public final class XpTrackerHud extends PanelHud {
          ));
       }
 
-      TextRenderer tr = client.textRenderer;
+      Font tr = client.font;
       List<String> left = new ArrayList<>();
       List<String> right = new ArrayList<>();
       int leftW = 0;
@@ -75,8 +75,8 @@ public final class XpTrackerHud extends PanelHud {
 
          left.add(l);
          right.add(sb.toString());
-         leftW = Math.max(leftW, tr.getWidth(l));
-         rightW = Math.max(rightW, tr.getWidth(sb.toString()));
+         leftW = Math.max(leftW, tr.width(l));
+         rightW = Math.max(rightW, tr.width(sb.toString()));
       }
 
       int baseW = Math.max(90, leftW + rightW + 22);
@@ -88,12 +88,12 @@ public final class XpTrackerHud extends PanelHud {
          float opacity = cfg.panel.opacity;
          c.fill(0, 0, width, HEADER_H, HudStyleUtil.panelHeader(opacity));
          c.fill(0, HEADER_H, width, HEADER_H + 1, HudStyleUtil.panelDivider(opacity));
-         c.drawTextWithShadow(tr, "XP", 6, 4, -1);
+         c.text(tr, "XP", 6, 4, -1);
          int y = HEADER_H + 4;
          for (int i = 0; i < lefts.size(); i++) {
-            c.drawTextWithShadow(tr, lefts.get(i), 6, y, -1);
+            c.text(tr, lefts.get(i), 6, y, -1);
             String s = rights.get(i);
-            c.drawTextWithShadow(tr, s, width - 6 - tr.getWidth(s), y, 0xFF9EE0A8);
+            c.text(tr, s, width - 6 - tr.width(s), y, 0xFF9EE0A8);
             y += ROW_H;
          }
       });

@@ -21,10 +21,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 public final class VoteSubTab implements SuiteSubTab {
    private static final DateTimeFormatter LAST_UPDATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
    private static final long STALE_MS = 600000L;
@@ -43,29 +42,29 @@ public final class VoteSubTab implements SuiteSubTab {
       int y = screen.bodyContentY() - screen.scrollOffset() + contentTopOffset;
       int rowH = 20;
       screen.addContentWidget(
-         new HoverLabelWidget(x, y + 6, 160, 12, Text.literal("Vote Party HUD"), Tooltip.of(Text.literal("Show or hide the Vote Party HUD panel.")))
+         new HoverLabelWidget(x, y + 6, 160, 12, Component.literal("Vote Party HUD"), Tooltip.create(Component.literal("Show or hide the Vote Party HUD panel.")))
       );
       int toggleW = 80;
       int toggleX = x + w - toggleW;
-      ButtonWidget enabledButton = StyledButton.of(Text.literal(cfg.VoteConfig.showHud ? "ON" : "OFF"), b -> {
+      Button enabledButton = StyledButton.of(Component.literal(cfg.VoteConfig.showHud ? "ON" : "OFF"), b -> {
          cfg.VoteConfig.showHud = !cfg.VoteConfig.showHud;
          cfg.markDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(toggleX, y, toggleW, 20).build();
-      enabledButton.setTooltip(Tooltip.of(Text.literal("Turns the Vote Party HUD on or off.")));
+      enabledButton.setTooltip(Tooltip.create(Component.literal("Turns the Vote Party HUD on or off.")));
       screen.addContentWidget(enabledButton);
       y += 26;
       screen.addContentWidget(
          new HoverLabelWidget(
-            x, y + 6, 200, 12, Text.literal("Display Current Server"), Tooltip.of(Text.literal("Include the current server in Vote HUD and update displays."))
+            x, y + 6, 200, 12, Component.literal("Display Current Server"), Tooltip.create(Component.literal("Include the current server in Vote HUD and update displays."))
          )
       );
-      ButtonWidget displayCurrentButton = StyledButton.of(Text.literal(cfg.VoteConfig.displayCurrentServer ? "ON" : "OFF"), b -> {
+      Button displayCurrentButton = StyledButton.of(Component.literal(cfg.VoteConfig.displayCurrentServer ? "ON" : "OFF"), b -> {
          cfg.VoteConfig.toggleDisplayCurrentServer();
          screen.rebuildPreserveScroll();
       }).dimensions(toggleX, y, toggleW, 20).build();
       displayCurrentButton.setTooltip(
-         Tooltip.of(Text.literal("When OFF, the current server is hidden from Vote displays.\nWhen ON, it is shown in addition to other synced servers."))
+         Tooltip.create(Component.literal("When OFF, the current server is hidden from Vote displays.\nWhen ON, it is shown in addition to other synced servers."))
       );
       screen.addContentWidget(displayCurrentButton);
       y += 26;
@@ -75,18 +74,18 @@ public final class VoteSubTab implements SuiteSubTab {
             y + 6,
             200,
             12,
-            Text.literal("Send Vote Data"),
-            Tooltip.of(Text.literal("Share your realm's vote-party count anonymously, so players on other realms can be notified."))
+            Component.literal("Send Vote Data"),
+            Tooltip.create(Component.literal("Share your realm's vote-party count anonymously, so players on other realms can be notified."))
          )
       );
-      ButtonWidget sendButton = StyledButton.of(Text.literal(FeatureConfig.INSTANCE.relay.share ? "ON" : "OFF"), b -> {
+      Button sendButton = StyledButton.of(Component.literal(FeatureConfig.INSTANCE.relay.share ? "ON" : "OFF"), b -> {
          FeatureConfig.INSTANCE.relay.share = !FeatureConfig.INSTANCE.relay.share;
          FeatureConfig.markDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(toggleX, y, toggleW, 20).build();
       sendButton.setTooltip(
-         Tooltip.of(
-            Text.literal(
+         Tooltip.create(
+            Component.literal(
                "When OFF, "
                   + SuiteRuntime.profile().displayName()
                   + " will not send any vote-party data.\nWhen ON, it may send server name and vote-party progress (counts/timestamps)."
@@ -101,19 +100,19 @@ public final class VoteSubTab implements SuiteSubTab {
             y + 6,
             200,
             12,
-            Text.literal("Notify When"),
-            Tooltip.of(Text.literal("Shows a center-screen notice and plays a firework-style sound when vote party state changes."))
+            Component.literal("Notify When"),
+            Tooltip.create(Component.literal("Shows a center-screen notice and plays a firework-style sound when vote party state changes."))
          )
       );
-      ButtonWidget notifyButton = StyledButton.of(Text.literal(notifyLabel(cfg.VoteConfig.notifyWhen)), b -> {
+      Button notifyButton = StyledButton.of(Component.literal(notifyLabel(cfg.VoteConfig.notifyWhen)), b -> {
          cfg.VoteConfig.notifyWhen = nextNotifyMode(cfg.VoteConfig.notifyWhen);
          cfg.markDirty();
          ConfigIO.saveIfDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(toggleX, y, toggleW, 20).build();
       notifyButton.setTooltip(
-         Tooltip.of(
-            Text.literal(
+         Tooltip.create(
+            Component.literal(
                "Countdown shows the countdown and plays a sound.\nOngoing shows a short party-start notice and plays a sound.\nNotifications are suppressed for your current server."
             )
          )
@@ -130,9 +129,9 @@ public final class VoteSubTab implements SuiteSubTab {
             listY,
             160,
             12,
-            Text.literal("Per-Server Updates"),
-            Tooltip.of(
-               Text.literal(
+            Component.literal("Per-Server Updates"),
+            Tooltip.create(
+               Component.literal(
                   cfg.VoteConfig.displayCurrentServer
                      ? "Shows the last time each server's vote state was updated."
                      : "Shows the last time each server's vote state was updated.\n(Current server is hidden.)"
@@ -142,7 +141,7 @@ public final class VoteSubTab implements SuiteSubTab {
       );
       listY += 14;
       if (snaps.isEmpty()) {
-         screen.addContentWidget(new LabelWidget(x, listY, w, 12, Text.literal("(none yet)"), -5197648));
+         screen.addContentWidget(new LabelWidget(x, listY, w, 12, Component.literal("(none yet)"), -5197648));
       } else {
          int shown = 0;
 
@@ -155,7 +154,7 @@ public final class VoteSubTab implements SuiteSubTab {
             String name = displayName(s);
             String timePart = seenAt <= 0L ? "(never)" : LAST_UPDATE_FMT.format(Instant.ofEpochMilli(seenAt)) + " (" + formatAge(now - seenAt) + " ago)";
             int color = seenAt > 0L && now - seenAt > 600000L ? -5197648 : -1;
-            screen.addContentWidget(new LabelWidget(x, listY + shown * 14, w, 12, Text.literal(name + ": " + timePart), color));
+            screen.addContentWidget(new LabelWidget(x, listY + shown * 14, w, 12, Component.literal(name + ": " + timePart), color));
             shown++;
          }
       }

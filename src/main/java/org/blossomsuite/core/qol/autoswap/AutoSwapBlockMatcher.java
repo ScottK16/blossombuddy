@@ -1,16 +1,15 @@
 package org.blossomsuite.core.qol.autoswap;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.resources.Identifier;
 public final class AutoSwapBlockMatcher {
-   private static final TagKey<Block> C_ORES = TagKey.of(RegistryKeys.BLOCK, Identifier.of("c", "ores"));
+   private static final TagKey<Block> C_ORES = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("c", "ores"));
 
    private AutoSwapBlockMatcher() {
    }
@@ -19,32 +18,32 @@ public final class AutoSwapBlockMatcher {
       if (state != null && group != null) {
          return switch (group) {
             case ORES -> isOreLike(state);
-            case LOGS -> state.isIn(BlockTags.LOGS);
+            case LOGS -> state.is(BlockTags.LOGS);
             case PLANKS -> isPathSuffix(state, "_planks");
-            case SHOVEL_MINEABLE -> state.isIn(BlockTags.SHOVEL_MINEABLE);
-            case PICKAXE_MINEABLE -> state.isIn(BlockTags.PICKAXE_MINEABLE);
-            case AXE_MINEABLE -> state.isIn(BlockTags.AXE_MINEABLE);
-            case HOE_MINEABLE -> state.isIn(BlockTags.HOE_MINEABLE);
+            case SHOVEL_MINEABLE -> state.is(BlockTags.MINEABLE_WITH_SHOVEL);
+            case PICKAXE_MINEABLE -> state.is(BlockTags.MINEABLE_WITH_PICKAXE);
+            case AXE_MINEABLE -> state.is(BlockTags.MINEABLE_WITH_AXE);
+            case HOE_MINEABLE -> state.is(BlockTags.MINEABLE_WITH_HOE);
             case SHEARS_MINEABLE -> isShearsLike(state);
-            case SWORD_EFFICIENT -> state.isIn(BlockTags.SWORD_EFFICIENT);
-            case LEAVES -> state.isIn(BlockTags.LEAVES);
-            case MUSHROOMS -> state.isOf(Blocks.BROWN_MUSHROOM_BLOCK) || state.isOf(Blocks.RED_MUSHROOM_BLOCK) || state.isOf(Blocks.MUSHROOM_STEM);
-            case SPAWNERS -> state.isOf(Blocks.SPAWNER);
-            case DIRT_LIKE -> state.isIn(BlockTags.DIRT);
-            case SAND_LIKE -> state.isIn(BlockTags.SAND);
+            case SWORD_EFFICIENT -> state.is(BlockTags.SWORD_EFFICIENT);
+            case LEAVES -> state.is(BlockTags.LEAVES);
+            case MUSHROOMS -> state.is(Blocks.BROWN_MUSHROOM_BLOCK) || state.is(Blocks.RED_MUSHROOM_BLOCK) || state.is(Blocks.MUSHROOM_STEM);
+            case SPAWNERS -> state.is(Blocks.SPAWNER);
+            case DIRT_LIKE -> state.is(BlockTags.DIRT);
+            case SAND_LIKE -> state.is(BlockTags.SAND);
             case GLASS -> isGlassLike(state);
-            case WOOL -> state.isIn(BlockTags.WOOL);
-            case SAPLINGS -> state.isIn(BlockTags.SAPLINGS);
-            case CROPS -> state.isIn(BlockTags.CROPS);
-            case FLOWERS -> state.isIn(BlockTags.FLOWERS);
-            case SMALL_FLOWERS -> state.isIn(BlockTags.SMALL_FLOWERS);
+            case WOOL -> state.is(BlockTags.WOOL);
+            case SAPLINGS -> state.is(BlockTags.SAPLINGS);
+            case CROPS -> state.is(BlockTags.CROPS);
+            case FLOWERS -> state.is(BlockTags.FLOWERS);
+            case SMALL_FLOWERS -> state.is(BlockTags.SMALL_FLOWERS);
             case AMETHYST -> isAmethystLike(state);
-            case LIGHT_EMITTING -> state.getLuminance() > 0;
+            case LIGHT_EMITTING -> state.getLightEmission() > 0;
             case DECORATIVE_LIGHTS -> isDecorativeLight(state);
             case TERRACOTTA -> isPathSuffix(state, "terracotta") || isPathSuffix(state, "_terracotta");
             case CONCRETE -> isPathSuffix(state, "_concrete") || isPathSuffix(state, "_concrete_powder");
-            case ICE -> state.isOf(Blocks.ICE) || state.isOf(Blocks.PACKED_ICE) || state.isOf(Blocks.BLUE_ICE) || state.isOf(Blocks.FROSTED_ICE);
-            case RAILS -> state.isIn(BlockTags.RAILS);
+            case ICE -> state.is(Blocks.ICE) || state.is(Blocks.PACKED_ICE) || state.is(Blocks.BLUE_ICE) || state.is(Blocks.FROSTED_ICE);
+            case RAILS -> state.is(BlockTags.RAILS);
             case REDSTONE_COMPONENTS -> isRedstoneComponent(state);
          };
       } else {
@@ -59,23 +58,23 @@ public final class AutoSwapBlockMatcher {
             return false;
          }
 
-         Block block = Registries.BLOCK.get(id);
-         return state.isOf(block);
+         Block block = BuiltInRegistries.BLOCK.getValue(id);
+         return state.is(block);
       } else {
          return false;
       }
    }
 
    private static boolean isGlassLike(BlockState state) {
-      Identifier id = Registries.BLOCK.getId(state.getBlock());
+      Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
       String path = id.getPath();
       return path.endsWith("_glass") || path.endsWith("_glass_pane") || path.equals("glass") || path.equals("glass_pane") || path.equals("tinted_glass");
    }
 
    private static boolean isDecorativeLight(BlockState state) {
-      Identifier id = Registries.BLOCK.getId(state.getBlock());
+      Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
       String path = id.getPath();
-      return state.getLuminance() > 0
+      return state.getLightEmission() > 0
          && (
             path.contains("froglight")
                || path.equals("shroomlight")
@@ -98,7 +97,7 @@ public final class AutoSwapBlockMatcher {
    }
 
    private static boolean isRedstoneComponent(BlockState state) {
-      Identifier id = Registries.BLOCK.getId(state.getBlock());
+      Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
       String path = id.getPath();
       return path.contains("redstone")
          || path.endsWith("_button")
@@ -118,33 +117,33 @@ public final class AutoSwapBlockMatcher {
    }
 
    private static boolean isPathSuffix(BlockState state, String suffix) {
-      Identifier id = Registries.BLOCK.getId(state.getBlock());
+      Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
       return id.getPath().endsWith(suffix);
    }
 
    private static boolean isShearsLike(BlockState state) {
-      return state.isIn(BlockTags.LEAVES)
-         || state.isIn(BlockTags.WOOL)
-         || state.isOf(Blocks.VINE)
-         || state.isOf(Blocks.GLOW_LICHEN)
-         || state.isOf(Blocks.COBWEB)
-         || state.isOf(Blocks.TRIPWIRE)
-         || state.isOf(Blocks.DEAD_BUSH)
-         || state.isOf(Blocks.FERN)
-         || state.isOf(Blocks.SHORT_GRASS)
-         || state.isOf(Blocks.TALL_GRASS)
-         || state.isOf(Blocks.SEAGRASS)
-         || state.isOf(Blocks.TALL_SEAGRASS)
-         || state.isOf(Blocks.HANGING_ROOTS);
+      return state.is(BlockTags.LEAVES)
+         || state.is(BlockTags.WOOL)
+         || state.is(Blocks.VINE)
+         || state.is(Blocks.GLOW_LICHEN)
+         || state.is(Blocks.COBWEB)
+         || state.is(Blocks.TRIPWIRE)
+         || state.is(Blocks.DEAD_BUSH)
+         || state.is(Blocks.FERN)
+         || state.is(Blocks.SHORT_GRASS)
+         || state.is(Blocks.TALL_GRASS)
+         || state.is(Blocks.SEAGRASS)
+         || state.is(Blocks.TALL_SEAGRASS)
+         || state.is(Blocks.HANGING_ROOTS);
    }
 
    private static boolean isAmethystLike(BlockState state) {
-      return state.isOf(Blocks.AMETHYST_BLOCK)
-         || state.isOf(Blocks.BUDDING_AMETHYST)
-         || state.isOf(Blocks.SMALL_AMETHYST_BUD)
-         || state.isOf(Blocks.MEDIUM_AMETHYST_BUD)
-         || state.isOf(Blocks.LARGE_AMETHYST_BUD)
-         || state.isOf(Blocks.AMETHYST_CLUSTER);
+      return state.is(Blocks.AMETHYST_BLOCK)
+         || state.is(Blocks.BUDDING_AMETHYST)
+         || state.is(Blocks.SMALL_AMETHYST_BUD)
+         || state.is(Blocks.MEDIUM_AMETHYST_BUD)
+         || state.is(Blocks.LARGE_AMETHYST_BUD)
+         || state.is(Blocks.AMETHYST_CLUSTER);
    }
 
    public static boolean isOreLike(BlockState state) {
@@ -152,15 +151,15 @@ public final class AutoSwapBlockMatcher {
          return false;
       }
 
-      if (state.isOf(Blocks.ANCIENT_DEBRIS)) {
+      if (state.is(Blocks.ANCIENT_DEBRIS)) {
          return false;
       }
 
-      if (state.isIn(C_ORES)) {
+      if (state.is(C_ORES)) {
          return true;
       }
 
-      Identifier id = Registries.BLOCK.getId(state.getBlock());
+      Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
       String path = id.getPath();
       return path.endsWith("_ore") || path.contains("_ore_") || !path.equals("ancient_debris") && (path.endsWith("_debris") || path.contains("_debris_"));
    }

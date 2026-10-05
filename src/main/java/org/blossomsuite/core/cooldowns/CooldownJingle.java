@@ -3,21 +3,20 @@ package org.blossomsuite.core.cooldowns;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.function.Supplier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
 public final class CooldownJingle {
    private static final Deque<CooldownJingle.NoteEvent> queue = new ArrayDeque<>();
    private static Supplier<Float> volumeSupplier = () -> 1.0F;
-   private static SoundCategory soundCategory = SoundCategory.MASTER;
+   private static SoundSource soundCategory = SoundSource.MASTER;
 
    private CooldownJingle() {
    }
 
-   public static void configure(Supplier<Float> volumeSupplier, SoundCategory soundCategory) {
+   public static void configure(Supplier<Float> volumeSupplier, SoundSource soundCategory) {
       CooldownJingle.volumeSupplier = volumeSupplier == null ? () -> 1.0F : volumeSupplier;
-      CooldownJingle.soundCategory = soundCategory == null ? SoundCategory.MASTER : soundCategory;
+      CooldownJingle.soundCategory = soundCategory == null ? SoundSource.MASTER : soundCategory;
    }
 
    public static void enqueueReadyJingle(long nowMs) {
@@ -47,17 +46,17 @@ public final class CooldownJingle {
       }
    }
 
-   public static void tick(MinecraftClient client, long nowMs) {
-      if (client.world != null && client.player != null) {
+   public static void tick(Minecraft client, long nowMs) {
+      if (client.level != null && client.player != null) {
          while (!queue.isEmpty() && queue.peekFirst().atMs <= nowMs) {
             CooldownJingle.NoteEvent n = queue.removeFirst();
-            client.world
+            client.level
                .playSound(
                   client.player,
                   client.player.getX(),
                   client.player.getY(),
                   client.player.getZ(),
-                  SoundEvents.BLOCK_NOTE_BLOCK_PLING,
+                  SoundEvents.NOTE_BLOCK_PLING,
                   soundCategory,
                   n.volume,
                   n.pitch

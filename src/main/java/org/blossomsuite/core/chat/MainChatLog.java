@@ -6,8 +6,7 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import net.minecraft.text.Text;
-
+import net.minecraft.network.chat.Component;
 /**
  * Everything that has actually shown up in the main chat since you joined (not lines a secondary window or another filter kept out of
  * it), kept so it can be searched by name or by word and copied. Nothing here is saved to disk; it starts empty every time you join a
@@ -19,7 +18,7 @@ public final class MainChatLog {
    /** The most matches a search returns, so a very common word doesn't produce an unusable wall of results. */
    public static final int MAX_RESULTS = 300;
 
-   public record Line(long atMs, Text text, String plain) {
+   public record Line(long atMs, Component text, String plain) {
    }
 
    private final Deque<Line> lines = new ArrayDeque<>();
@@ -28,7 +27,7 @@ public final class MainChatLog {
    }
 
    /** Records a line that has just appeared in main chat. Blank lines (an empty message) are not worth keeping. */
-   public synchronized void record(Text message) {
+   public synchronized void record(Component message) {
       if (message == null) {
          return;
       }

@@ -6,11 +6,10 @@ import org.blossomsuite.core.util.SuiteItemIdUtil;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 public final class CooldownInput {
    private CooldownInput() {
    }
@@ -25,16 +24,16 @@ public final class CooldownInput {
       }
    }
 
-   public static void tick(MinecraftClient client) {
+   public static void tick(Minecraft client) {
       if (client.player != null) {
          long now = System.currentTimeMillis();
-         if (client.currentScreen != null) {
+         if (client.screen != null) {
             resetInputEdges();
             processPendingTriggers();
          } else {
-            boolean sneakDown = client.player.isSneaking();
-            boolean attackDown = client.options.attackKey.isPressed();
-            boolean useDown = client.options.useKey.isPressed();
+            boolean sneakDown = client.player.isShiftKeyDown();
+            boolean attackDown = client.options.keyAttack.isDown();
+            boolean useDown = client.options.keyUse.isDown();
             boolean sneakPressed = sneakDown && !CooldownState.wasSneakDown;
             boolean attackPressed = attackDown && !CooldownState.wasAttackDown;
             if (useDown && !CooldownState.wasUseDown) {
@@ -46,7 +45,7 @@ public final class CooldownInput {
             CooldownState.wasAttackDown = attackDown;
             CooldownState.wasUseDown = useDown;
             CooldownState.wasSneakDown = sneakDown;
-            ItemStack held = client.player.getMainHandStack();
+            ItemStack held = client.player.getMainHandItem();
             if (!held.isEmpty()) {
                if (sneakPressed) {
                   String id = SuiteItemIdUtil.getBestId(held);
@@ -88,9 +87,9 @@ public final class CooldownInput {
       CooldownState.lastUseAttemptMs = 0L;
    }
 
-   private static void fireOnDamageTaken(MinecraftClient client, long now) {
+   private static void fireOnDamageTaken(Minecraft client, long now) {
       if (client != null && client.player != null) {
-         ItemStack held = client.player.getMainHandStack();
+         ItemStack held = client.player.getMainHandItem();
          if (held != null && !held.isEmpty()) {
             String id = SuiteItemIdUtil.getBestId(held);
             CooldownRules.CooldownRule rule = CooldownRules.resolveRule(id, CooldownRules.Trigger.ON_DAMAGE_TAKEN, held);
@@ -101,7 +100,7 @@ public final class CooldownInput {
       }
    }
 
-   private static void fireSlotRules(CooldownRules.Trigger trigger, MinecraftClient client, long now) {
+   private static void fireSlotRules(CooldownRules.Trigger trigger, Minecraft client, long now) {
       if (client != null && client.player != null) {
          CooldownsConfig cfg = SuiteConfig.INSTANCE.CooldownsConfig;
          int max = 8;
@@ -110,7 +109,7 @@ public final class CooldownInput {
          Set<String> handledItemKeys = new HashSet<>();
          List<CooldownRules.CooldownRule> rules = CooldownRules.getSlotRules(trigger);
          if (!rules.isEmpty()) {
-            PlayerInventory inv = client.player.getInventory();
+            Inventory inv = client.player.getInventory();
 
             for (CooldownRules.CooldownRule r : rules) {
                if (r != null) {
@@ -128,20 +127,20 @@ public final class CooldownInput {
 
                            int size;
                            try {
-                              size = inv.size();
+                              size = inv.getContainerSize();
                            } catch (Throwable t) {
                               size = 0;
                            }
 
                            if (idx < size) {
-                              ItemStack s = inv.getStack(idx);
+                              ItemStack s = inv.getItem(idx);
                               fired += tryFireSlotRule(r, CooldownRules.SlotKind.INDEX, idx, CooldownRules.ArmorSlot.ANY, s, now, handledItemKeys) ? 1 : 0;
                            }
                            break;
                         }
                         case HOTBAR: {
                            for (int idx = 0; idx <= 8 && fired < max; idx++) {
-                              ItemStack s = inv.getStack(idx);
+                              ItemStack s = inv.getItem(idx);
                               if (tryFireSlotRule(r, CooldownRules.SlotKind.INDEX, idx, CooldownRules.ArmorSlot.ANY, s, now, handledItemKeys)) {
                                  fired++;
                               }
@@ -161,7 +160,7 @@ public final class CooldownInput {
 
                            for (; i < armorSlots.length && fired < max; i++) {
                               if (r.armorSlot() == null || r.armorSlot() == CooldownRules.ArmorSlot.ANY || r.armorSlot() == armorKinds[i]) {
-                                 ItemStack s = client.player.getEquippedStack(armorSlots[i]);
+                                 ItemStack s = client.player.getItemBySlot(armorSlots[i]);
                                  if (tryFireSlotRule(r, CooldownRules.SlotKind.ARMOR, -1, armorKinds[i], s, now, handledItemKeys)) {
                                     fired++;
                                  }
@@ -173,13 +172,13 @@ public final class CooldownInput {
                            if (cfg == null || cfg.trackInventory) {
                               int size;
                               try {
-                                 size = inv.size();
+                                 size = inv.getContainerSize();
                               } catch (Throwable t) {
                                  size = 0;
                               }
 
                               for (int idx = 0; idx < size && fired < max; idx++) {
-                                 ItemStack s = inv.getStack(idx);
+                                 ItemStack s = inv.getItem(idx);
                                  if (tryFireSlotRule(r, CooldownRules.SlotKind.INDEX, idx, CooldownRules.ArmorSlot.ANY, s, now, handledItemKeys)) {
                                     fired++;
                                  }

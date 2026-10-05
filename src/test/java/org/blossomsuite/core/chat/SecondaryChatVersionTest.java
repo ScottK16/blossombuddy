@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +14,7 @@ class SecondaryChatVersionTest {
       SecondaryChat chat = new SecondaryChat();
       long start = chat.version();
       assertEquals(start, chat.version(), "looking doesn't change it");
-      chat.addExternal(Text.literal("hello"));
+      chat.addExternal(Component.literal("hello"));
       long afterAdd = chat.version();
       assertTrue(afterAdd > start);
       chat.clear();

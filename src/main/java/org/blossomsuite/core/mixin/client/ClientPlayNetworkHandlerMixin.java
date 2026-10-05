@@ -18,22 +18,22 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.entity.boss.BossBar.Color;
-import net.minecraft.entity.boss.BossBar.Style;
-import net.minecraft.network.packet.s2c.play.BossBarS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
-import net.minecraft.network.packet.s2c.play.BossBarS2CPacket.Consumer;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.world.BossEvent.BossBarColor;
+import net.minecraft.world.BossEvent.BossBarOverlay;
+import net.minecraft.network.protocol.game.ClientboundBossEventPacket;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.network.protocol.game.ClientboundBossEventPacket.Handler;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ClientPlayNetworkHandler.class)
+@Mixin(ClientPacketListener.class)
 public class ClientPlayNetworkHandlerMixin {
    private static final Pattern PINATA_COUNTDOWN_PATTERN = Pattern.compile("(?i)(\\d+(?:\\.\\d+)?)\\s+seconds\\s+till\\s+pinataparty");
    private static final Pattern PINATA_HITS_LEFT_PATTERN = Pattern.compile("(?i)pinata:\\s*\\d+\\s+hits\\s+left");
@@ -46,25 +46,25 @@ public class ClientPlayNetworkHandlerMixin {
       SUITECORE_PENDING_VOTE_BOSSBARS.clear();
    }
 
-   @Inject(method = "onPlaySound", at = @At("HEAD"), cancellable = true)
-   private void suitecore$replaceFishingBiteSound(PlaySoundS2CPacket packet, CallbackInfo ci) {
+   @Inject(method = "handleSoundEvent", at = @At("HEAD"), cancellable = true)
+   private void suitecore$replaceFishingBiteSound(ClientboundSoundPacket packet, CallbackInfo ci) {
       if (SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
-         if (packet.getSound().value() == SoundEvents.ENTITY_FISHING_BOBBER_SPLASH) {
+         if (packet.getSound().value() == SoundEvents.FISHING_BOBBER_SPLASH) {
             if (FishingAlertController.isEnabled()) {
-               MinecraftClient client = MinecraftClient.getInstance();
+               Minecraft client = Minecraft.getInstance();
                if (client != null) {
                   double x = packet.getX();
                   double y = packet.getY();
                   double z = packet.getZ();
                   float vol = packet.getVolume();
                   float pitch = packet.getPitch();
-                  SoundCategory cat = packet.getCategory();
+                  SoundSource cat = packet.getSource();
                   ci.cancel();
                   client.execute(() -> {
                      boolean handled = FishingAlertController.tryHandleVanillaFishingSplash(x, y, z);
                      if (!handled) {
-                        if (client.world != null) {
-                           client.world.playSound(null, x, y, z, SoundEvents.ENTITY_FISHING_BOBBER_SPLASH, cat, vol, pitch);
+                        if (client.level != null) {
+                           client.level.playSound(null, x, y, z, SoundEvents.FISHING_BOBBER_SPLASH, cat, vol, pitch);
                         }
                      }
                   });
@@ -74,12 +74,12 @@ public class ClientPlayNetworkHandlerMixin {
       }
    }
 
-   @Inject(method = "onBossBar", at = @At("HEAD"))
-   private void suitecore$debugBossBar(BossBarS2CPacket packet, CallbackInfo ci) {
+   @Inject(method = "handleBossUpdate", at = @At("HEAD"))
+   private void suitecore$debugBossBar(ClientboundBossEventPacket packet, CallbackInfo ci) {
       if (SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
-         packet.accept(new Consumer() {
+         packet.dispatch(new Handler() {
             @Override
-            public void add(UUID uuid, Text name, float percent, Color color, Style style, boolean darkenSky, boolean dragonMusic, boolean thickenFog) {
+            public void add(UUID uuid, Component name, float percent, BossBarColor color, BossBarOverlay style, boolean darkenSky, boolean dragonMusic, boolean thickenFog) {
                OverflowTracker.INSTANCE.onBarName(uuid, name);
                if (VoteRuntime.hasConfirmedServer()) {
                   ClientPlayNetworkHandlerMixin.suitecore$handleVoteBossbarName(uuid, ClientPlayNetworkHandlerMixin.safe(name), true);
@@ -98,13 +98,13 @@ public class ClientPlayNetworkHandlerMixin {
             }
 
             @Override
-            public void updateName(UUID uuid, Text name) {
+            public void updateName(UUID uuid, Component name) {
                OverflowTracker.INSTANCE.onBarName(uuid, name);
                ClientPlayNetworkHandlerMixin.suitecore$handleVoteBossbarName(uuid, ClientPlayNetworkHandlerMixin.safe(name), false);
             }
 
             @Override
-            public void updateStyle(UUID uuid, Color color, Style style) {
+            public void updateStyle(UUID uuid, BossBarColor color, BossBarOverlay style) {
                ClientPlayNetworkHandlerMixin.suitecore$markTrackedVoteBossbarHeartbeat(uuid);
             }
 
@@ -193,7 +193,7 @@ public class ClientPlayNetworkHandlerMixin {
             uuid, new ClientPlayNetworkHandlerMixin.PendingVoteBossbarName(raw, rebindToCurrentServer, seenAt, sessionGeneration)
          );
          SuiteScheduler.IO.schedule(() -> {
-            MinecraftClient client = MinecraftClient.getInstance();
+            Minecraft client = Minecraft.getInstance();
             if (client != null) {
                client.execute(() -> {
                   ClientPlayNetworkHandlerMixin.PendingVoteBossbarName pending = SUITECORE_PENDING_VOTE_BOSSBARS.remove(uuid);
@@ -265,7 +265,7 @@ public class ClientPlayNetworkHandlerMixin {
       return binding;
    }
 
-   private static String safe(Text text) {
+   private static String safe(Component text) {
       return text == null ? "<null>" : text.getString();
    }
 

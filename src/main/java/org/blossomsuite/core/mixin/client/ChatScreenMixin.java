@@ -4,15 +4,15 @@ import org.blossomsuite.core.SuiteRuntime;
 import org.blossomsuite.core.chat.PartyChatState;
 import org.blossomsuite.core.qol.autofly.AutoFlyController;
 import java.util.Locale;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
 import org.blossomsuite.core.hud.ChatWindowHud;
 import org.blossomsuite.core.hud.SecondaryChatHud;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.hud.ChatHudLine;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import org.blossomsuite.core.chat.ChatHudLineLookup;
 import org.blossomsuite.core.chat.ChatLineTimestamps;
 import org.blossomsuite.core.chat.ChatTimestampFormat;
@@ -28,12 +28,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ChatScreen.class)
 public class ChatScreenMixin {
    /** Cross-realm chat mode: what is typed goes to every realm instead of the server (commands are left alone). */
-   @Inject(method = "sendMessage", at = @At("HEAD"), cancellable = true)
+   @Inject(method = "handleChatInput", at = @At("HEAD"), cancellable = true)
    private void suitecore$crossRealmMode(String chatText, boolean addToHistory, CallbackInfo ci) {
       String redirected = XChatMode.redirect(chatText);
       if (redirected != null) {
          if (addToHistory) {
-            MinecraftClient.getInstance().inGameHud.getChatHud().addToMessageHistory(chatText);
+            Minecraft.getInstance().gui.getChat().addRecentChat(chatText);
          }
 
          XChatClient.INSTANCE.sendAsync(redirected);
@@ -42,44 +42,44 @@ public class ChatScreenMixin {
    }
 
    /** A reminder above the chat box while cross-realm chat mode is on. */
-   @Inject(method = "render", at = @At("TAIL"))
-   private void suitecore$crossRealmModeLabel(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+   @Inject(method = "extractRenderState", at = @At("TAIL"))
+   private void suitecore$crossRealmModeLabel(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
       if (XChatMode.active()) {
-         MinecraftClient mc = MinecraftClient.getInstance();
-         context.drawTextWithShadow(mc.textRenderer, Text.literal("\u273f Cross-realm chat mode: what you type goes to every realm. /xc switches it off.").styled(s -> s.withColor(0xF48FB1)), 4, mc.getWindow().getScaledHeight() - 26, -1);
+         Minecraft mc = Minecraft.getInstance();
+         context.text(mc.font, Component.literal("\u273f Cross-realm chat mode: what you type goes to every realm. /xc switches it off.").withStyle(s -> s.withColor(0xF48FB1)), 4, mc.getWindow().getGuiScaledHeight() - 26, -1);
       }
    }
 
    /** Hovering a main chat line shows when it was sent. */
-   @Inject(method = "render", at = @At("TAIL"))
-   private void suitecore$hoverTimestamp(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      Object chatHud = mc.inGameHud.getChatHud();
+   @Inject(method = "extractRenderState", at = @At("TAIL"))
+   private void suitecore$hoverTimestamp(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+      Minecraft mc = Minecraft.getInstance();
+      Object chatHud = mc.gui.getChat();
       if (!(chatHud instanceof ChatHudLineLookup lookup)) {
          return;
       }
 
-      ChatHudLine.Visible line = lookup.suitecore$visibleLineAt(mouseX, mouseY);
+      GuiMessage.Line line = lookup.suitecore$visibleLineAt(mouseX, mouseY);
       if (line == null) {
          return;
       }
 
       Long atMs = ChatLineTimestamps.timeOf(line);
       if (atMs != null) {
-         context.drawTooltip(mc.textRenderer, Text.literal(ChatTimestampFormat.format(atMs, System.currentTimeMillis())).formatted(Formatting.GRAY), mouseX, mouseY);
+         context.setTooltipForNextFrame(mc.font, Component.literal(ChatTimestampFormat.format(atMs, System.currentTimeMillis())).withStyle(ChatFormatting.GRAY), mouseX, mouseY);
       }
    }
 
    /** The mouse wheel over the secondary chat window scrolls that window, not the main chat. */
    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
    private void suitecore$scrollSecondaryChat(double mouseX, double mouseY, double horizontalAmount, double verticalAmount, CallbackInfoReturnable<Boolean> cir) {
-      boolean shift = Screen.hasShiftDown();
+      boolean shift = net.minecraft.client.Minecraft.getInstance().hasShiftDown();
       if (SecondaryChatHud.INSTANCE.onScroll(mouseX, mouseY, verticalAmount, shift) || ChatWindowHud.scrollAny(mouseX, mouseY, verticalAmount, shift)) {
          cir.setReturnValue(true);
       }
    }
 
-   @ModifyVariable(method = "sendMessage", at = @At("HEAD"), argsOnly = true)
+   @ModifyVariable(method = "handleChatInput", at = @At("HEAD"), argsOnly = true)
    private String suitecore$normalizeCommandRoot(String message) {
       AutoFlyController.observeOutgoingCommand(message);
       Boolean partyEnabled = PartyChatState.parseOutgoingCommand(message);

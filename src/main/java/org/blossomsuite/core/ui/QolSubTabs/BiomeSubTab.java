@@ -8,10 +8,9 @@ import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.ui.HoverLabelWidget;
 import org.blossomsuite.core.ui.SuiteSettingsScreen;
 import org.blossomsuite.core.ui.SuiteSubTab;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 public final class BiomeSubTab implements SuiteSubTab {
    @Override
    public String titleKey() {
@@ -46,9 +45,9 @@ public final class BiomeSubTab implements SuiteSubTab {
    }
 
    private int addToggleRow(SuiteSettingsScreen screen, int x, int w, int y, String label, boolean enabled, String tooltip, Runnable onPress) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 180, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      ButtonWidget button = StyledButton.of(Text.literal(enabled ? "ON" : "OFF"), b -> onPress.run()).dimensions(x + w - 80, y, 80, 20).build();
-      button.setTooltip(Tooltip.of(Text.literal(tooltip)));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 180, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      Button button = StyledButton.of(Component.literal(enabled ? "ON" : "OFF"), b -> onPress.run()).dimensions(x + w - 80, y, 80, 20).build();
+      button.setTooltip(Tooltip.create(Component.literal(tooltip)));
       screen.addContentWidget(button);
       return y + 24;
    }

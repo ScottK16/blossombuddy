@@ -1,9 +1,8 @@
 package org.blossomsuite.core.hud;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.item.ItemStack;
 public final class ScreenNoticeOverlay {
    private static final long DEFAULT_DISPLAY_MS = 1800L;
    private static final int DEFAULT_RGB = 16733525;
@@ -32,9 +31,9 @@ public final class ScreenNoticeOverlay {
       shownAtMs = message.isBlank() ? 0L : System.currentTimeMillis();
    }
 
-   public static void render(DrawContext ctx, MinecraftClient client) {
+   public static void render(GuiGraphicsExtractor ctx, Minecraft client) {
       if (ctx != null && client != null && client.player != null) {
-         if (client.options == null || !client.options.hudHidden) {
+         if (client.options == null || !client.options.hideGui) {
             if (!message.isBlank() && shownAtMs > 0L) {
                long age = System.currentTimeMillis() - shownAtMs;
                if (age >= displayMs) {
@@ -45,9 +44,9 @@ public final class ScreenNoticeOverlay {
                   float fade = age <= solidMs ? 1.0F : Math.max(0.0F, 1.0F - (float)(age - solidMs) / (float)fadeMs);
                   int alpha = Math.max(0, Math.min(255, Math.round(255.0F * fade)));
                   if (alpha > 0) {
-                     int screenW = client.getWindow().getScaledWidth();
-                     int screenH = client.getWindow().getScaledHeight();
-                     int textW = client.textRenderer.getWidth(message);
+                     int screenW = client.getWindow().getGuiScaledWidth();
+                     int screenH = client.getWindow().getGuiScaledHeight();
+                     int textW = client.font.width(message);
                      boolean hasIcon = iconStack != null && !iconStack.isEmpty();
                      int iconW = hasIcon ? 20 : 0;
                      int totalW = iconW + textW;
@@ -55,10 +54,10 @@ public final class ScreenNoticeOverlay {
                      int y = Math.max(42, screenH / 2 - 72);
                      int color = alpha << 24 | rgb;
                      if (hasIcon) {
-                        ctx.drawItem(iconStack, x, y - 4);
+                        ctx.item(iconStack, x, y - 4);
                      }
 
-                     ctx.drawTextWithShadow(client.textRenderer, message, x + iconW, y, color);
+                     ctx.text(client.font, message, x + iconW, y, color);
                   }
                }
             }

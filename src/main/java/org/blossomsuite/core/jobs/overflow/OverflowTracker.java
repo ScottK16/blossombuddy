@@ -27,9 +27,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import org.blossomsuite.core.SuiteFeature;
 import org.blossomsuite.core.SuiteRuntime;
 import org.blossomsuite.core.chat.ChatOutput;
@@ -145,7 +145,7 @@ public final class OverflowTracker {
    // ------------------------------------------------------------------ boss bar feed
 
    /** Called for every boss bar add / rename packet. */
-   public void onBarName(UUID uuid, Text name) {
+   public void onBarName(UUID uuid, Component name) {
       if (uuid == null || name == null) {
          return;
       }
@@ -223,7 +223,7 @@ public final class OverflowTracker {
    // ------------------------------------------------------------------ display
 
    /** Replacement boss bar title, or null to leave the vanilla one. Called from BossBar#getName. */
-   public Text overrideName(UUID uuid) {
+   public Component overrideName(UUID uuid) {
       if (uuid == null || !active()) {
          return null;
       }
@@ -240,11 +240,11 @@ public final class OverflowTracker {
 
       double total = this.overflowFor(job.job());
       if (mode == OverflowDisplayMode.XP) {
-         return Text.literal("Lvl " + job.level() + " " + job.job() + " (Overflow: " + formatNumber(total) + " XP)");
+         return Component.literal("Lvl " + job.level() + " " + job.job() + " (Overflow: " + formatNumber(total) + " XP)");
       }
 
       VirtualLevel v = computeVirtualLevel(job.maxXp(), total, cfg().overflowMaxLevel);
-      return Text.literal("Lvl " + v.level() + " " + job.job() + " " + formatNumber(v.xpInto()) + "/" + formatNumber(v.xpForLevel()) + " xp");
+      return Component.literal("Lvl " + v.level() + " " + job.job() + " " + formatNumber(v.xpInto()) + "/" + formatNumber(v.xpForLevel()) + " xp");
    }
 
    /** Data for the cosmetic levels bar, or null when the vanilla bar should draw. */
@@ -274,9 +274,9 @@ public final class OverflowTracker {
       }
 
       if (level > previous && cfg().overflowLevelUpMessage) {
-         MinecraftClient client = MinecraftClient.getInstance();
+         Minecraft client = Minecraft.getInstance();
          client.execute(
-            () -> ChatOutput.info(Text.literal("Congrats, you have reached level " + level + " in " + job.job() + "!").formatted(Formatting.AQUA))
+            () -> ChatOutput.info(Component.literal("Congrats, you have reached level " + level + " in " + job.job() + "!").withStyle(ChatFormatting.AQUA))
          );
       }
    }

@@ -1,15 +1,16 @@
 package org.blossomsuite.core.hud;
 
 import org.blossomsuite.core.SuiteRuntime;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import org.blossomsuite.core.config.ConfigIO;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.keybinds.KeybindUtil;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 public final class HudEditScreen extends Screen {
    private DraggableHud active = null;
    private int grabOffX = 0;
@@ -53,36 +54,36 @@ public final class HudEditScreen extends Screen {
    );
 
    public HudEditScreen() {
-      super(Text.literal(SuiteRuntime.profile().displayName() + " HUD Editor"));
+      super(Component.literal(SuiteRuntime.profile().displayName() + " HUD Editor"));
    }
 
    @Override
-   public boolean shouldPause() {
+   public boolean isPauseScreen() {
       return false;
    }
 
    @Override
-   public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+   public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
       ctx.fill(0, 0, this.width, this.height, 570425344);
-      JobsHud.render(ctx, MinecraftClient.getInstance());
-      CooldownsHud.renderPanel(ctx, MinecraftClient.getInstance());
-      CooldownsHud.renderHotbar(ctx, MinecraftClient.getInstance());
-      CoordsHud.render(ctx, MinecraftClient.getInstance());
-      BiomeHud.render(ctx, MinecraftClient.getInstance());
-      AutoSwapperHud.render(ctx, MinecraftClient.getInstance());
-      HolePuncherHud.render(ctx, MinecraftClient.getInstance());
-      VoteHud.render(ctx, MinecraftClient.getInstance());
-      RentalsHud.render(ctx, MinecraftClient.getInstance());
-      ChatHud.render(ctx, MinecraftClient.getInstance());
-      XpTrackerHud.INSTANCE.render(ctx, MinecraftClient.getInstance());
-      ExtraHotbarHud.INSTANCE.render(ctx, MinecraftClient.getInstance());
-      SecondaryChatHud.INSTANCE.render(ctx, MinecraftClient.getInstance());
+      JobsHud.render(ctx, Minecraft.getInstance());
+      CooldownsHud.renderPanel(ctx, Minecraft.getInstance());
+      CooldownsHud.renderHotbar(ctx, Minecraft.getInstance());
+      CoordsHud.render(ctx, Minecraft.getInstance());
+      BiomeHud.render(ctx, Minecraft.getInstance());
+      AutoSwapperHud.render(ctx, Minecraft.getInstance());
+      HolePuncherHud.render(ctx, Minecraft.getInstance());
+      VoteHud.render(ctx, Minecraft.getInstance());
+      RentalsHud.render(ctx, Minecraft.getInstance());
+      ChatHud.render(ctx, Minecraft.getInstance());
+      XpTrackerHud.INSTANCE.render(ctx, Minecraft.getInstance());
+      ExtraHotbarHud.INSTANCE.render(ctx, Minecraft.getInstance());
+      SecondaryChatHud.INSTANCE.render(ctx, Minecraft.getInstance());
       for (ChatWindowHud window : ChatWindowHud.WINDOWS) {
-         window.render(ctx, MinecraftClient.getInstance());
+         window.render(ctx, Minecraft.getInstance());
       }
-      MapArtPreviewHud.INSTANCE.render(ctx, MinecraftClient.getInstance());
-      MapArtListHud.INSTANCE.render(ctx, MinecraftClient.getInstance());
-      EmoteTimerHud.INSTANCE.render(ctx, MinecraftClient.getInstance());
+      MapArtPreviewHud.INSTANCE.render(ctx, Minecraft.getInstance());
+      MapArtListHud.INSTANCE.render(ctx, Minecraft.getInstance());
+      EmoteTimerHud.INSTANCE.render(ctx, Minecraft.getInstance());
 
 
       for (DraggableHud p : this.panels) {
@@ -107,7 +108,7 @@ public final class HudEditScreen extends Screen {
       }
 
       if (this.active != null && this.active.supportsBackgroundOpacity()) {
-         MinecraftClient client = MinecraftClient.getInstance();
+         Minecraft client = Minecraft.getInstance();
          float hudScale = this.active.scale();
          float sliderScale = Math.max(0.85F, Math.min(hudScale, 1.5F));
          this.sliderWidth = Math.round(100.0F * sliderScale);
@@ -116,8 +117,8 @@ public final class HudEditScreen extends Screen {
          this.sliderX = this.active.x() + (this.active.w() - this.sliderWidth) / 2;
          int desiredAboveY = this.active.y() - this.sliderHeight - offset;
          int desiredBelowY = this.active.y() + this.active.h() + offset;
-         int screenW = client.getWindow().getScaledWidth();
-         int screenH = client.getWindow().getScaledHeight();
+         int screenW = client.getWindow().getGuiScaledWidth();
+         int screenH = client.getWindow().getGuiScaledHeight();
          this.sliderX = Math.max(5, Math.min(this.sliderX, screenW - this.sliderWidth - 5));
          if (desiredAboveY >= 5) {
             this.sliderY = desiredAboveY;
@@ -132,10 +133,10 @@ public final class HudEditScreen extends Screen {
          ctx.fill(this.sliderX, this.sliderY, this.sliderX + this.sliderWidth, this.sliderY + this.sliderHeight, 1711276032);
          ctx.fill(this.sliderX, this.sliderY, this.sliderX + filled, this.sliderY + this.sliderHeight, -16733441);
          String text = Math.round(opacity * 100.0F) + "%";
-         ctx.drawTextWithShadow(client.textRenderer, text, this.sliderX + this.sliderWidth + Math.round(6.0F * sliderScale), this.sliderY - 1, -1);
+         ctx.text(client.font, text, this.sliderX + this.sliderWidth + Math.round(6.0F * sliderScale), this.sliderY - 1, -1);
       }
 
-      super.render(ctx, mouseX, mouseY, delta);
+      super.extractRenderState(ctx, mouseX, mouseY, delta);
    }
 
    private boolean isInsideSlider(double mouseX, double mouseY) {
@@ -155,9 +156,12 @@ public final class HudEditScreen extends Screen {
    }
 
    @Override
-   public boolean mouseClicked(double mouseX, double mouseY, int button) {
+   public boolean mouseClicked(MouseButtonEvent inputEvent, boolean isDoubleClick) {
+      double mouseX = inputEvent.x();
+      double mouseY = inputEvent.y();
+      int button = inputEvent.button();
       if (button != 0) {
-         return super.mouseClicked(mouseX, mouseY, button);
+         return super.mouseClicked(inputEvent, isDoubleClick);
       }
 
       if (this.active != null && this.active.supportsBackgroundOpacity() && this.isInsideSlider(mouseX, mouseY)) {
@@ -202,11 +206,14 @@ public final class HudEditScreen extends Screen {
       this.active = null;
       this.dragging = false;
       this.resizing = false;
-      return super.mouseClicked(mouseX, mouseY, button);
+      return super.mouseClicked(inputEvent, isDoubleClick);
    }
 
    @Override
-   public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
+   public boolean mouseDragged(MouseButtonEvent inputEvent, double dx, double dy) {
+      double mouseX = inputEvent.x();
+      double mouseY = inputEvent.y();
+      int button = inputEvent.button();
       if (this.draggingOpacity) {
          if (this.active != null && this.active.supportsBackgroundOpacity()) {
             this.updateOpacityFromMouse(mouseX);
@@ -217,12 +224,12 @@ public final class HudEditScreen extends Screen {
       }
 
       if (this.active == null) {
-         return super.mouseDragged(mouseX, mouseY, button, dx, dy);
+         return super.mouseDragged(inputEvent, dx, dy);
       }
 
-      MinecraftClient client = MinecraftClient.getInstance();
-      int screenW = client.getWindow().getScaledWidth();
-      int screenH = client.getWindow().getScaledHeight();
+      Minecraft client = Minecraft.getInstance();
+      int screenW = client.getWindow().getGuiScaledWidth();
+      int screenH = client.getWindow().getGuiScaledHeight();
       if (this.resizing && canResize(this.active)) {
          int px = this.active.x();
          int py = this.active.y();
@@ -252,7 +259,7 @@ public final class HudEditScreen extends Screen {
          return true;
       } else {
          if (!this.dragging) {
-            return super.mouseDragged(mouseX, mouseY, button, dx, dy);
+            return super.mouseDragged(inputEvent, dx, dy);
          }
 
          int w = this.active.w();
@@ -301,12 +308,15 @@ public final class HudEditScreen extends Screen {
    }
 
    @Override
-   public boolean mouseReleased(double mouseX, double mouseY, int button) {
+   public boolean mouseReleased(MouseButtonEvent inputEvent) {
+      double mouseX = inputEvent.x();
+      double mouseY = inputEvent.y();
+      int button = inputEvent.button();
       this.dragging = false;
       this.resizing = false;
       this.draggingOpacity = false;
       ConfigIO.saveIfDirty();
-      return super.mouseReleased(mouseX, mouseY, button);
+      return super.mouseReleased(inputEvent);
    }
 
    private void updateOpacityFromMouse(double mouseX) {
@@ -316,24 +326,27 @@ public final class HudEditScreen extends Screen {
    }
 
    @Override
-   public void close() {
+   public void onClose() {
       HudEditState.editMode = false;
       this.dragging = false;
       this.resizing = false;
       ConfigIO.saveIfDirty();
-      super.close();
+      super.onClose();
    }
 
    @Override
-   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+   public boolean keyPressed(KeyEvent inputEvent) {
+      int keyCode = inputEvent.key();
+      int scanCode = inputEvent.scancode();
+      int modifiers = inputEvent.modifiers();
       if (KeybindUtil.matchesKeyPressed(SuiteConfig.INSTANCE.KeybindsConfig.toggleEditMode, keyCode, modifiers)) {
-         MinecraftClient client = MinecraftClient.getInstance();
+         Minecraft client = Minecraft.getInstance();
          HudEditState.editMode = false;
          client.setScreen(null);
          ConfigIO.saveIfDirty();
          return true;
       } else {
-         return super.keyPressed(keyCode, scanCode, modifiers);
+         return super.keyPressed(inputEvent);
       }
    }
 }

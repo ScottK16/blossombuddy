@@ -8,16 +8,15 @@ import org.blossomsuite.core.util.TextUtil;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 public final class ChatProcessor {
    private static final Pattern MONEY_AMOUNT = Pattern.compile("\\$\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)");
 
    private ChatProcessor() {
    }
 
-   public static boolean process(Text message, boolean overlay) {
+   public static boolean process(Component message, boolean overlay) {
       if (overlay) {
          return true;
       }
@@ -44,7 +43,7 @@ public final class ChatProcessor {
       }
 
       if (chatCfg.crateMessageMode == ChatConfig.CrateMessageMode.UPDATED) {
-         Text cleaned = CrateMessageFormatter.tryRewrite(message);
+         Component cleaned = CrateMessageFormatter.tryRewrite(message);
          if (cleaned != null) {
             ChatOutput.raw(cleaned);
             return false;
@@ -60,7 +59,7 @@ public final class ChatProcessor {
     * channel even though its own text is exactly what the Marry secondary-chat filter matches and diverts away
     * from main chat. Must run before that filtering gets a look at the message, not after.
     */
-   public static void observeState(Text message) {
+   public static void observeState(Component message) {
       String text = message.getString();
       if (isSuiteMessage(text)) {
          return;
@@ -77,7 +76,7 @@ public final class ChatProcessor {
       return text != null && text.contains("[" + SuiteRuntime.profile().displayName().toUpperCase(Locale.ROOT) + "]");
    }
 
-   private static boolean isInventoryFullVoucherMessage(Text message) {
+   private static boolean isInventoryFullVoucherMessage(Component message) {
       if (message == null) {
          return false;
       } else {
@@ -93,7 +92,7 @@ public final class ChatProcessor {
       }
    }
 
-   private static boolean isCooldownMessage(Text message) {
+   private static boolean isCooldownMessage(Component message) {
       if (message == null) {
          return false;
       } else {
@@ -107,7 +106,7 @@ public final class ChatProcessor {
       }
    }
 
-   private static boolean isInventoryCompactMessage(Text message) {
+   private static boolean isInventoryCompactMessage(Component message) {
       if (message == null) {
          return false;
       } else {
@@ -125,7 +124,7 @@ public final class ChatProcessor {
       }
    }
 
-   private static boolean isPinataBalanceMessageBelowThreshold(Text message, int thresholdDollars) {
+   private static boolean isPinataBalanceMessageBelowThreshold(Component message, int thresholdDollars) {
       if (message == null) {
          return false;
       }
@@ -207,8 +206,8 @@ public final class ChatProcessor {
    }
 
    private static String selfName() {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      return mc == null || mc.getSession() == null ? "" : mc.getSession().getUsername();
+      Minecraft mc = Minecraft.getInstance();
+      return mc == null || mc.getUser() == null ? "" : mc.getUser().getName();
    }
 
    private static boolean isNotInPartyMessage(String text) {

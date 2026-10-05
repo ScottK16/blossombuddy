@@ -8,8 +8,8 @@ import org.blossomsuite.core.config.ConfigIO;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.util.HudStyleUtil;
 import org.blossomsuite.core.xchat.XChatMode;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.joml.Matrix3x2fStack;
 
 public final class ChatHud {
@@ -125,10 +125,10 @@ public final class ChatHud {
    private ChatHud() {
    }
 
-   public static void render(DrawContext ctx, MinecraftClient client) {
+   public static void render(GuiGraphicsExtractor ctx, Minecraft client) {
       if (client != null) {
          if (client.player != null) {
-            if (!client.options.hudHidden) {
+            if (!client.options.hideGui) {
                ChatConfig cfg = SuiteConfig.INSTANCE.ChatConfig;
                boolean showTracked = cfg.showTrackedChannelHud;
                boolean showAd = cfg.showAdvertisementHud;
@@ -142,8 +142,8 @@ public final class ChatHud {
                   boolean compact = cfg.compact;
                   int baseW = getBaseWidth();
                   int baseH = getBaseHeight();
-                  int screenW = client.getWindow().getScaledWidth();
-                  int screenH = client.getWindow().getScaledHeight();
+                  int screenW = client.getWindow().getGuiScaledWidth();
+                  int screenH = client.getWindow().getGuiScaledHeight();
                   float scale = HudScaleUtil.scaleFor(cfg.scale, 0.1F, 2.0F, baseW, baseH, screenW, screenH);
                   int scaledW = Math.round(baseW * scale);
                   int scaledH = Math.round(baseH * scale);
@@ -165,7 +165,7 @@ public final class ChatHud {
                   lastY = y;
                   lastW = scaledW;
                   lastH = scaledH;
-                  Matrix3x2fStack matrices = ctx.getMatrices();
+                  Matrix3x2fStack matrices = ctx.pose();
                   matrices.pushMatrix();
                   matrices.translate(x, y);
                   matrices.scale(scale, scale);
@@ -277,10 +277,10 @@ public final class ChatHud {
       return StaffChatState.staffChatEnabled ? GREEN : RED;
    }
 
-   private static void drawCompactCentered(DrawContext ctx, MinecraftClient client, String text, int color, int baseW, int y) {
-      int textW = client.textRenderer.getWidth(text);
+   private static void drawCompactCentered(GuiGraphicsExtractor ctx, Minecraft client, String text, int color, int baseW, int y) {
+      int textW = client.font.width(text);
       int textX = Math.max(2, (baseW - textW) / 2);
-      ctx.drawTextWithShadow(client.textRenderer, text, textX, y, color);
+      ctx.text(client.font, text, textX, y, color);
    }
 
    private static boolean showStaffHud(ChatConfig cfg) {
@@ -302,10 +302,10 @@ public final class ChatHud {
       return AdvertisementState.isReady() ? -8585317 : -37266;
    }
 
-   private static void renderNormal(DrawContext ctx, MinecraftClient client, boolean showTracked, boolean showAd, int baseW) {
+   private static void renderNormal(GuiGraphicsExtractor ctx, Minecraft client, boolean showTracked, boolean showAd, int baseW) {
       float bg = SuiteConfig.INSTANCE.ChatConfig.backgroundOpacity;
       ctx.fill(0, 0, baseW, 12, HudStyleUtil.panelHeader(bg));
-      ctx.drawTextWithShadow(client.textRenderer, "CHAT", 6, 2, -1);
+      ctx.text(client.font, "CHAT", 6, 2, -1);
       int y = 14;
       ChatConfig cfg = SuiteConfig.INSTANCE.ChatConfig;
       boolean showStaff = showStaffHud(cfg);
@@ -315,16 +315,16 @@ public final class ChatHud {
             channel = ChatChannel.UNKNOWN;
          }
 
-         ctx.drawTextWithShadow(client.textRenderer, "Main", 6, y, onOff(isMainOn(channel)));
+         ctx.text(client.font, "Main", 6, y, onOff(isMainOn(channel)));
          y += 12;
-         ctx.drawTextWithShadow(client.textRenderer, "Marry", 6, y, onOff(isMarryOn(channel)));
+         ctx.text(client.font, "Marry", 6, y, onOff(isMarryOn(channel)));
          y += 12;
-         ctx.drawTextWithShadow(client.textRenderer, "XC", 6, y, onOff(isXcOn()));
+         ctx.text(client.font, "XC", 6, y, onOff(isXcOn()));
          y += 12;
       }
 
       if (showStaff) {
-         ctx.drawTextWithShadow(client.textRenderer, "Staff", 6, y, getStaffColor());
+         ctx.text(client.font, "Staff", 6, y, getStaffColor());
          y += 12;
       }
 
@@ -334,11 +334,11 @@ public final class ChatHud {
          String profile = chatCfg.getActiveAdvertiserProfileName();
          String text = "Advertisement (" + profile + "): " + getAdvertisementStatusText();
          int color = getAdvertisementStatusColor();
-         ctx.drawTextWithShadow(client.textRenderer, text, 6, y, color);
+         ctx.text(client.font, text, 6, y, color);
       }
    }
 
-   private static void renderCompact(DrawContext ctx, MinecraftClient client, boolean showTracked, boolean showAd, int baseW) {
+   private static void renderCompact(GuiGraphicsExtractor ctx, Minecraft client, boolean showTracked, boolean showAd, int baseW) {
       int y = 2;
       ChatConfig cfg = SuiteConfig.INSTANCE.ChatConfig;
       boolean showStaff = showStaffHud(cfg);
@@ -359,9 +359,9 @@ public final class ChatHud {
       if (showStaff) {
          String text = "STAFF";
          int color = getStaffColor();
-         int textW = client.textRenderer.getWidth(text);
+         int textW = client.font.width(text);
          int textX = Math.max(2, (baseW - textW) / 2);
-         ctx.drawTextWithShadow(client.textRenderer, text, textX, y, color);
+         ctx.text(client.font, text, textX, y, color);
          y += showAd ? 10 : 0;
       }
 
@@ -371,9 +371,9 @@ public final class ChatHud {
          String profile = chatCfg.getActiveAdvertiserProfileName();
          String text = "Ad: " + profile;
          int color = getAdvertisementStatusColor();
-         int textW = client.textRenderer.getWidth(text);
+         int textW = client.font.width(text);
          int textX = Math.max(2, (baseW - textW) / 2);
-         ctx.drawTextWithShadow(client.textRenderer, text, textX, y, color);
+         ctx.text(client.font, text, textX, y, color);
       }
    }
 }

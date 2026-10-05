@@ -1,11 +1,11 @@
 package org.blossomsuite.core.hud;
 
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.mapart.MapArtModels;
@@ -42,12 +42,12 @@ public final class MapArtListHud extends PanelHud {
       return HudStyleUtil.withAlpha(0xFFFFFF, opacity);
    }
 
-   public void render(DrawContext ctx, MinecraftClient client) {
+   public void render(GuiGraphicsExtractor ctx, Minecraft client) {
       if (!this.shown() || client.player == null || !SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
          return;
       }
 
-      TextRenderer tr = client.textRenderer;
+      Font tr = client.font;
       MapArtModels.Project project = MapArtState.INSTANCE.project();
       List<MapArtModels.Material> materials = project == null ? List.of() : project.materials;
       int shown = Math.min(materials.size(), MAX_ROWS);
@@ -57,19 +57,19 @@ public final class MapArtListHud extends PanelHud {
 
       this.draw(ctx, client, WIDTH, baseH, true, c -> {
          if (materials.isEmpty()) {
-            c.drawTextWithShadow(tr, Text.literal("No map art loaded").formatted(Formatting.DARK_GRAY), 6, 6, -1);
+            c.text(tr, Component.literal("No map art loaded").withStyle(ChatFormatting.DARK_GRAY), 6, 6, -1);
             return;
          }
 
          int y = 6;
          for (int i = 0; i < shown; i++) {
             MapArtModels.Material m = materials.get(i);
-            c.drawTextWithShadow(tr, Text.literal(m.count + "x " + m.block), 6, y, -1);
+            c.text(tr, Component.literal(m.count + "x " + m.block), 6, y, -1);
             y += ROW_H;
          }
 
          if (extra > 0) {
-            c.drawTextWithShadow(tr, Text.literal("+" + extra + " more").formatted(Formatting.DARK_GRAY), 6, y, -1);
+            c.text(tr, Component.literal("+" + extra + " more").withStyle(ChatFormatting.DARK_GRAY), 6, y, -1);
          }
       });
    }

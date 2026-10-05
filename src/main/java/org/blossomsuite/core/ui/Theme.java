@@ -1,7 +1,6 @@
 package org.blossomsuite.core.ui;
 
-import net.minecraft.client.gui.DrawContext;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 /**
  * Colours and drawing helpers for the BlossomBuddy look: a deep plum base with soft rounded panels and a
  * cherry-blossom pink accent. All colours are opaque ARGB.
@@ -34,7 +33,7 @@ public final class Theme {
    }
 
    /** Filled rounded rectangle. Rows never overlap, so translucent colours blend correctly. */
-   public static void roundRect(DrawContext c, int x1, int y1, int x2, int y2, int radius, int color) {
+   public static void roundRect(GuiGraphicsExtractor c, int x1, int y1, int x2, int y2, int radius, int color) {
       int w = x2 - x1;
       int h = y2 - y1;
       if (w <= 0 || h <= 0) {
@@ -57,7 +56,7 @@ public final class Theme {
    }
 
    /** Rounded rectangle with a one pixel edge. */
-   public static void roundBox(DrawContext c, int x1, int y1, int x2, int y2, int radius, int edge, int fill) {
+   public static void roundBox(GuiGraphicsExtractor c, int x1, int y1, int x2, int y2, int radius, int edge, int fill) {
       roundRect(c, x1, y1, x2, y2, radius, edge);
       roundRect(c, x1 + 1, y1 + 1, x2 - 1, y2 - 1, Math.max(0, radius - 1), fill);
    }
@@ -72,7 +71,7 @@ public final class Theme {
    }
 
    /** A small magnifying glass, drawn from rectangles because the default font has no such glyph. */
-   public static void magnifier(DrawContext c, int x, int y, int color) {
+   public static void magnifier(GuiGraphicsExtractor c, int x, int y, int color) {
       roundBox(c, x, y, x + 8, y + 8, 3, color, PANEL);
       c.fill(x + 7, y + 7, x + 9, y + 9, color);
       c.fill(x + 8, y + 8, x + 11, y + 11, color);

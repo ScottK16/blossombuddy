@@ -3,16 +3,16 @@ package org.blossomsuite.core.hud;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.ScoreboardEntry;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.scoreboard.Team;
-import net.minecraft.scoreboard.number.NumberFormat;
-import net.minecraft.scoreboard.number.StyledNumberFormat;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.scores.Scoreboard;
+import net.minecraft.world.scores.PlayerScoreEntry;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.network.chat.numbers.NumberFormat;
+import net.minecraft.network.chat.numbers.StyledFormat;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.ui.Theme;
@@ -26,9 +26,9 @@ import org.joml.Matrix3x2fStack;
  * scale, happens inside {@link #handle}, so the matrix can never be left pushed by a mod that cancels the method.
  */
 public final class ScoreboardHud {
-   private static final Comparator<ScoreboardEntry> ORDER = Comparator.comparing(ScoreboardEntry::value)
+   private static final Comparator<PlayerScoreEntry> ORDER = Comparator.comparing(PlayerScoreEntry::value)
       .reversed()
-      .thenComparing(ScoreboardEntry::owner, String.CASE_INSENSITIVE_ORDER);
+      .thenComparing(PlayerScoreEntry::owner, String.CASE_INSENSITIVE_ORDER);
    private static final float MIN_SCALE = 0.3F;
    private static final float MAX_SCALE = 2.0F;
    private static final float AUTO_OPACITY_SHOWN = 0.35F;
@@ -44,10 +44,10 @@ public final class ScoreboardHud {
    private static boolean reached = false;
    private static boolean foreign = false;
 
-   record Entry(Text name, Text score, int scoreW) {
+   record Entry(Component name, Component score, int scoreW) {
    }
 
-   record Snapshot(Text title, int titleW, List<Entry> entries, int widest) {
+   record Snapshot(Component title, int titleW, List<Entry> entries, int widest) {
    }
 
    public static final DraggableHud DRAGGABLE = new DraggableHud() {
@@ -200,7 +200,7 @@ public final class ScoreboardHud {
     *
     * @return true if we drew the scoreboard (or it is hidden), so vanilla must not
     */
-   public static boolean handle(DrawContext ctx, ScoreboardObjective objective) {
+   public static boolean handle(GuiGraphicsExtractor ctx, Objective objective) {
       reached = true;
       foreign = false;
       if (!SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
@@ -210,8 +210,8 @@ public final class ScoreboardHud {
 
       FeatureConfig.Scoreboard c = cfg();
       Snapshot snap = snapshot(objective, c.showNumbers);
-      int screenW = ctx.getScaledWindowWidth();
-      int screenH = ctx.getScaledWindowHeight();
+      int screenW = ctx.guiWidth();
+      int screenH = ctx.guiHeight();
       int[] box = box(snap.widest(), snap.entries().size(), screenW, screenH);
       baseW = box[2] - box[0];
       baseH = box[3] - box[1];
@@ -242,7 +242,7 @@ public final class ScoreboardHud {
          return true;
       }
 
-      Matrix3x2fStack matrices = ctx.getMatrices();
+      Matrix3x2fStack matrices = ctx.pose();
       matrices.pushMatrix();
       try {
          matrices.translate(nx, ny);
@@ -256,9 +256,9 @@ public final class ScoreboardHud {
    }
 
    /** Draws in local coordinates: (0,0) is the top-left of the box, one unit per (unscaled) pixel. */
-   private static void drawLocal(DrawContext ctx, Snapshot snap, FeatureConfig.Scoreboard c, int bw, int bh) {
-      MinecraftClient client = MinecraftClient.getInstance();
-      TextRenderer tr = client.textRenderer;
+   private static void drawLocal(GuiGraphicsExtractor ctx, Snapshot snap, FeatureConfig.Scoreboard c, int bw, int bh) {
+      Minecraft client = Minecraft.getInstance();
+      Font tr = client.font;
       if (c.background) {
          int body;
          int title;
@@ -267,8 +267,8 @@ public final class ScoreboardHud {
             body = a << 24;
             title = Math.min(255, Math.round(a * 1.33F)) << 24;
          } else {
-            body = client.options.getTextBackgroundColor(0.3F);
-            title = client.options.getTextBackgroundColor(0.4F);
+            body = client.options.getBackgroundColor(0.3F);
+            title = client.options.getBackgroundColor(0.4F);
          }
 
          if (c.rounded) {
@@ -289,12 +289,12 @@ public final class ScoreboardHud {
          ctx.fill(bw - 1, 0, bw, bh, col);
       }
 
-      ctx.drawText(tr, snap.title(), 2 + (snap.widest() - snap.titleW()) / 2, 1, -1, c.textShadow);
+      ctx.text(tr, snap.title(), 2 + (snap.widest() - snap.titleW()) / 2, 1, -1, c.textShadow);
       int y = 10;
       for (Entry e : snap.entries()) {
-         ctx.drawText(tr, e.name(), 2, y, -1, c.textShadow);
+         ctx.text(tr, e.name(), 2, y, -1, c.textShadow);
          if (c.showNumbers && e.scoreW() > 0) {
-            ctx.drawText(tr, e.score(), bw - e.scoreW(), y, -1, c.textShadow);
+            ctx.text(tr, e.score(), bw - e.scoreW(), y, -1, c.textShadow);
          }
 
          y += 9;
@@ -302,24 +302,24 @@ public final class ScoreboardHud {
    }
 
    /** What vanilla is about to draw, read the same way vanilla reads it. */
-   private static Snapshot snapshot(ScoreboardObjective objective, boolean showNumbers) {
-      TextRenderer tr = MinecraftClient.getInstance().textRenderer;
+   private static Snapshot snapshot(Objective objective, boolean showNumbers) {
+      Font tr = Minecraft.getInstance().font;
       Scoreboard scoreboard = objective.getScoreboard();
-      NumberFormat numberFormat = objective.getNumberFormatOr(StyledNumberFormat.RED);
+      NumberFormat numberFormat = objective.numberFormatOrDefault(StyledFormat.SIDEBAR_DEFAULT);
       List<Entry> entries = new ArrayList<>();
-      for (ScoreboardEntry e : scoreboard.getScoreboardEntries(objective).stream().filter(x -> !x.hidden()).sorted(ORDER).limit(15L).toList()) {
-         Team team = scoreboard.getScoreHolderTeam(e.owner());
-         Text name = Team.decorateName(team, e.name());
-         Text score = e.formatted(numberFormat);
-         entries.add(new Entry(name, score, showNumbers ? tr.getWidth(score) : 0));
+      for (PlayerScoreEntry e : scoreboard.listPlayerScores(objective).stream().filter(x -> !x.isHidden()).sorted(ORDER).limit(15L).toList()) {
+         PlayerTeam team = scoreboard.getPlayersTeam(e.owner());
+         Component name = PlayerTeam.formatNameForTeam(team, e.ownerName());
+         Component score = e.formatValue(numberFormat);
+         entries.add(new Entry(name, score, showNumbers ? tr.width(score) : 0));
       }
 
-      Text title = objective.getDisplayName();
-      int titleW = tr.getWidth(title);
-      int colon = tr.getWidth(": ");
+      Component title = objective.getDisplayName();
+      int titleW = tr.width(title);
+      int colon = tr.width(": ");
       int widest = titleW;
       for (Entry e : entries) {
-         widest = Math.max(widest, tr.getWidth(e.name()) + (e.scoreW() > 0 ? colon + e.scoreW() : 0));
+         widest = Math.max(widest, tr.width(e.name()) + (e.scoreW() > 0 ? colon + e.scoreW() : 0));
       }
 
       return new Snapshot(title, titleW, entries, widest);

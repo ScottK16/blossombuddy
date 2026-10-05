@@ -1,11 +1,11 @@
 package org.blossomsuite.core.state;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.ScoreboardDisplaySlot;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.scoreboard.Team;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.scores.Scoreboard;
+import net.minecraft.world.scores.DisplaySlot;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.PlayerTeam;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.vote.VoteRuntime;
@@ -26,12 +26,12 @@ public final class SidebarReader {
       ClientTickEvents.END_CLIENT_TICK.register(SidebarReader::tick);
    }
 
-   private static void tick(MinecraftClient client) {
-      if (client.world == null || client.player == null || ++ticks % 5 != 0) {
+   private static void tick(Minecraft client) {
+      if (client.level == null || client.player == null || ++ticks % 5 != 0) {
          return;
       }
 
-      ScoreboardObjective objective = sidebarObjective(client);
+      Objective objective = sidebarObjective(client);
       if (objective != null) {
          SidebarParser.process(objective);
       }
@@ -40,20 +40,20 @@ public final class SidebarReader {
    }
 
    /** The objective the game would show in the sidebar for this player (their team colour's slot first, like vanilla). */
-   private static ScoreboardObjective sidebarObjective(MinecraftClient client) {
-      Scoreboard scoreboard = client.world.getScoreboard();
-      Team team = scoreboard.getScoreHolderTeam(client.player.getNameForScoreboard());
+   private static Objective sidebarObjective(Minecraft client) {
+      Scoreboard scoreboard = client.level.getScoreboard();
+      PlayerTeam team = scoreboard.getPlayersTeam(client.player.getScoreboardName());
       if (team != null && team.getColor() != null) {
-         ScoreboardDisplaySlot slot = ScoreboardDisplaySlot.fromFormatting(team.getColor());
+         DisplaySlot slot = DisplaySlot.teamColorToSlot(team.getColor());
          if (slot != null) {
-            ScoreboardObjective teamObjective = scoreboard.getObjectiveForSlot(slot);
+            Objective teamObjective = scoreboard.getDisplayObjective(slot);
             if (teamObjective != null) {
                return teamObjective;
             }
          }
       }
 
-      return scoreboard.getObjectiveForSlot(ScoreboardDisplaySlot.SIDEBAR);
+      return scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
    }
 
    /**

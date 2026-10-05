@@ -1,17 +1,19 @@
 package org.blossomsuite.core.mixin.client;
 
 import org.blossomsuite.core.config.SuiteConfig;
+import net.minecraft.client.input.MouseButtonEvent;
 import org.blossomsuite.core.qol.inventorysort.InventorySorter;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.network.chat.Component;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -19,90 +21,92 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(HandledScreen.class)
+@Mixin(AbstractContainerScreen.class)
 public abstract class HandledScreenMixin extends Screen {
    private static final int BUTTON_SIZE = 10;
    private static final int BUTTON_GAP = 2;
    private static final int SORT_BUTTON_X_OFFSET = -8;
    private static final int TRANSFER_BUTTON_X_OFFSET = -8;
    private static final int TRANSFER_BUTTON_Y_OFFSET = 3;
-   private static final Text SORT_ICON = Text.literal("\u21c5");
-   private static final Text DEPOSIT_ALL_ICON = Text.literal("\u21e7");
-   private static final Text WITHDRAW_ALL_ICON = Text.literal("\u21e9");
-   private static final Text DEPOSIT_MATCHING_ICON = Text.literal("\u21e5");
-   private static final Text WITHDRAW_MATCHING_ICON = Text.literal("\u21e4");
+   private static final Component SORT_ICON = Component.literal("\u21c5");
+   private static final Component DEPOSIT_ALL_ICON = Component.literal("\u21e7");
+   private static final Component WITHDRAW_ALL_ICON = Component.literal("\u21e9");
+   private static final Component DEPOSIT_MATCHING_ICON = Component.literal("\u21e5");
+   private static final Component WITHDRAW_MATCHING_ICON = Component.literal("\u21e4");
    @Unique
    private HandledScreenMixin.IconButton suitecore$depositAllButton;
    @Unique
    private HandledScreenMixin.IconButton suitecore$depositMatchingButton;
    @Shadow
-   protected int x;
+   protected int leftPos;
    @Shadow
-   protected int y;
+   protected int topPos;
    @Shadow
-   protected int backgroundWidth;
+   @Final
+   protected int imageWidth;
    @Shadow
-   protected int playerInventoryTitleY;
+   protected int inventoryLabelY;
    @Shadow
-   protected ScreenHandler handler;
+   @Final
+   protected AbstractContainerMenu menu;
 
-   protected HandledScreenMixin(Text title) {
+   protected HandledScreenMixin(Component title) {
       super(title);
    }
 
    @Inject(method = "init", at = @At("TAIL"))
    private void suitecore$addContainerUtilityButtons(CallbackInfo ci) {
-      MinecraftClient client = MinecraftClient.getInstance();
+      Minecraft client = Minecraft.getInstance();
       if (InventorySorter.canSortOpenContainer(client)) {
-         if (client.player != null && client.player.currentScreenHandler == this.handler) {
+         if (client.player != null && client.player.containerMenu == this.menu) {
             if (SuiteConfig.INSTANCE.QolConfig != null && SuiteConfig.INSTANCE.QolConfig.inventoryManagementShowContainerButtons) {
-               int right = Math.min(this.x + this.backgroundWidth - 10, this.width - 10 - 4);
+               int right = Math.min(this.leftPos + this.imageWidth - 10, this.width - 10 - 4);
                HandledScreenMixin.IconButton sort = new HandledScreenMixin.IconButton(
-                  right + -8, Math.max(4, this.y + 6), SORT_ICON, () -> InventorySorter.sortOpenContainer(MinecraftClient.getInstance())
+                  right + -8, Math.max(4, this.topPos + 6), SORT_ICON, () -> InventorySorter.sortOpenContainer(Minecraft.getInstance())
                );
-               sort.setTooltip(Tooltip.of(Text.literal("Sorts the open container.")));
-               this.addDrawableChild(sort);
-               int depositY = Math.max(4, this.y + this.playerInventoryTitleY - 6 + 3);
+               sort.setTooltip(Tooltip.create(Component.literal("Sorts the open container.")));
+               this.addRenderableWidget(sort);
+               int depositY = Math.max(4, this.topPos + this.inventoryLabelY - 6 + 3);
                int depositMatchingX = right + -8;
                int depositAllX = depositMatchingX - 2 - 10;
                this.suitecore$depositAllButton = new HandledScreenMixin.IconButton(depositAllX, depositY, DEPOSIT_ALL_ICON, () -> {
-                  if (Screen.hasShiftDown()) {
-                     InventorySorter.withdrawAllFromOpenContainer(MinecraftClient.getInstance());
+                  if (net.minecraft.client.Minecraft.getInstance().hasShiftDown()) {
+                     InventorySorter.withdrawAllFromOpenContainer(Minecraft.getInstance());
                   } else {
-                     InventorySorter.depositAllToOpenContainer(MinecraftClient.getInstance());
+                     InventorySorter.depositAllToOpenContainer(Minecraft.getInstance());
                   }
                });
                this.suitecore$depositAllButton
                   .setTooltip(
-                     Tooltip.of(
-                        Text.literal("Click: move all player inventory items to the container.\nShift-click: move all container items to your inventory.")
+                     Tooltip.create(
+                        Component.literal("Click: move all player inventory items to the container.\nShift-click: move all container items to your inventory.")
                      )
                   );
-               this.addDrawableChild(this.suitecore$depositAllButton);
+               this.addRenderableWidget(this.suitecore$depositAllButton);
                this.suitecore$depositMatchingButton = new HandledScreenMixin.IconButton(depositMatchingX, depositY, DEPOSIT_MATCHING_ICON, () -> {
-                  if (Screen.hasShiftDown()) {
-                     InventorySorter.withdrawMatchingFromOpenContainer(MinecraftClient.getInstance());
+                  if (net.minecraft.client.Minecraft.getInstance().hasShiftDown()) {
+                     InventorySorter.withdrawMatchingFromOpenContainer(Minecraft.getInstance());
                   } else {
-                     InventorySorter.depositMatchingToOpenContainer(MinecraftClient.getInstance());
+                     InventorySorter.depositMatchingToOpenContainer(Minecraft.getInstance());
                   }
                });
                this.suitecore$depositMatchingButton
                   .setTooltip(
-                     Tooltip.of(
-                        Text.literal(
+                     Tooltip.create(
+                        Component.literal(
                            "Click: move player items matching this container into it.\nShift-click: move container items matching your inventory to you."
                         )
                      )
                   );
-               this.addDrawableChild(this.suitecore$depositMatchingButton);
+               this.addRenderableWidget(this.suitecore$depositMatchingButton);
             }
          }
       }
    }
 
-   @Inject(method = "render", at = @At("HEAD"))
-   private void suitecore$updateContainerUtilityButtonIcons(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-      boolean withdraw = Screen.hasShiftDown();
+   @Inject(method = "extractRenderState", at = @At("HEAD"))
+   private void suitecore$updateContainerUtilityButtonIcons(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+      boolean withdraw = net.minecraft.client.Minecraft.getInstance().hasShiftDown();
       if (this.suitecore$depositAllButton != null) {
          this.suitecore$depositAllButton.setMessage(withdraw ? WITHDRAW_ALL_ICON : DEPOSIT_ALL_ICON);
       }
@@ -113,41 +117,43 @@ public abstract class HandledScreenMixin extends Screen {
    }
 
    @Unique
-   private static final class IconButton extends ClickableWidget {
+   private static final class IconButton extends AbstractWidget {
       private final Runnable onPress;
 
-      private IconButton(int x, int y, Text icon, Runnable onPress) {
+      private IconButton(int x, int y, Component icon, Runnable onPress) {
          super(x, y, 10, 10, icon);
          this.onPress = onPress;
       }
 
       @Override
-      public void onClick(double mouseX, double mouseY) {
+      public void onClick(MouseButtonEvent inputEvent, boolean isDoubleClick) {
+         double mouseX = inputEvent.x();
+         double mouseY = inputEvent.y();
          if (this.onPress != null) {
             this.onPress.run();
          }
       }
 
       @Override
-      protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+      protected void extractWidgetRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
          int x = this.getX();
          int y = this.getY();
          int fill = this.isHovered() ? -1426063361 : 1711276032;
          int border = this.isHovered() ? -1 : -1711276033;
          context.fill(x, y, x + 10, y + 10, fill);
-         context.drawBorder(x, y, 10, 10, border);
-         MinecraftClient client = MinecraftClient.getInstance();
+         context.outline(x, y, 10, 10, border);
+         Minecraft client = Minecraft.getInstance();
          if (client != null) {
-            TextRenderer textRenderer = client.textRenderer;
-            Text icon = this.getMessage();
-            int textX = x + (10 - textRenderer.getWidth(icon)) / 2;
+            Font textRenderer = client.font;
+            Component icon = this.getMessage();
+            int textX = x + (10 - textRenderer.width(icon)) / 2;
             int textY = y + (10 - 9) / 2;
-            context.drawTextWithShadow(textRenderer, icon, textX, textY, this.isHovered() ? -15658735 : -1);
+            context.text(textRenderer, icon, textX, textY, this.isHovered() ? -15658735 : -1);
          }
       }
 
       @Override
-      protected void appendClickableNarrations(NarrationMessageBuilder builder) {
+      protected void updateWidgetNarration(NarrationElementOutput builder) {
       }
    }
 }

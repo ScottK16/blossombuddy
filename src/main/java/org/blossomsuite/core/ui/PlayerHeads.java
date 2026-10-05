@@ -6,11 +6,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.client.util.DefaultSkinHelper;
-import net.minecraft.client.util.SkinTextures;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.resources.DefaultPlayerSkin;
+import net.minecraft.world.entity.player.PlayerSkin;
 import org.blossomsuite.core.state.SuiteScheduler;
 import org.blossomsuite.core.util.SuiteLog;
 
@@ -22,29 +22,29 @@ import org.blossomsuite.core.util.SuiteLog;
  */
 final class PlayerHeads {
    private static final long RETRY_AFTER_MS = 60_000L;
-   private static final Map<UUID, Supplier<SkinTextures>> FETCHED = new ConcurrentHashMap<>();
+   private static final Map<UUID, Supplier<PlayerSkin>> FETCHED = new ConcurrentHashMap<>();
    private static final Map<UUID, Long> STARTED = new ConcurrentHashMap<>();
 
    private PlayerHeads() {
    }
 
-   static SkinTextures textures(MinecraftClient mc, UUID id) {
-      ClientPlayNetworkHandler network = mc.getNetworkHandler();
-      PlayerListEntry entry = network == null ? null : network.getPlayerListEntry(id);
+   static PlayerSkin textures(Minecraft mc, UUID id) {
+      ClientPacketListener network = mc.getConnection();
+      PlayerInfo entry = network == null ? null : network.getPlayerInfo(id);
       if (entry != null) {
-         return entry.getSkinTextures();
+         return entry.getSkin();
       }
 
-      Supplier<SkinTextures> fetched = FETCHED.get(id);
+      Supplier<PlayerSkin> fetched = FETCHED.get(id);
       if (fetched != null) {
          return fetched.get();
       }
 
       startLookup(mc, id);
-      return DefaultSkinHelper.getSkinTextures(id);
+      return DefaultPlayerSkin.get(id);
    }
 
-   private static void startLookup(MinecraftClient mc, UUID id) {
+   private static void startLookup(Minecraft mc, UUID id) {
       long now = System.currentTimeMillis();
       Long last = STARTED.get(id);
       if (last != null && now - last < RETRY_AFTER_MS) {
@@ -54,10 +54,10 @@ final class PlayerHeads {
       STARTED.put(id, now);
       SuiteScheduler.IO.execute(() -> {
          try {
-            ProfileResult result = mc.getSessionService().fetchProfile(id, false);
+            ProfileResult result = mc.services().sessionService().fetchProfile(id, false);
             if (result != null && result.profile() != null) {
                GameProfile profile = result.profile();
-               mc.execute(() -> FETCHED.put(id, mc.getSkinProvider().getSkinTexturesSupplier(profile)));
+               mc.execute(() -> FETCHED.put(id, mc.getSkinManager().createLookup(profile, false)));
             }
          } catch (Throwable t) {
             SuiteLog.logger().debug("[players] skin lookup failed for {}: {}", id, t.toString());

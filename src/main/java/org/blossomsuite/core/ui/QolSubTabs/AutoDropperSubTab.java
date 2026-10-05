@@ -18,16 +18,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 public final class AutoDropperSubTab implements SuiteSubTab {
    private static final List<AutoDropperSubTab.ItemChoice> ITEM_CHOICES = buildItemChoices();
    private static final int ITEM_EDITOR_ROWS = 6;
@@ -239,9 +238,9 @@ public final class AutoDropperSubTab implements SuiteSubTab {
          int addW = 70;
          int labelW = w - deleteW - addW - gapX * 2;
          screen.addContentWidget(
-            new HoverLabelWidget(x, y + 4, labelW, 12, Text.literal("Groups"), Tooltip.of(Text.literal("Select the group you want to edit.")))
+            new HoverLabelWidget(x, y + 4, labelW, 12, Component.literal("Groups"), Tooltip.create(Component.literal("Select the group you want to edit.")))
          );
-         ButtonWidget add = StyledButton.of(Text.literal("+ New"), b -> {
+         Button add = StyledButton.of(Component.literal("+ New"), b -> {
             QolConfig.AutoDropCustomGroup groupx = new QolConfig.AutoDropCustomGroup();
             groupx.id = "drop-" + System.currentTimeMillis() + "-" + (cfg.autoDropperCustomGroups.size() + 1);
             groupx.name = "Drop Group " + (cfg.autoDropperCustomGroups.size() + 1);
@@ -253,7 +252,7 @@ public final class AutoDropperSubTab implements SuiteSubTab {
             screen.rebuildPreserveScroll();
          }).dimensions(x + labelW + gapX, y, addW, rowH).build();
          screen.addContentWidget(add);
-         ButtonWidget delete = StyledButton.of(Text.literal("Delete"), b -> {
+         Button delete = StyledButton.of(Component.literal("Delete"), b -> {
             QolConfig.AutoDropCustomGroup groupx = activeGroup(cfg);
             if (groupx != null) {
                cfg.autoDropperCustomGroups.remove(groupx);
@@ -269,15 +268,15 @@ public final class AutoDropperSubTab implements SuiteSubTab {
          y += 24;
          int importW = 76;
          int exportW = 76;
-         ButtonWidget importButton = StyledButton.of(Text.literal("Import"), b -> {
+         Button importButton = StyledButton.of(Component.literal("Import"), b -> {
             this.importingGroupCode = true;
             this.groupImportCode = "";
             this.closeItemEditor();
             screen.rebuildFromTab();
          }).dimensions(x, y, importW, rowH).build();
-         importButton.setTooltip(Tooltip.of(Text.literal("Paste an AutoDropper group share code.")));
+         importButton.setTooltip(Tooltip.create(Component.literal("Paste an AutoDropper group share code.")));
          screen.addContentWidget(importButton);
-         ButtonWidget exportButton = StyledButton.of(Text.literal("Export"), b -> {
+         Button exportButton = StyledButton.of(Component.literal("Export"), b -> {
             QolConfig.AutoDropCustomGroup groupx = activeGroup(cfg);
             if (groupx != null) {
                copyToClipboard(GroupShareCodec.exportAutoDropGroup(groupx));
@@ -286,12 +285,12 @@ public final class AutoDropperSubTab implements SuiteSubTab {
             }
          }).dimensions(x + importW + gapX, y, exportW, rowH).build();
          exportButton.active = active != null;
-         exportButton.setTooltip(Tooltip.of(Text.literal("Copies the selected AutoDropper group share code.")));
+         exportButton.setTooltip(Tooltip.create(Component.literal("Copies the selected AutoDropper group share code.")));
          screen.addContentWidget(exportButton);
          y += 28;
          if (this.hasGroupShareNotice()) {
             screen.addContentWidget(
-               new HoverLabelWidget(x, y + 2, Math.min(w, 260), 12, Text.literal(this.groupShareNotice), Tooltip.of(Text.literal(this.groupShareNotice)))
+               new HoverLabelWidget(x, y + 2, Math.min(w, 260), 12, Component.literal(this.groupShareNotice), Tooltip.create(Component.literal(this.groupShareNotice)))
             );
             y += 18;
          }
@@ -301,7 +300,7 @@ public final class AutoDropperSubTab implements SuiteSubTab {
             int idx = i;
             int toggleW = 64;
             String name = group.name != null && !group.name.isBlank() ? group.name : "Custom Group";
-            ButtonWidget groupRow = StyledButton.of(Text.literal(name), b -> {
+            Button groupRow = StyledButton.of(Component.literal(name), b -> {
                cfg.autoDropperActiveCustomGroup = idx;
                this.closeItemEditor();
                SuiteConfig.INSTANCE.markDirty();
@@ -309,7 +308,7 @@ public final class AutoDropperSubTab implements SuiteSubTab {
             }).dimensions(x, y, w - toggleW - gapX, rowH).build();
             groupRow.active = i != cfg.autoDropperActiveCustomGroup;
             screen.addContentWidget(groupRow);
-            ButtonWidget enabled = StyledButton.of(Text.literal(group.enabled ? "ON" : "OFF"), b -> {
+            Button enabled = StyledButton.of(Component.literal(group.enabled ? "ON" : "OFF"), b -> {
                group.enabled = !group.enabled;
                cfg.autoDropperActiveCustomGroup = idx;
                this.closeItemEditor();
@@ -317,7 +316,7 @@ public final class AutoDropperSubTab implements SuiteSubTab {
                ConfigIO.saveIfDirty();
                screen.rebuildPreserveScroll();
             }).dimensions(x + w - toggleW, y, toggleW, rowH).build();
-            enabled.setTooltip(Tooltip.of(Text.literal(group.enabled ? "This AutoDropper group is enabled." : "This AutoDropper group is disabled.")));
+            enabled.setTooltip(Tooltip.create(Component.literal(group.enabled ? "This AutoDropper group is enabled." : "This AutoDropper group is disabled.")));
             screen.addContentWidget(enabled);
             y += 24;
          }
@@ -325,12 +324,12 @@ public final class AutoDropperSubTab implements SuiteSubTab {
          y += 6;
          QolConfig.AutoDropCustomGroup group = active;
          if (group == null) {
-            screen.addContentWidget(new HoverLabelWidget(x, y, Math.min(w, 340), 12, Text.literal("Create a group to add items."), null));
+            screen.addContentWidget(new HoverLabelWidget(x, y, Math.min(w, 340), 12, Component.literal("Create a group to add items."), null));
          } else {
-            TextFieldWidget name = new TextFieldWidget(screen.getTextRenderer(), x, y, w, rowH, Text.empty());
+            EditBox name = new EditBox(screen.getFont(), x, y, w, rowH, Component.empty());
             name.setMaxLength(48);
-            name.setText(group.name == null ? "" : group.name);
-            name.setChangedListener(s -> {
+            name.setValue(group.name == null ? "" : group.name);
+            name.setResponder(s -> {
                group.name = s != null && !s.isBlank() ? s : "Custom Group";
                SuiteConfig.INSTANCE.markDirty();
             });
@@ -342,11 +341,11 @@ public final class AutoDropperSubTab implements SuiteSubTab {
                   y,
                   220,
                   12,
-                  Text.literal("Group Items (" + group.items.size() + ")"),
-                  Tooltip.of(Text.literal("Each item has its own drop threshold, keep settings, and optional advanced data filter."))
+                  Component.literal("Group Items (" + group.items.size() + ")"),
+                  Tooltip.create(Component.literal("Each item has its own drop threshold, keep settings, and optional advanced data filter."))
                )
             );
-            ButtonWidget addItem = StyledButton.of(Text.literal("+ Add Item"), b -> {
+            Button addItem = StyledButton.of(Component.literal("+ Add Item"), b -> {
                this.startAddingItem();
                screen.rebuildFromTab();
             }).dimensions(x + w - 100, y - 4, 100, rowH).build();
@@ -359,8 +358,8 @@ public final class AutoDropperSubTab implements SuiteSubTab {
                      y + 4,
                      Math.min(w, 360),
                      12,
-                     Text.literal("No items in this group yet."),
-                     Tooltip.of(Text.literal("Use Add Item to choose an item and configure its drop settings."))
+                     Component.literal("No items in this group yet."),
+                     Tooltip.create(Component.literal("Use Add Item to choose an item and configure its drop settings."))
                   )
                );
             } else {
@@ -370,18 +369,18 @@ public final class AutoDropperSubTab implements SuiteSubTab {
                   AutoDropperSubTab.ItemChoice choice = choiceById(id);
                   Item item = choice == null ? null : choice.item;
                   String label = compactItemLabel(entry, choice);
-                  ItemEntryButtonWidget itemRow = new ItemEntryButtonWidget(x, y, w - 150, 22, item, Text.literal(label), () -> {
+                  ItemEntryButtonWidget itemRow = new ItemEntryButtonWidget(x, y, w - 150, 22, item, Component.literal(label), () -> {
                      this.startEditingItem(entry);
                      screen.rebuildFromTab();
                   });
-                  itemRow.setTooltip(Tooltip.of(Text.literal(itemTooltip(entry, choice))));
+                  itemRow.setTooltip(Tooltip.create(Component.literal(itemTooltip(entry, choice))));
                   screen.addContentWidget(itemRow);
-                  screen.addContentWidget(StyledButton.of(Text.literal("Edit"), b -> {
+                  screen.addContentWidget(StyledButton.of(Component.literal("Edit"), b -> {
                      this.startEditingItem(entry);
                      screen.rebuildFromTab();
                   }).dimensions(x + w - 144, y + 1, 64, rowH).build());
                   QolConfig.AutoDropGroupItem removeEntry = entry;
-                  screen.addContentWidget(StyledButton.of(Text.literal("Remove"), b -> {
+                  screen.addContentWidget(StyledButton.of(Component.literal("Remove"), b -> {
                      group.items.remove(removeEntry);
                      SuiteConfig.INSTANCE.markDirty();
                      ConfigIO.saveIfDirty();
@@ -397,31 +396,31 @@ public final class AutoDropperSubTab implements SuiteSubTab {
    private void addGroupImportEditor(SuiteSettingsScreen screen, QolConfig cfg, int x, int w, int y, int rowH) {
       screen.addContentWidget(
          new HoverLabelWidget(
-            x, y + 4, 220, 12, Text.literal("Import AutoDropper Group"), Tooltip.of(Text.literal("Paste a BDROP1 share code from another player."))
+            x, y + 4, 220, 12, Component.literal("Import AutoDropper Group"), Tooltip.create(Component.literal("Paste a BDROP1 share code from another player."))
          )
       );
-      ButtonWidget cancel = StyledButton.of(Text.literal("Cancel"), b -> {
+      Button cancel = StyledButton.of(Component.literal("Cancel"), b -> {
          this.importingGroupCode = false;
          this.groupImportCode = "";
          screen.rebuildFromTab();
       }).dimensions(x + w - 80, y, 80, rowH).build();
       screen.addContentWidget(cancel);
       y += 28;
-      TextFieldWidget field = new TextFieldWidget(screen.getTextRenderer(), x, y, w, rowH, Text.empty());
+      EditBox field = new EditBox(screen.getFont(), x, y, w, rowH, Component.empty());
       field.setMaxLength(131072);
-      field.setText(this.groupImportCode);
-      field.setPlaceholder(Text.literal("Paste share code..."));
-      field.setChangedListener(s -> this.groupImportCode = s == null ? "" : s.trim());
+      field.setValue(this.groupImportCode);
+      field.setHint(Component.literal("Paste share code..."));
+      field.setResponder(s -> this.groupImportCode = s == null ? "" : s.trim());
       screen.addContentWidget(field);
       y += 28;
       if (this.hasGroupShareNotice()) {
          screen.addContentWidget(
-            new HoverLabelWidget(x, y + 2, Math.min(w, 360), 12, Text.literal(this.groupShareNotice), Tooltip.of(Text.literal(this.groupShareNotice)))
+            new HoverLabelWidget(x, y + 2, Math.min(w, 360), 12, Component.literal(this.groupShareNotice), Tooltip.create(Component.literal(this.groupShareNotice)))
          );
          y += 20;
       }
 
-      ButtonWidget importButton = StyledButton.of(Text.literal("Import Group"), b -> {
+      Button importButton = StyledButton.of(Component.literal("Import Group"), b -> {
          GroupShareCodec.ImportResult result = GroupShareCodec.importAutoDropGroup(cfg, this.groupImportCode);
          if (result.success()) {
             this.importingGroupCode = false;
@@ -446,21 +445,21 @@ public final class AutoDropperSubTab implements SuiteSubTab {
                y + 4,
                180,
                12,
-               Text.literal(this.editingOriginal == null ? "Add Item" : "Edit Item"),
-               Tooltip.of(Text.literal("Choose the item, then set the AutoDropper rules for this group entry."))
+               Component.literal(this.editingOriginal == null ? "Add Item" : "Edit Item"),
+               Tooltip.create(Component.literal("Choose the item, then set the AutoDropper rules for this group entry."))
             )
          );
-         ButtonWidget back = StyledButton.of(Text.literal("Back"), b -> {
+         Button back = StyledButton.of(Component.literal("Back"), b -> {
             this.closeItemEditor();
             screen.rebuildFromTab();
          }).dimensions(x + w - 74, y, 74, rowH).build();
          screen.addContentWidget(back);
          y += 28;
-         TextFieldWidget search = new TextFieldWidget(screen.getTextRenderer(), x, y, w, rowH, Text.empty());
+         EditBox search = new EditBox(screen.getFont(), x, y, w, rowH, Component.empty());
          search.setMaxLength(80);
-         search.setText(this.itemEditorSearch);
-         search.setPlaceholder(Text.literal("Search items..."));
-         search.setChangedListener(s -> {
+         search.setValue(this.itemEditorSearch);
+         search.setHint(Component.literal("Search items..."));
+         search.setResponder(s -> {
             String nextSearch = s == null ? "" : s;
             if (!nextSearch.equals(this.itemEditorSearch)) {
                this.itemEditorSearch = nextSearch;
@@ -481,9 +480,9 @@ public final class AutoDropperSubTab implements SuiteSubTab {
                y + 4,
                Math.min(w, 260),
                12,
-               Text.literal("Items " + (filtered.isEmpty() ? 0 : start + 1) + "-" + end + " of " + filtered.size() + this.selectedItemCountLabel()),
-               Tooltip.of(
-                  Text.literal("Scroll this item list with the mouse wheel while hovering over it. Use the open space to the right to scroll the main page.")
+               Component.literal("Items " + (filtered.isEmpty() ? 0 : start + 1) + "-" + end + " of " + filtered.size() + this.selectedItemCountLabel()),
+               Tooltip.create(
+                  Component.literal("Scroll this item list with the mouse wheel while hovering over it. Use the open space to the right to scroll the main page.")
                )
             )
          );
@@ -496,7 +495,7 @@ public final class AutoDropperSubTab implements SuiteSubTab {
          for (int i = start; i < end; i++) {
             AutoDropperSubTab.ItemChoice choice = filtered.get(i);
             boolean selectedChoice = this.editingOriginal == null ? this.itemEditorSelectedIds.contains(choice.id) : choice.id.equals(draft.itemId);
-            ItemEntryButtonWidget row = new ItemEntryButtonWidget(x, y, w, 22, choice.item, Text.literal(choice.label), () -> {
+            ItemEntryButtonWidget row = new ItemEntryButtonWidget(x, y, w, 22, choice.item, Component.literal(choice.label), () -> {
                if (this.editingOriginal == null) {
                   this.toggleSelectedItem(choice.id);
                   draft.itemId = this.firstSelectedItemId();
@@ -508,13 +507,13 @@ public final class AutoDropperSubTab implements SuiteSubTab {
                screen.rebuildPreserveScroll();
             });
             row.setHighlighted(selectedChoice);
-            row.setTooltip(Tooltip.of(Text.literal(choice.id)));
+            row.setTooltip(Tooltip.create(Component.literal(choice.id)));
             screen.addContentWidget(row);
             y += 24;
          }
 
          if (filtered.isEmpty()) {
-            screen.addContentWidget(new HoverLabelWidget(x, y + 4, Math.min(w, 280), 12, Text.literal("No matching items."), null));
+            screen.addContentWidget(new HoverLabelWidget(x, y + 4, Math.min(w, 280), 12, Component.literal("No matching items."), null));
             y += 24;
          }
 
@@ -558,20 +557,20 @@ public final class AutoDropperSubTab implements SuiteSubTab {
                y + 2,
                190,
                12,
-               Text.literal("Advanced Item Data"),
-               Tooltip.of(
-                  Text.literal(
+               Component.literal("Advanced Item Data"),
+               Tooltip.create(
+                  Component.literal(
                      "Optional. Leave blank for normal items. Use only when you need this entry to match special item data, such as a custom name or component text."
                   )
                )
             )
          );
          y += 16;
-         TextFieldWidget component = new TextFieldWidget(screen.getTextRenderer(), x, y, w, rowH, Text.empty());
+         EditBox component = new EditBox(screen.getFont(), x, y, w, rowH, Component.empty());
          component.setMaxLength(160);
-         component.setText(draft.componentFilter == null ? "" : draft.componentFilter);
-         component.setPlaceholder(Text.literal("leave blank unless this item needs special matching"));
-         component.setChangedListener(s -> {
+         component.setValue(draft.componentFilter == null ? "" : draft.componentFilter);
+         component.setHint(Component.literal("leave blank unless this item needs special matching"));
+         component.setResponder(s -> {
             draft.componentFilter = s == null ? "" : s;
             SuiteConfig.INSTANCE.markDirty();
          });
@@ -579,7 +578,7 @@ public final class AutoDropperSubTab implements SuiteSubTab {
          y += 30;
          int saveW = 124;
          int removeW = 86;
-         ButtonWidget save = StyledButton.of(Text.literal(this.addItemSaveLabel()), b -> {
+         Button save = StyledButton.of(Component.literal(this.addItemSaveLabel()), b -> {
             this.saveItemEditor(group);
             SuiteConfig.INSTANCE.markDirty();
             ConfigIO.saveIfDirty();
@@ -588,7 +587,7 @@ public final class AutoDropperSubTab implements SuiteSubTab {
          save.active = this.editingOriginal == null ? !this.itemEditorSelectedIds.isEmpty() : draft.itemId != null && !draft.itemId.isBlank();
          screen.addContentWidget(save);
          if (this.editingOriginal != null) {
-            ButtonWidget remove = StyledButton.of(Text.literal("Remove"), b -> {
+            Button remove = StyledButton.of(Component.literal("Remove"), b -> {
                group.items.remove(this.editingOriginal);
                this.closeItemEditor();
                SuiteConfig.INSTANCE.markDirty();
@@ -629,9 +628,9 @@ public final class AutoDropperSubTab implements SuiteSubTab {
    }
 
    private static void copyToClipboard(String value) {
-      MinecraftClient client = MinecraftClient.getInstance();
-      if (client != null && client.keyboard != null && value != null) {
-         client.keyboard.setClipboard(value);
+      Minecraft client = Minecraft.getInstance();
+      if (client != null && client.keyboardHandler != null && value != null) {
+         client.keyboardHandler.setClipboard(value);
       }
    }
 
@@ -813,28 +812,28 @@ public final class AutoDropperSubTab implements SuiteSubTab {
    }
 
    private int addToggleRow(SuiteSettingsScreen screen, int x, int w, int y, String label, boolean enabled, String tooltip, Runnable onPress) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      ButtonWidget button = StyledButton.of(Text.literal(enabled ? "ON" : "OFF"), b -> onPress.run()).dimensions(x + w - 80, y, 80, 20).build();
-      button.setTooltip(Tooltip.of(Text.literal(tooltip)));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      Button button = StyledButton.of(Component.literal(enabled ? "ON" : "OFF"), b -> onPress.run()).dimensions(x + w - 80, y, 80, 20).build();
+      button.setTooltip(Tooltip.create(Component.literal(tooltip)));
       screen.addContentWidget(button);
       return y + 28;
    }
 
    private int addButtonRow(SuiteSettingsScreen screen, int x, int w, int y, String label, String buttonText, String tooltip, Runnable onPress) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      ButtonWidget button = StyledButton.of(Text.literal(buttonText), b -> onPress.run()).dimensions(x + w - 100, y, 100, 20).build();
-      button.setTooltip(Tooltip.of(Text.literal(tooltip)));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      Button button = StyledButton.of(Component.literal(buttonText), b -> onPress.run()).dimensions(x + w - 100, y, 100, 20).build();
+      button.setTooltip(Tooltip.create(Component.literal(tooltip)));
       screen.addContentWidget(button);
       return y + 28;
    }
 
    private int addIntField(SuiteSettingsScreen screen, int x, int w, int y, String label, int value, String tooltip, AutoDropperSubTab.IntSetter setter) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 2, Math.min(w, 180), 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 2, Math.min(w, 180), 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
       y += 16;
-      TextFieldWidget field = new TextFieldWidget(screen.getTextRenderer(), x, y, w, 20, Text.empty());
+      EditBox field = new EditBox(screen.getFont(), x, y, w, 20, Component.empty());
       field.setMaxLength(8);
-      field.setText(String.valueOf(value));
-      field.setChangedListener(s -> {
+      field.setValue(String.valueOf(value));
+      field.setResponder(s -> {
          try {
             setter.set(Integer.parseInt(s != null && !s.isBlank() ? s.trim() : "0"));
             SuiteConfig.INSTANCE.markDirty();
@@ -919,12 +918,11 @@ public final class AutoDropperSubTab implements SuiteSubTab {
    private static List<AutoDropperSubTab.ItemChoice> buildItemChoices() {
       List<AutoDropperSubTab.ItemChoice> out = new ArrayList<>();
 
-      for (Item item : Registries.ITEM) {
-         Identifier id = Registries.ITEM.getId(item);
+      for (Item item : BuiltInRegistries.ITEM) {
+         Identifier id = BuiltInRegistries.ITEM.getKey(item);
          if (id != null) {
-            ItemStack stack = new ItemStack(item);
-            if (!stack.isEmpty()) {
-               String label = stack.getName().getString();
+            if (item != net.minecraft.world.item.Items.AIR) {
+               String label = Component.translatable(item.getDescriptionId()).getString(); // not an ItemStack: those can't be built before a world is loaded
                out.add(new AutoDropperSubTab.ItemChoice(item, id.toString(), label != null && !label.isBlank() ? label : id.toString()));
             }
          }

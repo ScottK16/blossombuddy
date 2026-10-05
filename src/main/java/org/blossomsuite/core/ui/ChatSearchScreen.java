@@ -1,15 +1,17 @@
 package org.blossomsuite.core.ui;
 
 import java.util.List;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import java.util.stream.Collectors;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import org.blossomsuite.core.chat.ChatSearchHighlight;
 import org.blossomsuite.core.chat.ChatTimestampFormat;
 import org.blossomsuite.core.chat.MainChatLog;
@@ -27,7 +29,7 @@ public final class ChatSearchScreen extends Screen {
 
    private final Screen parent;
    private final String initialQuery;
-   private TextFieldWidget field;
+   private EditBox field;
    private List<MainChatLog.Line> results = List.of();
    private int scroll = 0;
    private long copiedAt = -1L;
@@ -38,40 +40,40 @@ public final class ChatSearchScreen extends Screen {
    }
 
    public ChatSearchScreen(Screen parent, String initialQuery) {
-      super(Text.literal("Search Chat"));
+      super(Component.literal("Search Chat"));
       this.parent = parent;
       this.initialQuery = initialQuery == null ? "" : initialQuery;
    }
 
    @Override
    protected void init() {
-      this.field = new TextFieldWidget(this.textRenderer, this.width / 2 - 150, 16, 300, 20, Text.literal("Search"));
+      this.field = new EditBox(this.font, this.width / 2 - 150, 16, 300, 20, Component.literal("Search"));
       this.field.setMaxLength(200);
-      this.field.setPlaceholder(Text.literal("Search main chat: a name or any word..."));
-      this.field.setText(this.initialQuery);
-      this.field.setChangedListener(s -> {
+      this.field.setHint(Component.literal("Search main chat: a name or any word..."));
+      this.field.setValue(this.initialQuery);
+      this.field.setResponder(s -> {
          this.results = MainChatLog.INSTANCE.search(s);
          this.scroll = 0;
       });
-      this.addDrawableChild(this.field);
+      this.addRenderableWidget(this.field);
       this.setInitialFocus(this.field);
       this.results = MainChatLog.INSTANCE.search(this.initialQuery);
 
       int by = this.height - 24;
-      this.addDrawableChild(StyledButton.of(Text.literal("Copy shown"), b -> this.copyShown()).dimensions(this.width / 2 - 214, by, 140, 20).build());
-      this.addDrawableChild(StyledButton.of(Text.literal("Copy last 200"), b -> this.copyRecent()).dimensions(this.width / 2 - 70, by, 140, 20).build());
-      this.addDrawableChild(StyledButton.of(Text.literal("Done"), b -> this.close()).dimensions(this.width / 2 + 74, by, 140, 20).build());
+      this.addRenderableWidget(StyledButton.of(Component.literal("Copy shown"), b -> this.copyShown()).dimensions(this.width / 2 - 214, by, 140, 20).build());
+      this.addRenderableWidget(StyledButton.of(Component.literal("Copy last 200"), b -> this.copyRecent()).dimensions(this.width / 2 - 70, by, 140, 20).build());
+      this.addRenderableWidget(StyledButton.of(Component.literal("Done"), b -> this.onClose()).dimensions(this.width / 2 + 74, by, 140, 20).build());
    }
 
    @Override
-   public void close() {
-      if (this.client != null) {
-         this.client.setScreen(this.parent);
+   public void onClose() {
+      if (this.minecraft != null) {
+         this.minecraft.setScreen(this.parent);
       }
    }
 
    @Override
-   public boolean shouldPause() {
+   public boolean isPauseScreen() {
       return false;
    }
 
@@ -88,9 +90,9 @@ public final class ChatSearchScreen extends Screen {
    }
 
    private void copyToClipboard(String text, String what) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (mc.keyboard != null) {
-         mc.keyboard.setClipboard(text.isEmpty() ? " " : text);
+      Minecraft mc = Minecraft.getInstance();
+      if (mc.keyboardHandler != null) {
+         mc.keyboardHandler.setClipboard(text.isEmpty() ? " " : text);
       }
 
       this.copiedAt = System.currentTimeMillis();
@@ -111,15 +113,15 @@ public final class ChatSearchScreen extends Screen {
    }
 
    @Override
-   public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-      super.render(ctx, mouseX, mouseY, delta);
-      TextRenderer tr = this.textRenderer;
-      ctx.drawCenteredTextWithShadow(tr, Text.literal("Search Chat").formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD), this.width / 2, 4, -1);
+   public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+      super.extractRenderState(ctx, mouseX, mouseY, delta);
+      Font tr = this.font;
+      ctx.centeredText(tr, Component.literal("Search Chat").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD), this.width / 2, 4, -1);
 
-      String query = this.field.getText();
+      String query = this.field.getValue();
       String count = this.results.isEmpty() ? "No matches"
          : this.results.size() + (this.results.size() == 1 ? " match" : " matches") + (this.results.size() >= MainChatLog.MAX_RESULTS ? " (showing the newest " + MainChatLog.MAX_RESULTS + ")" : "");
-      ctx.drawCenteredTextWithShadow(tr, Text.literal(count).formatted(Formatting.GRAY), this.width / 2, TOP - 12, -1);
+      ctx.centeredText(tr, Component.literal(count).withStyle(ChatFormatting.GRAY), this.width / 2, TOP - 12, -1);
 
       int rows = this.maxRows();
       this.scroll = Math.max(0, Math.min(this.scroll, Math.max(0, this.results.size() - rows)));
@@ -135,36 +137,39 @@ public final class ChatSearchScreen extends Screen {
             hoveredLine = line;
          }
 
-         ctx.drawText(tr, this.highlighted(line.plain(), query), x, y, hovered ? -1 : 0xFFC9BFD8, false);
+         ctx.text(tr, this.highlighted(line.plain(), query), x, y, hovered ? -1 : 0xFFC9BFD8, false);
       }
 
       if (hoveredLine != null) {
-         ctx.drawTooltip(tr, Text.literal(ChatTimestampFormat.format(hoveredLine.atMs(), System.currentTimeMillis())).formatted(Formatting.GRAY), mouseX, mouseY);
+         ctx.setTooltipForNextFrame(tr, Component.literal(ChatTimestampFormat.format(hoveredLine.atMs(), System.currentTimeMillis())).withStyle(ChatFormatting.GRAY), mouseX, mouseY);
       }
 
       if (this.results.isEmpty() && !query.isBlank()) {
-         ctx.drawCenteredTextWithShadow(tr, Text.literal("Nothing found. Only chat you've already seen since joining can be searched.").formatted(Formatting.DARK_GRAY), this.width / 2, TOP + 8, -1);
+         ctx.centeredText(tr, Component.literal("Nothing found. Only chat you've already seen since joining can be searched.").withStyle(ChatFormatting.DARK_GRAY), this.width / 2, TOP + 8, -1);
       }
 
       if (this.copiedAt > 0 && System.currentTimeMillis() - this.copiedAt < 1500L) {
-         ctx.drawCenteredTextWithShadow(tr, Text.literal("Copied " + this.copiedWhat + " to the clipboard.").formatted(Formatting.GREEN), this.width / 2, this.height - 44, -1);
+         ctx.centeredText(tr, Component.literal("Copied " + this.copiedWhat + " to the clipboard.").withStyle(ChatFormatting.GREEN), this.width / 2, this.height - 44, -1);
       }
    }
 
-   private Text highlighted(String plain, String query) {
+   private Component highlighted(String plain, String query) {
       ChatSearchHighlight.Parts p = ChatSearchHighlight.split(plain, query);
       if (p.match().isEmpty()) {
-         return Text.literal(p.before());
+         return Component.literal(p.before());
       }
 
-      MutableText out = Text.literal(p.before());
-      out.append(Text.literal(p.match()).formatted(Formatting.YELLOW, Formatting.BOLD));
-      out.append(Text.literal(p.after()));
+      MutableComponent out = Component.literal(p.before());
+      out.append(Component.literal(p.match()).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
+      out.append(Component.literal(p.after()));
       return out;
    }
 
    @Override
-   public boolean mouseClicked(double mouseX, double mouseY, int button) {
+   public boolean mouseClicked(MouseButtonEvent inputEvent, boolean isDoubleClick) {
+      double mouseX = inputEvent.x();
+      double mouseY = inputEvent.y();
+      int button = inputEvent.button();
       if (button == 0) {
          int rows = this.maxRows();
          int x = this.listX();
@@ -178,7 +183,7 @@ public final class ChatSearchScreen extends Screen {
          }
       }
 
-      return super.mouseClicked(mouseX, mouseY, button);
+      return super.mouseClicked(inputEvent, isDoubleClick);
    }
 
    @Override
@@ -192,12 +197,15 @@ public final class ChatSearchScreen extends Screen {
    }
 
    @Override
-   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+   public boolean keyPressed(KeyEvent inputEvent) {
+      int keyCode = inputEvent.key();
+      int scanCode = inputEvent.scancode();
+      int modifiers = inputEvent.modifiers();
       if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-         this.close();
+         this.onClose();
          return true;
       }
 
-      return super.keyPressed(keyCode, scanCode, modifiers);
+      return super.keyPressed(inputEvent);
    }
 }

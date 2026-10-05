@@ -12,10 +12,10 @@ import org.blossomsuite.core.xchat.XChatClient;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.chat.SecondaryChat;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.cooldowns.CooldownRules;
@@ -226,7 +226,7 @@ public final class BuddyTabs {
       @Override
       void rows(SuiteSettingsScreen screen, int x, int w, int y) {
          FeatureConfig.SlotLocks locks = FeatureConfig.INSTANCE.slotLocks;
-         y = UiRows.button(screen, x, w, y, "Locked slots", "Edit", "Pick which inventory and hotbar slots are locked.", () -> MinecraftClient.getInstance().setScreen(new InventorySlotLocksScreen(screen)));
+         y = UiRows.button(screen, x, w, y, "Locked slots", "Edit", "Pick which inventory and hotbar slots are locked.", () -> Minecraft.getInstance().setScreen(new InventorySlotLocksScreen(screen)));
          y = UiRows.toggle(screen, x, w, y, "Block dropping (Q)", locks.blockDrop, "The drop key does nothing while a locked slot is selected.", () -> {
             locks.blockDrop = !locks.blockDrop;
             FeatureConfig.markDirty();
@@ -292,12 +292,12 @@ public final class BuddyTabs {
          });
          y = UiRows.note(screen, x, w, y, "Usage counting sends a random ID only. Your name is only stored if you turn the option above on.");
 
-         screen.addContentWidget(new HoverLabelWidget(x, y + 4, w, 12, Text.literal("Relay address (advanced)"), Tooltip.of(Text.literal("Leave empty to use the built-in relay. Set this only to use your own."))));
-         TextFieldWidget field = new TextFieldWidget(screen.getTextRenderer(), x, y + 20, w, 20, Text.literal("Relay address"));
+         screen.addContentWidget(new HoverLabelWidget(x, y + 4, w, 12, Component.literal("Relay address (advanced)"), Tooltip.create(Component.literal("Leave empty to use the built-in relay. Set this only to use your own."))));
+         EditBox field = new EditBox(screen.getFont(), x, y + 20, w, 20, Component.literal("Relay address"));
          field.setMaxLength(200);
-         field.setText(relay.url);
-         field.setPlaceholder(Text.literal("empty = built-in"));
-         field.setChangedListener(s -> {
+         field.setValue(relay.url);
+         field.setHint(Component.literal("empty = built-in"));
+         field.setResponder(s -> {
             relay.url = s;
             FeatureConfig.markDirty();
             if (SuiteState.INSTANCE.http != null) {
@@ -359,7 +359,7 @@ public final class BuddyTabs {
             EmoteClient.INSTANCE.setEnabled(!em.enabled);
             screen.rebuildPreserveScroll();
          });
-         y = UiRows.button(screen, x, w, y, "   Hotkeys (emote menu, stop, staff chat...)", "Set keys", "Set the BlossomBuddy keys here, even if your game's controls menu doesn't list them.", () -> MinecraftClient.getInstance().setScreen(new BuddyKeysScreen(screen)));
+         y = UiRows.button(screen, x, w, y, "   Hotkeys (emote menu, stop, staff chat...)", "Set keys", "Set the BlossomBuddy keys here, even if your game's controls menu doesn't list them.", () -> Minecraft.getInstance().setScreen(new BuddyKeysScreen(screen)));
          y = UiRows.toggle(screen, x, w, y, "   Show other players' emotes", em.showOthers, "Plays other BlossomBuddy players' emotes on their characters.", () -> {
             EmoteClient.INSTANCE.setShowOthers(!em.showOthers);
             screen.rebuildPreserveScroll();
@@ -550,7 +550,7 @@ public final class BuddyTabs {
 
       private static int filterBlock(SuiteSettingsScreen screen, int x, int w, int y, FeatureConfig.Chat chat, FeatureConfig.Filter f) {
          if (f.external) {
-            screen.addContentWidget(new HoverLabelWidget(x, y + 6, Math.max(60, w - 130), 12, Text.literal("Realms (cross-realm chat)"), Tooltip.of(Text.literal("Where cross-realm chat shows up. Turn it on under Cross-Realm Chat."))));
+            screen.addContentWidget(new HoverLabelWidget(x, y + 6, Math.max(60, w - 130), 12, Component.literal("Realms (cross-realm chat)"), Tooltip.create(Component.literal("Where cross-realm chat shows up. Turn it on under Cross-Realm Chat."))));
             screen.addContentWidget(flag(f.enabled, "Show tab", x + w - 120, y, 120, () -> {
                f.enabled = !f.enabled;
                FeatureConfig.markDirty();
@@ -560,20 +560,20 @@ public final class BuddyTabs {
          }
 
          int nameW = Math.max(70, w * 3 / 10);
-         TextFieldWidget name = new TextFieldWidget(screen.getTextRenderer(), x, y, nameW, 20, Text.literal("Filter name"));
+         EditBox name = new EditBox(screen.getFont(), x, y, nameW, 20, Component.literal("Filter name"));
          name.setMaxLength(24);
-         name.setText(f.name);
-         name.setChangedListener(s -> {
+         name.setValue(f.name);
+         name.setResponder(s -> {
             f.name = s;
             FeatureConfig.markDirty();
          });
          screen.addContentWidget(name);
 
-         TextFieldWidget pattern = new TextFieldWidget(screen.getTextRenderer(), x + nameW + 6, y, w - nameW - 6, 20, Text.literal("Words to match"));
+         EditBox pattern = new EditBox(screen.getFont(), x + nameW + 6, y, w - nameW - 6, 20, Component.literal("Words to match"));
          pattern.setMaxLength(160);
-         pattern.setText(f.pattern);
-         pattern.setPlaceholder(Text.literal("words separated by |"));
-         pattern.setChangedListener(s -> {
+         pattern.setValue(f.pattern);
+         pattern.setHint(Component.literal("words separated by |"));
+         pattern.setResponder(s -> {
             f.pattern = s;
             FeatureConfig.markDirty();
          });
@@ -597,7 +597,7 @@ public final class BuddyTabs {
             FeatureConfig.markDirty();
             screen.rebuildPreserveScroll();
          }));
-         screen.addContentWidget(StyledButton.of(Text.literal("x"), b -> {
+         screen.addContentWidget(StyledButton.of(Component.literal("x"), b -> {
             chat.filters.remove(f);
             if (chat.selected >= chat.filters.size()) {
                chat.selected = -1;
@@ -610,7 +610,7 @@ public final class BuddyTabs {
       }
 
       private static StyledButton flag(boolean on, String label, int x, int y, int w, Runnable press) {
-         return StyledButton.of(Text.literal(label + ": " + (on ? "ON" : "OFF")), b -> press.run()).dimensions(x, y, w, 20).build();
+         return StyledButton.of(Component.literal(label + ": " + (on ? "ON" : "OFF")), b -> press.run()).dimensions(x, y, w, 20).build();
       }
    }
 

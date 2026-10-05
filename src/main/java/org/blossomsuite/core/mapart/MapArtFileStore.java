@@ -8,7 +8,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.blossomsuite.core.util.JsonUtil;
 
 /**
@@ -21,7 +21,7 @@ public final class MapArtFileStore {
    }
 
    public static Path folder() {
-      return MinecraftClient.getInstance().runDirectory.toPath().resolve("blossombuddy-mapart");
+      return Minecraft.getInstance().gameDirectory.toPath().resolve("blossombuddy-mapart");
    }
 
    /** Makes the folder if it doesn't exist yet, so there's always somewhere to point a player at. */

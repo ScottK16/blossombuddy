@@ -1,19 +1,21 @@
 package org.blossomsuite.core.ui;
 
 import java.io.File;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import net.minecraft.util.Util;
 import org.blossomsuite.core.mapart.MapArtFileStore;
 import org.blossomsuite.core.mapart.MapArtModels;
@@ -44,7 +46,7 @@ public final class MapArtScreen extends Screen {
    private String schematicStatus = "";
 
    public MapArtScreen(Screen parent, String initialFile) {
-      super(Text.literal("Map Art"));
+      super(Component.literal("Map Art"));
       this.parent = parent;
       // reopening the screen (e.g. from the HUD) should show whatever is already loaded, not start blank
       this.loadedFile = MapArtState.INSTANCE.fileName();
@@ -60,36 +62,36 @@ public final class MapArtScreen extends Screen {
       MapArtFileStore.ensureFolder();
       this.refreshFiles();
 
-      this.addDrawableChild(StyledButton.of(Text.literal("Open Folder"), b -> this.openFolder()).dimensions(this.width / 2 - 180, 30, 110, 20).build());
-      this.addDrawableChild(StyledButton.of(Text.literal("Refresh"), b -> this.refreshFiles()).dimensions(this.width / 2 - 62, 30, 70, 20).build());
-      this.addDrawableChild(
-         StyledButton.of(Text.literal(this.browsing ? "Loaded" : "Browse Files"), b -> this.setBrowsing(!this.browsing))
+      this.addRenderableWidget(StyledButton.of(Component.literal("Open Folder"), b -> this.openFolder()).dimensions(this.width / 2 - 180, 30, 110, 20).build());
+      this.addRenderableWidget(StyledButton.of(Component.literal("Refresh"), b -> this.refreshFiles()).dimensions(this.width / 2 - 62, 30, 70, 20).build());
+      this.addRenderableWidget(
+         StyledButton.of(Component.literal(this.browsing ? "Loaded" : "Browse Files"), b -> this.setBrowsing(!this.browsing))
             .dimensions(this.width / 2 + 16, 30, 110, 20)
             .build()
       ).active = this.project != null;
-      this.addDrawableChild(StyledButton.of(Text.literal("Save Schematic"), b -> this.saveSchematic()).dimensions(this.width / 2 - 180, this.height - 28, 110, 20).build());
-      this.addDrawableChild(StyledButton.of(Text.literal("Done"), b -> this.close()).dimensions(this.width / 2 - 60, this.height - 28, 120, 20).build());
+      this.addRenderableWidget(StyledButton.of(Component.literal("Save Schematic"), b -> this.saveSchematic()).dimensions(this.width / 2 - 180, this.height - 28, 110, 20).build());
+      this.addRenderableWidget(StyledButton.of(Component.literal("Done"), b -> this.onClose()).dimensions(this.width / 2 - 60, this.height - 28, 120, 20).build());
    }
 
    @Override
-   public void close() {
-      if (this.client != null) {
-         this.client.setScreen(this.parent);
+   public void onClose() {
+      if (this.minecraft != null) {
+         this.minecraft.setScreen(this.parent);
       }
    }
 
    @Override
-   public boolean shouldPause() {
+   public boolean isPauseScreen() {
       return false;
    }
 
    private void setBrowsing(boolean browsing) {
       this.browsing = browsing;
-      this.clearAndInit();
+      this.rebuildWidgets();
    }
 
    private void openFolder() {
-      Util.getOperatingSystem().open(MapArtFileStore.folder());
+      Util.getPlatform().openPath(MapArtFileStore.folder());
    }
 
    private void refreshFiles() {
@@ -125,7 +127,7 @@ public final class MapArtScreen extends Screen {
       }
 
       Map<Integer, String> palette = SchematicWriter.paletteOf(this.project.materials);
-      NbtCompound nbt;
+      CompoundTag nbt;
       try {
          nbt = SchematicWriter.build(this.project.width, this.project.height, this.project.blocks, palette);
       } catch (IllegalArgumentException e) {
@@ -133,7 +135,7 @@ public final class MapArtScreen extends Screen {
          return;
       }
 
-      File runDir = MinecraftClient.getInstance().runDirectory;
+      File runDir = Minecraft.getInstance().gameDirectory;
       Path schematicsDir = runDir.toPath().resolve("schematics");
       String fileName = SchematicWriter.safeFileName(this.project.name, this.loadedFile) + ".nbt";
       Path target = schematicsDir.resolve(fileName);
@@ -179,10 +181,10 @@ public final class MapArtScreen extends Screen {
    }
 
    @Override
-   public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-      super.render(ctx, mouseX, mouseY, delta);
-      TextRenderer tr = this.textRenderer;
-      ctx.drawCenteredTextWithShadow(tr, Text.literal("Map Art").formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD), this.width / 2, 8, -1);
+   public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+      super.extractRenderState(ctx, mouseX, mouseY, delta);
+      Font tr = this.font;
+      ctx.centeredText(tr, Component.literal("Map Art").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD), this.width / 2, 8, -1);
 
       if (this.browsing) {
          this.renderFileList(ctx, tr, mouseX, mouseY);
@@ -190,13 +192,13 @@ public final class MapArtScreen extends Screen {
       }
 
       if (!this.error.isEmpty()) {
-         ctx.drawCenteredTextWithShadow(tr, Text.literal(this.error).formatted(Formatting.RED), this.width / 2, this.panelTop(), -1);
+         ctx.centeredText(tr, Component.literal(this.error).withStyle(ChatFormatting.RED), this.width / 2, this.panelTop(), -1);
       }
 
       if (this.project == null) {
          if (this.error.isEmpty()) {
-            ctx.drawCenteredTextWithShadow(
-               tr, Text.literal("Pick a design file to see the picture and block list here.").formatted(Formatting.DARK_GRAY), this.width / 2, this.panelTop(), -1
+            ctx.centeredText(
+               tr, Component.literal("Pick a design file to see the picture and block list here.").withStyle(ChatFormatting.DARK_GRAY), this.width / 2, this.panelTop(), -1
             );
          }
 
@@ -208,24 +210,24 @@ public final class MapArtScreen extends Screen {
       this.renderMaterials(ctx, tr, mouseX, mouseY);
 
       if (!this.schematicStatus.isEmpty()) {
-         ctx.drawCenteredTextWithShadow(tr, Text.literal(this.schematicStatus).formatted(Formatting.GRAY), this.width / 2, this.height - 40, -1);
+         ctx.centeredText(tr, Component.literal(this.schematicStatus).withStyle(ChatFormatting.GRAY), this.width / 2, this.height - 40, -1);
       }
    }
 
-   private void renderFileList(DrawContext ctx, TextRenderer tr, int mouseX, int mouseY) {
+   private void renderFileList(GuiGraphicsExtractor ctx, Font tr, int mouseX, int mouseY) {
       int x = this.fileListX();
       int y = this.panelTop();
       int w = this.fileListWidth();
 
       if (!this.error.isEmpty()) {
-         ctx.drawCenteredTextWithShadow(tr, Text.literal(this.error).formatted(Formatting.RED), this.width / 2, y, -1);
+         ctx.centeredText(tr, Component.literal(this.error).withStyle(ChatFormatting.RED), this.width / 2, y, -1);
          y += 16;
       }
 
       if (this.files.isEmpty()) {
-         ctx.drawCenteredTextWithShadow(tr, Text.literal("No design files yet.").formatted(Formatting.DARK_GRAY), this.width / 2, y, -1);
-         ctx.drawCenteredTextWithShadow(
-            tr, Text.literal("Download one from the website and drop it into blossombuddy-mapart, then press Refresh.").formatted(Formatting.DARK_GRAY), this.width / 2, y + 12, -1
+         ctx.centeredText(tr, Component.literal("No design files yet.").withStyle(ChatFormatting.DARK_GRAY), this.width / 2, y, -1);
+         ctx.centeredText(
+            tr, Component.literal("Download one from the website and drop it into blossombuddy-mapart, then press Refresh.").withStyle(ChatFormatting.DARK_GRAY), this.width / 2, y + 12, -1
          );
          return;
       }
@@ -239,16 +241,16 @@ public final class MapArtScreen extends Screen {
             ctx.fill(x - 4, rowY - 1, x + w, rowY + ROW_H - 1, 0x33FFFFFF);
          }
 
-         ctx.drawText(tr, Text.literal(name), x, rowY, hovered ? -1 : Theme.TEXT_DIM, false);
+         ctx.text(tr, Component.literal(name), x, rowY, hovered ? -1 : Theme.TEXT_DIM, false);
       }
 
       int extra = this.files.size() - this.fileScroll - shown;
       if (extra > 0) {
-         ctx.drawTextWithShadow(tr, Text.literal("+" + extra + " more (scroll)").formatted(Formatting.DARK_GRAY), x, y + shown * ROW_H + 4, -1);
+         ctx.text(tr, Component.literal("+" + extra + " more (scroll)").withStyle(ChatFormatting.DARK_GRAY), x, y + shown * ROW_H + 4, -1);
       }
    }
 
-   private void renderThumbnail(DrawContext ctx) {
+   private void renderThumbnail(GuiGraphicsExtractor ctx) {
       int x = this.thumbBoxX();
       int y = this.panelTop();
       Theme.roundBox(ctx, x, y, x + THUMB_BOX, y + THUMB_BOX, 4, Theme.CONTROL_EDGE, Theme.CONTROL_OFF);
@@ -256,27 +258,27 @@ public final class MapArtScreen extends Screen {
       int tw = MapArtState.INSTANCE.thumbnailWidth();
       int th = MapArtState.INSTANCE.thumbnailHeight();
       if (thumbnailId != null && tw > 0 && th > 0) {
-         ctx.drawTexture(RenderPipelines.GUI_TEXTURED, thumbnailId, x + 2, y + 2, 0.0F, 0.0F, THUMB_BOX - 4, THUMB_BOX - 4, tw, th, tw, th);
+         ctx.blit(RenderPipelines.GUI_TEXTURED, thumbnailId, x + 2, y + 2, 0.0F, 0.0F, THUMB_BOX - 4, THUMB_BOX - 4, tw, th, tw, th);
       } else {
-         ctx.drawCenteredTextWithShadow(this.textRenderer, Text.literal("(no preview)").formatted(Formatting.DARK_GRAY), x + THUMB_BOX / 2, y + THUMB_BOX / 2 - 4, -1);
+         ctx.centeredText(this.font, Component.literal("(no preview)").withStyle(ChatFormatting.DARK_GRAY), x + THUMB_BOX / 2, y + THUMB_BOX / 2 - 4, -1);
       }
    }
 
-   private void renderHeader(DrawContext ctx, TextRenderer tr) {
+   private void renderHeader(GuiGraphicsExtractor ctx, Font tr) {
       int x = this.thumbBoxX();
       int y = this.panelTop() + THUMB_BOX + 8;
       String name = this.project.name == null || this.project.name.isBlank() ? "Untitled design" : this.project.name;
-      ctx.drawTextWithShadow(tr, Text.literal(name).formatted(Formatting.WHITE, Formatting.BOLD), x, y, -1);
+      ctx.text(tr, Component.literal(name).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD), x, y, -1);
 
       int mapsX = (this.project.width + 127) / 128;
       int mapsY = (this.project.height + 127) / 128;
       int totalMaps = mapsX * mapsY;
       String dims = this.project.width + " x " + this.project.height + " blocks (" + totalMaps + " map" + (totalMaps == 1 ? "" : "s") + ")";
-      ctx.drawTextWithShadow(tr, Text.literal(dims).formatted(Formatting.GRAY), x, y + 11, -1);
-      ctx.drawTextWithShadow(tr, Text.literal("File: " + this.loadedFile).formatted(Formatting.DARK_GRAY), x, y + 22, -1);
+      ctx.text(tr, Component.literal(dims).withStyle(ChatFormatting.GRAY), x, y + 11, -1);
+      ctx.text(tr, Component.literal("File: " + this.loadedFile).withStyle(ChatFormatting.DARK_GRAY), x, y + 22, -1);
    }
 
-   private void renderMaterials(DrawContext ctx, TextRenderer tr, int mouseX, int mouseY) {
+   private void renderMaterials(GuiGraphicsExtractor ctx, Font tr, int mouseX, int mouseY) {
       List<MapArtModels.Material> materials = this.project.materials;
       int x = this.materialsX();
       int y = this.panelTop();
@@ -287,7 +289,7 @@ public final class MapArtScreen extends Screen {
          totalBlocks += m.count;
       }
 
-      ctx.drawTextWithShadow(tr, Text.literal(materials.size() + " block types, " + totalBlocks + " total").formatted(Formatting.GRAY), x, y - 11, -1);
+      ctx.text(tr, Component.literal(materials.size() + " block types, " + totalBlocks + " total").withStyle(ChatFormatting.GRAY), x, y - 11, -1);
 
       int rows = this.maxRows();
       this.scroll = Math.max(0, Math.min(this.scroll, Math.max(0, materials.size() - rows)));
@@ -300,12 +302,15 @@ public final class MapArtScreen extends Screen {
          }
 
          String line = m.count + "x " + m.block;
-         ctx.drawText(tr, Text.literal(line), x, rowY, hovered ? -1 : Theme.TEXT_DIM, false);
+         ctx.text(tr, Component.literal(line), x, rowY, hovered ? -1 : Theme.TEXT_DIM, false);
       }
    }
 
    @Override
-   public boolean mouseClicked(double mouseX, double mouseY, int button) {
+   public boolean mouseClicked(MouseButtonEvent inputEvent, boolean isDoubleClick) {
+      double mouseX = inputEvent.x();
+      double mouseY = inputEvent.y();
+      int button = inputEvent.button();
       if (this.browsing && button == 0 && !this.files.isEmpty()) {
          int x = this.fileListX();
          int y = this.panelTop();
@@ -320,7 +325,7 @@ public final class MapArtScreen extends Screen {
          }
       }
 
-      return super.mouseClicked(mouseX, mouseY, button);
+      return super.mouseClicked(inputEvent, isDoubleClick);
    }
 
    @Override
@@ -343,12 +348,15 @@ public final class MapArtScreen extends Screen {
    }
 
    @Override
-   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+   public boolean keyPressed(KeyEvent inputEvent) {
+      int keyCode = inputEvent.key();
+      int scanCode = inputEvent.scancode();
+      int modifiers = inputEvent.modifiers();
       if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-         this.close();
+         this.onClose();
          return true;
       }
 
-      return super.keyPressed(keyCode, scanCode, modifiers);
+      return super.keyPressed(inputEvent);
    }
 }

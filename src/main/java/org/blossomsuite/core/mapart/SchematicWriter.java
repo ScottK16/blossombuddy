@@ -2,11 +2,10 @@ package org.blossomsuite.core.mapart;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtInt;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtString;
-
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 /**
  * Builds a vanilla Minecraft structure NBT (the same format a Structure Block saves - {@code DataVersion}, {@code size},
  * a block-state {@code palette} and a flat {@code blocks} list) from a map art design. This is deliberately the
@@ -18,8 +17,8 @@ import net.minecraft.nbt.NbtString;
  * <p>The whole design is one layer thick (Y stays 0 throughout) - map art is always flat.
  */
 public final class SchematicWriter {
-   /** Minecraft 1.21.8's data version, read straight from that version's own version.json rather than guessed. */
-   public static final int DATA_VERSION = 4440;
+   /** Minecraft 26.1.2's data version, read straight from that version's own version.json rather than guessed. */
+   public static final int DATA_VERSION = 4790;
 
    private SchematicWriter() {
    }
@@ -29,39 +28,39 @@ public final class SchematicWriter {
     * @param colorIdToBlockId a colour id's real block id (e.g. "minecraft:white_wool"); an id with no entry falls back to white wool
     * rather than failing the whole schematic over one bad lookup
     */
-   public static NbtCompound build(int width, int height, int[] blocks, Map<Integer, String> colorIdToBlockId) {
+   public static CompoundTag build(int width, int height, int[] blocks, Map<Integer, String> colorIdToBlockId) {
       if (width <= 0 || height <= 0 || blocks == null || blocks.length != width * height) {
          throw new IllegalArgumentException("blocks must be a width*height grid");
       }
 
-      NbtCompound root = new NbtCompound();
+      CompoundTag root = new CompoundTag();
       root.putInt("DataVersion", DATA_VERSION);
 
-      NbtList size = new NbtList();
-      size.add(NbtInt.of(width));
-      size.add(NbtInt.of(1));
-      size.add(NbtInt.of(height));
+      ListTag size = new ListTag();
+      size.add(IntTag.valueOf(width));
+      size.add(IntTag.valueOf(1));
+      size.add(IntTag.valueOf(height));
       root.put("size", size);
 
-      NbtList palette = new NbtList();
-      NbtList blockList = new NbtList();
+      ListTag palette = new ListTag();
+      ListTag blockList = new ListTag();
       Map<String, Integer> paletteIndex = new LinkedHashMap<>();
 
       for (int z = 0; z < height; z++) {
          for (int x = 0; x < width; x++) {
             String blockId = colorIdToBlockId.getOrDefault(blocks[z * width + x], "minecraft:white_wool");
             int index = paletteIndex.computeIfAbsent(blockId, id -> {
-               NbtCompound entry = new NbtCompound();
+               CompoundTag entry = new CompoundTag();
                entry.putString("Name", id);
                palette.add(entry);
                return palette.size() - 1;
             });
 
-            NbtCompound blockEntry = new NbtCompound();
-            NbtList pos = new NbtList();
-            pos.add(NbtInt.of(x));
-            pos.add(NbtInt.of(0));
-            pos.add(NbtInt.of(z));
+            CompoundTag blockEntry = new CompoundTag();
+            ListTag pos = new ListTag();
+            pos.add(IntTag.valueOf(x));
+            pos.add(IntTag.valueOf(0));
+            pos.add(IntTag.valueOf(z));
             blockEntry.put("pos", pos);
             blockEntry.putInt("state", index);
             blockList.add(blockEntry);
@@ -70,7 +69,7 @@ public final class SchematicWriter {
 
       root.put("palette", palette);
       root.put("blocks", blockList);
-      root.put("entities", new NbtList());
+      root.put("entities", new ListTag());
       return root;
    }
 

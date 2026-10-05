@@ -4,11 +4,10 @@ import org.blossomsuite.core.SuiteRuntime;
 import org.blossomsuite.core.config.SuiteConfig;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 public final class WorldGate {
    private static Runnable resetHook = () -> {};
-   private static BiConsumer<String, MinecraftClient> realmSetHook = (server, client) -> {};
+   private static BiConsumer<String, Minecraft> realmSetHook = (server, client) -> {};
    private static Consumer<String> activeLogger = server -> {};
    private static Runnable becameActiveHook = () -> {};
    private static volatile boolean active = false;
@@ -27,7 +26,7 @@ public final class WorldGate {
       resetHook = hook != null ? hook : () -> {};
    }
 
-   public static void setRealmSetHook(BiConsumer<String, MinecraftClient> hook) {
+   public static void setRealmSetHook(BiConsumer<String, Minecraft> hook) {
       realmSetHook = hook != null ? hook : (server, client) -> {};
    }
 
@@ -72,8 +71,8 @@ public final class WorldGate {
             noteDetectedRealm(server, System.currentTimeMillis());
             Server = SuiteRuntime.profile().resolveServerKey(server);
             activeLogger.accept(Server);
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client != null && client.getNetworkHandler() != null) {
+            Minecraft client = Minecraft.getInstance();
+            if (client != null && client.getConnection() != null) {
                realmSetHook.accept(Server, client);
             }
 

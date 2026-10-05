@@ -1,13 +1,13 @@
 package org.blossomsuite.core.ui;
 
 import java.util.function.IntConsumer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.Text;
-
-public final class SubTabScrollBarWidget extends ClickableWidget {
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.network.chat.Component;
+public final class SubTabScrollBarWidget extends AbstractWidget {
    private final int totalTabs;
    private final int visibleTabs;
    private int startIndex;
@@ -16,7 +16,7 @@ public final class SubTabScrollBarWidget extends ClickableWidget {
    private double dragOffsetX = 0.0;
 
    public SubTabScrollBarWidget(int x, int y, int w, int h, int totalTabs, int visibleTabs, int startIndex, IntConsumer onChange) {
-      super(x, y, w, h, Text.empty());
+      super(x, y, w, h, Component.empty());
       this.totalTabs = Math.max(0, totalTabs);
       this.visibleTabs = Math.max(1, visibleTabs);
       this.startIndex = Math.max(0, startIndex);
@@ -80,7 +80,9 @@ public final class SubTabScrollBarWidget extends ClickableWidget {
    }
 
    @Override
-   public void onClick(double mouseX, double mouseY) {
+   public void onClick(MouseButtonEvent inputEvent, boolean isDoubleClick) {
+      double mouseX = inputEvent.x();
+      double mouseY = inputEvent.y();
       int tx = this.thumbX();
       int tw = this.thumbW();
       if (mouseX >= tx && mouseX <= tx + tw) {
@@ -102,7 +104,10 @@ public final class SubTabScrollBarWidget extends ClickableWidget {
    }
 
    @Override
-   public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+   public boolean mouseDragged(MouseButtonEvent inputEvent, double deltaX, double deltaY) {
+      double mouseX = inputEvent.x();
+      double mouseY = inputEvent.y();
+      int button = inputEvent.button();
       if (!this.dragging) {
          return false;
       }
@@ -116,33 +121,36 @@ public final class SubTabScrollBarWidget extends ClickableWidget {
    }
 
    @Override
-   public boolean mouseReleased(double mouseX, double mouseY, int button) {
+   public boolean mouseReleased(MouseButtonEvent inputEvent) {
+      double mouseX = inputEvent.x();
+      double mouseY = inputEvent.y();
+      int button = inputEvent.button();
       if (this.dragging && button == 0) {
          this.dragging = false;
          return true;
       } else {
-         return super.mouseReleased(mouseX, mouseY, button);
+         return super.mouseReleased(inputEvent);
       }
    }
 
    @Override
-   protected void appendClickableNarrations(NarrationMessageBuilder builder) {
+   protected void updateWidgetNarration(NarrationElementOutput builder) {
    }
 
    @Override
-   protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+   protected void extractWidgetRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
       int x1 = this.getX();
       int y1 = this.getY();
       int x2 = x1 + this.getWidth();
       int y2 = y1 + this.getHeight();
       context.fill(x1, y1, x2, y2, -15461356);
-      context.drawBorder(x1, y1, this.getWidth(), this.getHeight(), -12961222);
+      context.outline(x1, y1, this.getWidth(), this.getHeight(), -12961222);
       int tx = this.thumbX();
       int tw = this.thumbW();
       boolean hover = mouseX >= tx && mouseX <= tx + tw && mouseY >= y1 && mouseY <= y2;
       int fill = this.dragging ? -5197648 : (hover ? -6645094 : -8750470);
       context.fill(tx, y1 + 1, tx + tw, y2 - 1, fill);
       context.fill(tx + 1, y1 + 2, tx + tw - 1, y1 + 3, 587202559);
-      MinecraftClient.getInstance();
+      Minecraft.getInstance();
    }
 }

@@ -7,9 +7,9 @@ import org.blossomsuite.core.util.HudStyleUtil;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.joml.Matrix3x2fStack;
 
 public final class RentalsHud {
@@ -107,11 +107,11 @@ public final class RentalsHud {
    private RentalsHud() {
    }
 
-   public static void render(DrawContext ctx, MinecraftClient client) {
+   public static void render(GuiGraphicsExtractor ctx, Minecraft client) {
       RentalsConfig cfg = SuiteConfig.INSTANCE.RentalsConfig;
       if (cfg.showHud) {
          if (client != null && client.player != null) {
-            TextRenderer tr = client.textRenderer;
+            Font tr = client.font;
             long now = System.currentTimeMillis();
             List<RentalsConfig.RentalEntry> entries = visibleEntries(cfg, now);
             if (!entries.isEmpty() || HudEditState.editMode) {
@@ -132,18 +132,18 @@ public final class RentalsHud {
                }
 
                String header = allActiveEntriesPaused(entries, now) ? "Rentals - Paused" : "Rentals";
-               int baseW = Math.max(140, tr.getWidth(header) + 12);
+               int baseW = Math.max(140, tr.width(header) + 12);
 
                for (RentalsHud.Line line : lines) {
-                  baseW = Math.max(baseW, tr.getWidth(line.text) + 12);
+                  baseW = Math.max(baseW, tr.width(line.text) + 12);
                }
 
                baseW = Math.min(260, baseW);
                int baseH = 2 + headerH + pad + lines.size() * rowH + Math.max(0, lines.size() - 1) * rowGap + pad + 2;
                lastBaseW = baseW;
                lastBaseH = baseH;
-               int screenW = client.getWindow().getScaledWidth();
-               int screenH = client.getWindow().getScaledHeight();
+               int screenW = client.getWindow().getGuiScaledWidth();
+               int screenH = client.getWindow().getGuiScaledHeight();
                float scale = HudScaleUtil.scaleFor(cfg.scale, 0.1F, 2.0F, baseW, baseH, screenW, screenH);
                int w = Math.round(baseW * scale);
                int h = Math.round(baseH * scale);
@@ -163,7 +163,7 @@ public final class RentalsHud {
                lastY = y;
                lastW = w;
                lastH = h;
-               Matrix3x2fStack matrices = ctx.getMatrices();
+               Matrix3x2fStack matrices = ctx.pose();
                matrices.pushMatrix();
                matrices.translate(x, y);
                matrices.scale(scale, scale);
@@ -173,11 +173,11 @@ public final class RentalsHud {
                   ctx.fill(0, 0, baseW, baseH, HudStyleUtil.panelBg(opacity));
                   ctx.fill(0, 0, baseW, headerH, HudStyleUtil.panelHeader(opacity));
                   ctx.fill(0, headerH, baseW, headerH + 1, HudStyleUtil.panelDivider(opacity));
-                  ctx.drawTextWithShadow(tr, header, 6, 4, -1);
+                  ctx.text(tr, header, 6, 4, -1);
                   int yy = headerH + pad;
 
                   for (RentalsHud.Line line : lines) {
-                     ctx.drawTextWithShadow(tr, line.text, 6, yy, line.color);
+                     ctx.text(tr, line.text, 6, yy, line.color);
                      yy += rowH + rowGap;
                   }
                } finally {

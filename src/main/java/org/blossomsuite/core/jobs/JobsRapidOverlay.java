@@ -1,10 +1,9 @@
 package org.blossomsuite.core.jobs;
 
 import org.blossomsuite.core.util.TextUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 public final class JobsRapidOverlay {
    private static long resetWindowMs = 6000L;
    private static long animateWindowMs = 5000L;
@@ -94,7 +93,7 @@ public final class JobsRapidOverlay {
       }
    }
 
-   public static Text addAndFormat(double addMoney, double addXp, long nowMs) {
+   public static Component addAndFormat(double addMoney, double addXp, long nowMs) {
       boolean resetBatch = lastBatchAtMs <= 0L || nowMs - lastBatchAtMs > resetWindowMs;
       if (resetBatch) {
          money = 0.0;
@@ -117,11 +116,11 @@ public final class JobsRapidOverlay {
       return lastAtMs <= 0L ? false : nowMs - lastAtMs <= resetWindowMs;
    }
 
-   public static Text formatCurrent() {
+   public static Component formatCurrent() {
       return formatNow(System.currentTimeMillis());
    }
 
-   public static void setLastText(Text msg, long nowMs) {
+   public static void setLastText(Component msg, long nowMs) {
       kind = JobsRapidOverlay.Kind.RUNNING_TOTAL;
       animStartAtMs = nowMs;
       animStartMoney = 0.0;
@@ -161,25 +160,25 @@ public final class JobsRapidOverlay {
       lastAtMs = nowMs;
    }
 
-   public static Text formatNow(long nowMs) {
+   public static Component formatNow(long nowMs) {
       double curMoney = currentValue(animStartMoney, animTargetMoney, animStartAtMs, nowMs);
       double curXp = currentValue(animStartXp, animTargetXp, animStartAtMs, nowMs);
 
       return switch (kind) {
-         case RUNNING_TOTAL -> Text.literal("+" + TextUtil.fmtMoney(curMoney) + "$")
-            .formatted(Formatting.YELLOW)
-            .append(Text.literal("  "))
-            .append(Text.literal("+" + TextUtil.fmtExp(curXp) + "XP").formatted(Formatting.GRAY));
-         case SESSION_TOTAL -> Text.literal("Sess ")
-            .formatted(Formatting.AQUA)
-            .append(Text.literal("$" + TextUtil.fmtMoney(curMoney)).formatted(Formatting.YELLOW))
-            .append(Text.literal("  "))
-            .append(Text.literal(TextUtil.fmtExp(curXp) + "XP").formatted(Formatting.GRAY));
-         case SEGMENT_TOTAL -> Text.literal("Seg ")
-            .formatted(Formatting.AQUA)
-            .append(Text.literal("$" + TextUtil.fmtMoney(curMoney)).formatted(Formatting.YELLOW))
-            .append(Text.literal("  "))
-            .append(Text.literal(TextUtil.fmtExp(curXp) + "XP").formatted(Formatting.GRAY));
+         case RUNNING_TOTAL -> Component.literal("+" + TextUtil.fmtMoney(curMoney) + "$")
+            .withStyle(ChatFormatting.YELLOW)
+            .append(Component.literal("  "))
+            .append(Component.literal("+" + TextUtil.fmtExp(curXp) + "XP").withStyle(ChatFormatting.GRAY));
+         case SESSION_TOTAL -> Component.literal("Sess ")
+            .withStyle(ChatFormatting.AQUA)
+            .append(Component.literal("$" + TextUtil.fmtMoney(curMoney)).withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal("  "))
+            .append(Component.literal(TextUtil.fmtExp(curXp) + "XP").withStyle(ChatFormatting.GRAY));
+         case SEGMENT_TOTAL -> Component.literal("Seg ")
+            .withStyle(ChatFormatting.AQUA)
+            .append(Component.literal("$" + TextUtil.fmtMoney(curMoney)).withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal("  "))
+            .append(Component.literal(TextUtil.fmtExp(curXp) + "XP").withStyle(ChatFormatting.GRAY));
       };
    }
 
@@ -203,11 +202,11 @@ public final class JobsRapidOverlay {
       return start + (target - start) * eased;
    }
 
-   public static void keepAlive(MinecraftClient client) {
-      if (client != null && client.inGameHud != null) {
+   public static void keepAlive(Minecraft client) {
+      if (client != null && client.gui != null) {
          long now = System.currentTimeMillis();
-         Text msg = formatNow(now);
-         runInternalOverlayWrite(() -> client.inGameHud.setOverlayMessage(msg, false));
+         Component msg = formatNow(now);
+         runInternalOverlayWrite(() -> client.gui.setOverlayMessage(msg, false));
       }
    }
 

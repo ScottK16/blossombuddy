@@ -23,9 +23,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 public final class RemoteConfigClient {
    private static final Gson GSON = new Gson();
    private static final HttpClient HTTP = HttpClient.newBuilder().followRedirects(Redirect.NORMAL).build();
@@ -65,7 +64,7 @@ public final class RemoteConfigClient {
       return base + path;
    }
 
-   public static void refreshNow(MinecraftClient client) {
+   public static void refreshNow(Minecraft client) {
       SuiteConfig cfg = SuiteConfig.INSTANCE;
       if (!SuiteRuntime.profile().hasBackend()) {
          infoReporter.accept("[RemoteConfig] no update server configured; skipping");
@@ -114,7 +113,7 @@ public final class RemoteConfigClient {
       }
    }
 
-   public static void checkIfUpdateAvailable(MinecraftClient client, long nowMs) {
+   public static void checkIfUpdateAvailable(Minecraft client, long nowMs) {
       SuiteConfig cfg = SuiteConfig.INSTANCE;
       if (cfg.RemoteConfig.enabled) {
          if (nowMs - cfg.RemoteConfig.lastCheckMs >= 1800000L) {
@@ -170,11 +169,11 @@ public final class RemoteConfigClient {
       }
    }
 
-   private static void applyResult(MinecraftClient client, RemoteConfigClient.DownloadResult result) {
+   private static void applyResult(Minecraft client, RemoteConfigClient.DownloadResult result) {
       SuiteConfig cfg = SuiteConfig.INSTANCE;
       if (!result.success) {
          if (client.player != null) {
-            client.player.sendMessage(Text.literal(SuiteRuntime.profile().displayName() + ": " + result.message), false);
+            client.player.sendSystemMessage(Component.literal(SuiteRuntime.profile().displayName() + ": " + result.message));
          }
       } else if (!"Already up to date".equals(result.message)) {
          chatReporter.accept("Cooldowns configuration has been updated to version v" + SuiteConfig.INSTANCE.RemoteConfig.cooldownVersion);

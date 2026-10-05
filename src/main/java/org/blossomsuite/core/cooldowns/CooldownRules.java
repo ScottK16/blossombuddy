@@ -31,12 +31,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 public final class CooldownRules {
    private static final int MAX_LOCAL_ROWS = 18;
    private static final EnumMap<CooldownRules.Trigger, List<CooldownRules.CooldownRule>> SLOT_RULES_BY_TRIGGER = new EnumMap<>(CooldownRules.Trigger.class);
@@ -106,7 +105,7 @@ public final class CooldownRules {
          }
 
          if (r.fallback != null && !r.fallback.isBlank()) {
-            String foldedName = TextUtil.foldName(stack.getName().getString());
+            String foldedName = TextUtil.foldName(stack.getHoverName().getString());
             return !foldedName.isBlank() && foldedName.contains(r.fallback);
          } else {
             return false;
@@ -283,7 +282,7 @@ public final class CooldownRules {
 
          List<CooldownRules.CooldownRule> byFallback = BY_FALLBACK.get(trigger);
          if (byFallback != null && !byFallback.isEmpty()) {
-            String foldedName = TextUtil.foldName(stack.getName().getString());
+            String foldedName = TextUtil.foldName(stack.getHoverName().getString());
             if (foldedName.isBlank()) {
                return null;
             }
@@ -361,7 +360,7 @@ public final class CooldownRules {
       return null;
    }
 
-   public static void tick(MinecraftClient client, long now) {
+   public static void tick(Minecraft client, long now) {
       if (client.player != null) {
          activeByItemId.clear();
          Iterator<Entry<CooldownRules.CooldownRule, Long>> it = CooldownState.endsAtByRuleKey.entrySet().iterator();
@@ -388,7 +387,7 @@ public final class CooldownRules {
             lastActionReadyRebuildMs = now;
 
             for (int slot = 0; slot < 9; slot++) {
-               ItemStack stack = client.player.getInventory().getStack(slot);
+               ItemStack stack = client.player.getInventory().getItem(slot);
                HOTBAR_IDS[slot] = stack.isEmpty() ? null : SuiteItemIdUtil.getBestId(stack);
             }
 
@@ -400,11 +399,11 @@ public final class CooldownRules {
                activeByRule.put(cd.rule(), cd);
             }
 
-            PlayerInventory inv = client.player.getInventory();
+            Inventory inv = client.player.getInventory();
 
             int invSize;
             try {
-               invSize = inv.size();
+               invSize = inv.getContainerSize();
             } catch (Throwable t) {
                invSize = 9;
             }
@@ -419,7 +418,7 @@ public final class CooldownRules {
             for (int slot = 0; slot < invSize; slot++) {
                ItemStack stack;
                try {
-                  stack = inv.getStack(slot);
+                  stack = inv.getItem(slot);
                } catch (Throwable t) {
                   continue;
                }
@@ -452,7 +451,7 @@ public final class CooldownRules {
             }
 
             if (CooldownState.actionReadyCache.size() < 18 && (cfg == null || cfg.trackOffhand)) {
-               ItemStack off = client.player.getOffHandStack();
+               ItemStack off = client.player.getOffhandItem();
                if (off != null && !off.isEmpty()) {
                   CooldownRules.CooldownRule rule = resolveDisplayRule(off);
                   if (rule != null && slotMatches(rule, CooldownRules.SlotKind.OFFHAND, -1, CooldownRules.ArmorSlot.ANY) && seenRules.add(rule)) {
@@ -473,7 +472,7 @@ public final class CooldownRules {
                };
 
                for (int i = 0; i < armorSlots.length && CooldownState.actionReadyCache.size() < 18; i++) {
-                  ItemStack a = client.player.getEquippedStack(armorSlots[i]);
+                  ItemStack a = client.player.getItemBySlot(armorSlots[i]);
                   if (a != null && !a.isEmpty()) {
                      CooldownRules.CooldownRule rule = resolveDisplayRule(a);
                      if (rule != null && slotMatches(rule, CooldownRules.SlotKind.ARMOR, -1, armorKinds[i]) && seenRules.add(rule)) {
@@ -534,7 +533,7 @@ public final class CooldownRules {
             return null;
          }
 
-         String folded = TextUtil.foldName(stack.getName().getString());
+         String folded = TextUtil.foldName(stack.getHoverName().getString());
          if (folded.isBlank()) {
             return null;
          }

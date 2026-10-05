@@ -7,14 +7,13 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.screen.GenericContainerScreenHandler;
-import net.minecraft.screen.ShulkerBoxScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.ShulkerBoxMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.ContainerInput;
 public final class InventorySorter {
    private static final int MAX_OPERATIONS_PER_TICK = 8;
    private static final Deque<InventorySorter.SlotOperation> PENDING_OPERATIONS = new ArrayDeque<>();
@@ -23,20 +22,20 @@ public final class InventorySorter {
    private InventorySorter() {
    }
 
-   public static void tick(MinecraftClient client) {
+   public static void tick(Minecraft client) {
       if (!PENDING_OPERATIONS.isEmpty()) {
-         if (client == null || client.player == null || client.interactionManager == null) {
+         if (client == null || client.player == null || client.gameMode == null) {
             clearQueue();
-         } else if (client.player.currentScreenHandler != null
-            && client.player.currentScreenHandler.syncId == queuedSyncId
-            && client.player.currentScreenHandler.getCursorStack().isEmpty()) {
+         } else if (client.player.containerMenu != null
+            && client.player.containerMenu.containerId == queuedSyncId
+            && client.player.containerMenu.getCarried().isEmpty()) {
             int operations = Math.min(8, PENDING_OPERATIONS.size());
 
             for (int i = 0; i < operations; i++) {
                PENDING_OPERATIONS.removeFirst().perform(client);
-               if (client.player.currentScreenHandler == null
-                  || client.player.currentScreenHandler.syncId != queuedSyncId
-                  || !client.player.currentScreenHandler.getCursorStack().isEmpty()) {
+               if (client.player.containerMenu == null
+                  || client.player.containerMenu.containerId != queuedSyncId
+                  || !client.player.containerMenu.getCarried().isEmpty()) {
                   clearQueue();
                   return;
                }
@@ -51,7 +50,7 @@ public final class InventorySorter {
       }
    }
 
-   public static void sortPlayerInventory(MinecraftClient client) {
+   public static void sortPlayerInventory(Minecraft client) {
       if (canStartSort(client)) {
          QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
          if (cfg != null && cfg.inventorySortEnabled) {
@@ -62,7 +61,7 @@ public final class InventorySorter {
       }
    }
 
-   public static void sortOpenContainer(MinecraftClient client) {
+   public static void sortOpenContainer(Minecraft client) {
       if (canStartSort(client)) {
          QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
          if (cfg != null && cfg.inventorySortEnabled) {
@@ -73,7 +72,7 @@ public final class InventorySorter {
       }
    }
 
-   public static void sortPlayerInventoryAndOpenContainer(MinecraftClient client) {
+   public static void sortPlayerInventoryAndOpenContainer(Minecraft client) {
       if (canStartSort(client)) {
          QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
          if (cfg != null && cfg.inventorySortEnabled) {
@@ -85,7 +84,7 @@ public final class InventorySorter {
       }
    }
 
-   public static void depositAllToOpenContainer(MinecraftClient client) {
+   public static void depositAllToOpenContainer(Minecraft client) {
       if (canStartSort(client)) {
          QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
          if (cfg != null && cfg.inventorySortEnabled) {
@@ -104,7 +103,7 @@ public final class InventorySorter {
       }
    }
 
-   public static void depositMatchingToOpenContainer(MinecraftClient client) {
+   public static void depositMatchingToOpenContainer(Minecraft client) {
       if (canStartSort(client)) {
          QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
          if (cfg != null && cfg.inventorySortEnabled) {
@@ -128,7 +127,7 @@ public final class InventorySorter {
       }
    }
 
-   public static void withdrawAllFromOpenContainer(MinecraftClient client) {
+   public static void withdrawAllFromOpenContainer(Minecraft client) {
       if (canStartSort(client)) {
          QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
          if (cfg != null && cfg.inventorySortEnabled) {
@@ -147,7 +146,7 @@ public final class InventorySorter {
       }
    }
 
-   public static void withdrawMatchingFromOpenContainer(MinecraftClient client) {
+   public static void withdrawMatchingFromOpenContainer(Minecraft client) {
       if (canStartSort(client)) {
          QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
          if (cfg != null && cfg.inventorySortEnabled) {
@@ -171,7 +170,7 @@ public final class InventorySorter {
       }
    }
 
-   public static boolean canSortOpenContainer(MinecraftClient client) {
+   public static boolean canSortOpenContainer(Minecraft client) {
       if (client != null && client.player != null) {
          QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
          return cfg != null && cfg.inventorySortEnabled && openContainerSlotCount(client) > 1;
@@ -180,29 +179,29 @@ public final class InventorySorter {
       }
    }
 
-   private static int openContainerSlotCount(MinecraftClient client) {
-      if (client != null && client.player != null && client.player.currentScreenHandler != null) {
-         if (client.player.currentScreenHandler instanceof GenericContainerScreenHandler handler) {
-            return handler.getRows() * 9;
+   private static int openContainerSlotCount(Minecraft client) {
+      if (client != null && client.player != null && client.player.containerMenu != null) {
+         if (client.player.containerMenu instanceof ChestMenu handler) {
+            return handler.getRowCount() * 9;
          } else {
-            return client.player.currentScreenHandler instanceof ShulkerBoxScreenHandler ? 27 : 0;
+            return client.player.containerMenu instanceof ShulkerBoxMenu ? 27 : 0;
          }
       } else {
          return 0;
       }
    }
 
-   private static boolean canStartSort(MinecraftClient client) {
+   private static boolean canStartSort(Minecraft client) {
       return client != null
          && client.player != null
-         && client.interactionManager != null
-         && client.player.currentScreenHandler != null
-         && client.player.currentScreenHandler.getCursorStack().isEmpty();
+         && client.gameMode != null
+         && client.player.containerMenu != null
+         && client.player.containerMenu.getCarried().isEmpty();
    }
 
-   private static void startQueue(MinecraftClient client) {
+   private static void startQueue(Minecraft client) {
       PENDING_OPERATIONS.clear();
-      queuedSyncId = client.player.currentScreenHandler.syncId;
+      queuedSyncId = client.player.containerMenu.containerId;
    }
 
    private static void finishQueueIfEmpty() {
@@ -211,14 +210,14 @@ public final class InventorySorter {
       }
    }
 
-   private static List<InventorySorter.Entry> playerInventoryEntries(MinecraftClient client, QolConfig cfg) {
+   private static List<InventorySorter.Entry> playerInventoryEntries(Minecraft client, QolConfig cfg) {
       List<InventorySorter.Entry> entries = new ArrayList<>();
 
       for (int invIndex = 0; invIndex < 36; invIndex++) {
          if (!cfg.isInventorySortSlotLocked(invIndex)) {
             int handlerSlot = handlerSlotForInventoryIndex(client, invIndex);
             if (handlerSlot >= 0) {
-               ItemStack stack = client.player.getInventory().getStack(invIndex);
+               ItemStack stack = client.player.getInventory().getItem(invIndex);
                entries.add(new InventorySorter.Entry(handlerSlot, stack.copy()));
             }
          }
@@ -227,7 +226,7 @@ public final class InventorySorter {
       return entries;
    }
 
-   private static List<InventorySorter.Entry> allPlayerInventoryEntries(MinecraftClient client, boolean includeLockedSlots) {
+   private static List<InventorySorter.Entry> allPlayerInventoryEntries(Minecraft client, boolean includeLockedSlots) {
       List<InventorySorter.Entry> entries = new ArrayList<>();
       QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
 
@@ -235,7 +234,7 @@ public final class InventorySorter {
          if (includeLockedSlots || cfg == null || !cfg.isInventorySortSlotLocked(invIndex)) {
             int handlerSlot = handlerSlotForInventoryIndex(client, invIndex);
             if (handlerSlot >= 0) {
-               ItemStack stack = client.player.getInventory().getStack(invIndex);
+               ItemStack stack = client.player.getInventory().getItem(invIndex);
                entries.add(new InventorySorter.Entry(handlerSlot, stack.copy()));
             }
          }
@@ -244,16 +243,16 @@ public final class InventorySorter {
       return entries;
    }
 
-   private static List<InventorySorter.Entry> openContainerEntries(MinecraftClient client) {
+   private static List<InventorySorter.Entry> openContainerEntries(Minecraft client) {
       List<InventorySorter.Entry> entries = new ArrayList<>();
       int containerSlots = openContainerSlotCount(client);
       if (containerSlots <= 1) {
          return entries;
       }
 
-      for (int slotId = 0; slotId < containerSlots && slotId < client.player.currentScreenHandler.slots.size(); slotId++) {
-         Slot slot = client.player.currentScreenHandler.slots.get(slotId);
-         entries.add(new InventorySorter.Entry(slot.id, slot.getStack().copy()));
+      for (int slotId = 0; slotId < containerSlots && slotId < client.player.containerMenu.slots.size(); slotId++) {
+         Slot slot = client.player.containerMenu.slots.get(slotId);
+         entries.add(new InventorySorter.Entry(slot.index, slot.getItem().copy()));
       }
 
       return entries;
@@ -297,14 +296,14 @@ public final class InventorySorter {
       for (int targetIndex = 0; targetIndex < entries.size(); targetIndex++) {
          ItemStack target = entries.get(targetIndex).stack;
          if (canReceiveStack(target)) {
-            for (int sourceIndex = targetIndex + 1; sourceIndex < entries.size() && target.getCount() < target.getMaxCount(); sourceIndex++) {
+            for (int sourceIndex = targetIndex + 1; sourceIndex < entries.size() && target.getCount() < target.getMaxStackSize(); sourceIndex++) {
                ItemStack source = entries.get(sourceIndex).stack;
-               if (canDonateStack(source) && ItemStack.areItemsAndComponentsEqual(target, source)) {
-                  int transferable = Math.min(source.getCount(), target.getMaxCount() - target.getCount());
+               if (canDonateStack(source) && ItemStack.isSameItemSameComponents(target, source)) {
+                  int transferable = Math.min(source.getCount(), target.getMaxStackSize() - target.getCount());
                   if (transferable > 0) {
                      queueMove(entries.get(sourceIndex).handlerSlot, entries.get(targetIndex).handlerSlot);
-                     target.increment(transferable);
-                     source.decrement(transferable);
+                     target.grow(transferable);
+                     source.shrink(transferable);
                      moves++;
                   }
                }
@@ -316,17 +315,17 @@ public final class InventorySorter {
    }
 
    private static boolean canReceiveStack(ItemStack stack) {
-      return stack != null && !stack.isEmpty() && stack.isStackable() && stack.getCount() < stack.getMaxCount();
+      return stack != null && !stack.isEmpty() && stack.isStackable() && stack.getCount() < stack.getMaxStackSize();
    }
 
    private static boolean canDonateStack(ItemStack stack) {
       return stack != null && !stack.isEmpty() && stack.isStackable();
    }
 
-   private static int handlerSlotForInventoryIndex(MinecraftClient client, int inventoryIndex) {
-      for (Slot slot : client.player.currentScreenHandler.slots) {
-         if (slot.inventory == client.player.getInventory() && slot.getIndex() == inventoryIndex) {
-            return slot.id;
+   private static int handlerSlotForInventoryIndex(Minecraft client, int inventoryIndex) {
+      for (Slot slot : client.player.containerMenu.slots) {
+         if (slot.container == client.player.getInventory() && slot.getContainerSlot() == inventoryIndex) {
+            return slot.index;
          }
       }
 
@@ -364,15 +363,15 @@ public final class InventorySorter {
             return -1;
          }
 
-         String aid = Registries.ITEM.getId(a.getItem()).toString();
-         String bid = Registries.ITEM.getId(b.getItem()).toString();
+         String aid = BuiltInRegistries.ITEM.getKey(a.getItem()).toString();
+         String bid = BuiltInRegistries.ITEM.getKey(b.getItem()).toString();
          int id = aid.compareToIgnoreCase(bid);
          if (id != 0) {
             return id;
          }
 
-         String an = a.getName().getString();
-         String bn = b.getName().getString();
+         String an = a.getHoverName().getString();
+         String bn = b.getHoverName().getString();
          int name = an.compareToIgnoreCase(bn);
          return name != 0 ? name : Integer.compare(b.getCount(), a.getCount());
       };
@@ -383,7 +382,7 @@ public final class InventorySorter {
          if (a == null || b == null) {
             return false;
          } else {
-            return a.getCount() != b.getCount() ? false : ItemStack.areItemsAndComponentsEqual(a, b);
+            return a.getCount() != b.getCount() ? false : ItemStack.isSameItemSameComponents(a, b);
          }
       } else {
          return true;
@@ -392,7 +391,7 @@ public final class InventorySorter {
 
    private static boolean matchesAnyExistingContainerStack(ItemStack stack, List<ItemStack> containerStacks) {
       for (ItemStack existing : containerStacks) {
-         if (ItemStack.areItemsAndComponentsEqual(stack, existing)) {
+         if (ItemStack.isSameItemSameComponents(stack, existing)) {
             return true;
          }
       }
@@ -402,11 +401,11 @@ public final class InventorySorter {
 
    private record ClickOperation(int source, int target) implements InventorySorter.SlotOperation {
       @Override
-      public void perform(MinecraftClient client) {
-         int syncId = client.player.currentScreenHandler.syncId;
-         client.interactionManager.clickSlot(syncId, this.source, 0, SlotActionType.PICKUP, client.player);
-         client.interactionManager.clickSlot(syncId, this.target, 0, SlotActionType.PICKUP, client.player);
-         client.interactionManager.clickSlot(syncId, this.source, 0, SlotActionType.PICKUP, client.player);
+      public void perform(Minecraft client) {
+         int syncId = client.player.containerMenu.containerId;
+         client.gameMode.handleContainerInput(syncId, this.source, 0, ContainerInput.PICKUP, client.player);
+         client.gameMode.handleContainerInput(syncId, this.target, 0, ContainerInput.PICKUP, client.player);
+         client.gameMode.handleContainerInput(syncId, this.source, 0, ContainerInput.PICKUP, client.player);
       }
    }
 
@@ -415,13 +414,13 @@ public final class InventorySorter {
 
    private record QuickMoveOperation(int slot) implements InventorySorter.SlotOperation {
       @Override
-      public void perform(MinecraftClient client) {
-         int syncId = client.player.currentScreenHandler.syncId;
-         client.interactionManager.clickSlot(syncId, this.slot, 0, SlotActionType.QUICK_MOVE, client.player);
+      public void perform(Minecraft client) {
+         int syncId = client.player.containerMenu.containerId;
+         client.gameMode.handleContainerInput(syncId, this.slot, 0, ContainerInput.QUICK_MOVE, client.player);
       }
    }
 
    private interface SlotOperation {
-      void perform(MinecraftClient var1);
+      void perform(Minecraft var1);
    }
 }

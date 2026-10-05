@@ -4,8 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import net.minecraft.client.gui.hud.ChatHudLine;
-
+import net.minecraft.client.multiplayer.chat.GuiMessage;
 /**
  * When each visible line of the main chat (vanilla's own {@code ChatHudLine.Visible}) was really created, in wall-clock time, so
  * hovering one can show when it was sent. Recorded by a mixin the moment vanilla builds each visible line (see
@@ -18,13 +17,13 @@ import net.minecraft.client.gui.hud.ChatHudLine;
  */
 public final class ChatLineTimestamps {
    private static final int MAX = 400;
-   private static final Deque<ChatHudLine.Visible> order = new ArrayDeque<>();
-   private static final Map<ChatHudLine.Visible, Long> times = new IdentityHashMap<>();
+   private static final Deque<GuiMessage.Line> order = new ArrayDeque<>();
+   private static final Map<GuiMessage.Line, Long> times = new IdentityHashMap<>();
 
    private ChatLineTimestamps() {
    }
 
-   public static synchronized void record(ChatHudLine.Visible line, long nowMs) {
+   public static synchronized void record(GuiMessage.Line line, long nowMs) {
       if (line == null || times.containsKey(line)) {
          return;
       }
@@ -37,7 +36,7 @@ public final class ChatLineTimestamps {
    }
 
    /** When {@code line} was created, or null if it was never recorded (or has since aged out). */
-   public static synchronized Long timeOf(ChatHudLine.Visible line) {
+   public static synchronized Long timeOf(GuiMessage.Line line) {
       return line == null ? null : times.get(line);
    }
 

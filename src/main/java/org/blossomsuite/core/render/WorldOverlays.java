@@ -6,24 +6,18 @@ import org.blossomsuite.core.config.QolConfig;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.qol.holepuncher.HolePuncher;
 import java.awt.Color;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.debug.DebugRenderer;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.hit.HitResult.Type;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
-import org.joml.Matrix4f;
-import org.joml.Vector4f;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.minecraft.gizmos.GizmoStyle;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.Level;
 
 public final class WorldOverlays {
    private static final int GUIDE_STEP = 5;
@@ -32,39 +26,27 @@ public final class WorldOverlays {
    private static final int MINING_TRACK_RANGE_MAX = 2048;
    private static WorldOverlays.TrackAxis currentMiningAxis = WorldOverlays.TrackAxis.X;
 
+
    private WorldOverlays() {
    }
 
    public static void init() {
-      WorldRenderEvents.AFTER_ENTITIES.register(ctx -> {
-         MinecraftClient client = MinecraftClient.getInstance();
-         if (client != null && client.player != null && client.world != null) {
+      // Overlays are drawn as Minecraft "gizmos" (world-space boxes and lines). They go through the game's per-tick collector, the
+      // way its own debug overlays do: what is added on a tick is drawn every frame until the next tick replaces it.
+      ClientTickEvents.END_CLIENT_TICK.register(client -> {
+         if (client != null && client.player != null && client.level != null) {
             SuiteConfig cfg = SuiteConfig.INSTANCE;
-            if (cfg != null && cfg.QolConfig != null) {
-               if (cfg.isEnabledForCurrentWorld()) {
-                  if (ctx.consumers() != null) {
-                     if (ctx.matrixStack() != null) {
-                        MatrixStack matrices = ctx.matrixStack();
-                        Camera cam = ctx.camera();
-                        Vec3d camPos = cam.getPos();
-                        matrices.push();
-                        matrices.translate(-camPos.x, -camPos.y, -camPos.z);
-
-                        try {
-                           drawHolePuncherOverlays(ctx, client, cfg);
-                           drawMiningTrackOverlay(ctx, client, cfg);
-                        } finally {
-                           matrices.pop();
-                        }
-                     }
-                  }
+            if (cfg != null && cfg.QolConfig != null && cfg.isEnabledForCurrentWorld()) {
+               try (Gizmos.TemporaryCollection ignored = client.collectPerTickGizmos()) {
+                  drawHolePuncherOverlays(client, cfg);
+                  drawMiningTrackOverlay(client, cfg);
                }
             }
          }
       });
    }
 
-   private static void drawHolePuncherOverlays(WorldRenderContext ctx, MinecraftClient client, SuiteConfig cfg) {
+   private static void drawHolePuncherOverlays(Minecraft client, SuiteConfig cfg) {
       if (SuiteRuntime.isEnabled(SuiteFeature.HOLE_PUNCHER)) {
          if (cfg != null && cfg.QolConfig != null) {
             if (cfg.QolConfig.holePuncherEnabled) {
@@ -72,23 +54,23 @@ public final class WorldOverlays {
                   BlockPos anchor = HolePuncher.getGuideAnchor();
                   if (anchor != null) {
                      if (cfg.QolConfig.holePuncherVisualMode == 1 && cfg.QolConfig.holePuncherMarkersEnabled) {
-                        drawGridMarkers(ctx, client, anchor);
+                        drawGridMarkers(client, anchor);
                      }
 
                      if (cfg.QolConfig.holePuncherVisualMode == 0) {
-                        HitResult hr = client.crosshairTarget;
+                        HitResult hr = client.hitResult;
                         if (hr != null && hr.getType() == Type.BLOCK) {
                            BlockHitResult bhr = (BlockHitResult)hr;
                            BlockPos target = bhr.getBlockPos();
-                           Direction face = bhr.getSide();
-                           BlockPos behind = target.offset(face.getOpposite());
+                           Direction face = bhr.getDirection();
+                           BlockPos behind = target.relative(face.getOpposite());
                            boolean onGrid = isOnGuideGrid(anchor, target);
                            float r = onGrid ? 0.2F : 1.0F;
                            float g = onGrid ? 0.95F : 0.78F;
                            float b = onGrid ? 0.2F : 0.1F;
                            float a = 0.26F;
-                           drawBlockOverlay(ctx, target, r, g, b, a);
-                           drawBlockOverlay(ctx, behind, r, g, b, a);
+                           drawBlockOverlay(target, r, g, b, a);
+                           drawBlockOverlay(behind, r, g, b, a);
                         }
                      }
                   }
@@ -98,12 +80,12 @@ public final class WorldOverlays {
       }
    }
 
-   private static void drawMiningTrackOverlay(WorldRenderContext ctx, MinecraftClient client, SuiteConfig cfg) {
+   private static void drawMiningTrackOverlay(Minecraft client, SuiteConfig cfg) {
       if (cfg != null && cfg.QolConfig != null) {
          QolConfig q = cfg.QolConfig;
          if (q.miningTrackIndicator) {
-            if (client != null && client.world != null) {
-               World world = client.world;
+            if (client != null && client.level != null) {
+               Level world = client.level;
                String dirStr = q.miningTrackDir == null ? "" : q.miningTrackDir.trim().toLowerCase();
                if (!dirStr.isBlank()) {
                   Direction d = switch (dirStr) {
@@ -114,7 +96,7 @@ public final class WorldOverlays {
                      default -> null;
                   };
                   if (d != null) {
-                     BlockPos p = client.player.getBlockPos();
+                     BlockPos p = client.player.blockPosition();
                      int y = p.getY();
                      boolean alongZ = d == Direction.NORTH || d == Direction.SOUTH;
                      int drift = alongZ ? p.getX() - q.miningTrackCoord : p.getZ() - q.miningTrackCoord;
@@ -166,7 +148,7 @@ public final class WorldOverlays {
                               for (int dy = -1; dy <= 2; dy++) {
                                  BlockPos bp = new BlockPos(x, y + dy, z);
                                  if (shouldOutlineBlock(world, bp)) {
-                                    drawBlockOutline(ctx, bp, color.r, color.g, color.b, a, thickness);
+                                    drawBlockOutline(bp, color.r, color.g, color.b, a, thickness);
                                  }
                               }
                            }
@@ -203,7 +185,7 @@ public final class WorldOverlays {
       return Math.max(0, Math.min(255, value)) / 255.0F;
    }
 
-   private static boolean shouldOutlineBlock(World world, BlockPos pos) {
+   private static boolean shouldOutlineBlock(Level world, BlockPos pos) {
       if (world != null && pos != null) {
          try {
             return !world.getBlockState(pos).isAir();
@@ -215,10 +197,10 @@ public final class WorldOverlays {
       }
    }
 
-   private static int autoMiningTrackRange(MinecraftClient client) {
+   private static int autoMiningTrackRange(Minecraft client) {
       if (client != null && client.options != null) {
          try {
-            int chunks = client.options.getViewDistance().getValue();
+            int chunks = client.options.renderDistance().get();
             return Math.max(64, Math.min(2048, chunks * 16));
          } catch (Throwable ignored) {
             return 128;
@@ -228,85 +210,62 @@ public final class WorldOverlays {
       }
    }
 
-   private static void drawBlockOverlay(WorldRenderContext ctx, BlockPos pos, float r, float g, float b, float a) {
+   private static void drawBlockOverlay(BlockPos pos, float r, float g, float b, float a) {
       if (pos != null) {
-         Box box = new Box(pos).expand(0.002);
-         DebugRenderer.drawBox(ctx.matrixStack(), ctx.consumers(), box, r, g, b, a);
+         AABB box = new AABB(pos).inflate(0.002);
+         Gizmos.cuboid(box, GizmoStyle.fill(argb(r, g, b, a)));
       }
    }
 
-   private static void drawBlockOutline(WorldRenderContext ctx, BlockPos pos, float r, float g, float b, float a, int thickness) {
+   private static void drawBlockOutline(BlockPos pos, float r, float g, float b, float a, int thickness) {
       if (pos != null) {
-         if (ctx != null && ctx.matrixStack() != null && ctx.consumers() != null) {
-            if (thickness < 1) {
-               thickness = 1;
-            }
-
-            if (thickness > 4) {
-               thickness = 4;
-            }
-
-            VertexConsumer lines = ctx.consumers().getBuffer(RenderLayer.getLines());
-
-            for (int pass = 0; pass < thickness; pass++) {
-               double expand = 0.002 + pass * 0.004;
-               Box box = new Box(pos).expand(expand);
-               drawLineBoxParallel(ctx.matrixStack(), lines, box, r, g, b, a, currentMiningAxis);
-            }
+         if (thickness < 1) {
+            thickness = 1;
          }
+
+         if (thickness > 4) {
+            thickness = 4;
+         }
+
+         drawLineBoxParallel(new AABB(pos).inflate(0.002), argb(r, g, b, a), thickness, currentMiningAxis);
       }
    }
 
-   private static void drawLineBoxParallel(MatrixStack matrices, VertexConsumer vc, Box box, float r, float g, float b, float a, WorldOverlays.TrackAxis axis) {
+   /** The box's edges along the track and its vertical edges (not the ones across the track, which would clutter the line of blocks). */
+   private static void drawLineBoxParallel(AABB box, int color, float width, WorldOverlays.TrackAxis axis) {
       if (axis == null) {
          axis = WorldOverlays.TrackAxis.X;
       }
 
-      Matrix4f m = matrices.peek().getPositionMatrix();
-      float x1 = (float)box.minX;
-      float y1 = (float)box.minY;
-      float z1 = (float)box.minZ;
-      float x2 = (float)box.maxX;
-      float y2 = (float)box.maxY;
-      float z2 = (float)box.maxZ;
+      double x1 = box.minX;
+      double y1 = box.minY;
+      double z1 = box.minZ;
+      double x2 = box.maxX;
+      double y2 = box.maxY;
+      double z2 = box.maxZ;
+      for (double y : new double[] {y1, y2}) {
+         for (double c : new double[] {axis == WorldOverlays.TrackAxis.X ? z1 : x1, axis == WorldOverlays.TrackAxis.X ? z2 : x2}) {
+            if (axis == WorldOverlays.TrackAxis.X) {
+               Gizmos.line(new Vec3(x1, y, c), new Vec3(x2, y, c), color, width);
+            } else {
+               Gizmos.line(new Vec3(c, y, z1), new Vec3(c, y, z2), color, width);
+            }
+         }
+      }
+
+      for (double x : new double[] {x1, x2}) {
+         for (double z : new double[] {z1, z2}) {
+            Gizmos.line(new Vec3(x, y1, z), new Vec3(x, y2, z), color, width);
+         }
+      }
+   }
+
+   private static int argb(float r, float g, float b, float a) {
       int ir = Math.max(0, Math.min(255, (int)(r * 255.0F)));
       int ig = Math.max(0, Math.min(255, (int)(g * 255.0F)));
       int ib = Math.max(0, Math.min(255, (int)(b * 255.0F)));
       int ia = Math.max(0, Math.min(255, (int)(a * 255.0F)));
-      if (axis == WorldOverlays.TrackAxis.X) {
-         v(vc, m, x1, y1, z1, ir, ig, ib, ia);
-         v(vc, m, x2, y1, z1, ir, ig, ib, ia);
-         v(vc, m, x1, y1, z2, ir, ig, ib, ia);
-         v(vc, m, x2, y1, z2, ir, ig, ib, ia);
-         v(vc, m, x1, y2, z1, ir, ig, ib, ia);
-         v(vc, m, x2, y2, z1, ir, ig, ib, ia);
-         v(vc, m, x1, y2, z2, ir, ig, ib, ia);
-         v(vc, m, x2, y2, z2, ir, ig, ib, ia);
-      } else {
-         v(vc, m, x1, y1, z1, ir, ig, ib, ia);
-         v(vc, m, x1, y1, z2, ir, ig, ib, ia);
-         v(vc, m, x2, y1, z1, ir, ig, ib, ia);
-         v(vc, m, x2, y1, z2, ir, ig, ib, ia);
-         v(vc, m, x1, y2, z1, ir, ig, ib, ia);
-         v(vc, m, x1, y2, z2, ir, ig, ib, ia);
-         v(vc, m, x2, y2, z1, ir, ig, ib, ia);
-         v(vc, m, x2, y2, z2, ir, ig, ib, ia);
-      }
-
-      v(vc, m, x1, y1, z1, ir, ig, ib, ia);
-      v(vc, m, x1, y2, z1, ir, ig, ib, ia);
-      v(vc, m, x2, y1, z1, ir, ig, ib, ia);
-      v(vc, m, x2, y2, z1, ir, ig, ib, ia);
-      v(vc, m, x2, y1, z2, ir, ig, ib, ia);
-      v(vc, m, x2, y2, z2, ir, ig, ib, ia);
-      v(vc, m, x1, y1, z2, ir, ig, ib, ia);
-      v(vc, m, x1, y2, z2, ir, ig, ib, ia);
-   }
-
-   private static void v(VertexConsumer vc, Matrix4f m, float x, float y, float z, int r, int g, int b, int a) {
-      int argb = (a & 0xFF) << 24 | (r & 0xFF) << 16 | (g & 0xFF) << 8 | b & 0xFF;
-      Vector4f v4 = new Vector4f(x, y, z, 1.0F).mul(m);
-      vc.vertex(v4.x, v4.y, v4.z, argb, 0.0F, 0.0F, 0, 0, 0.0F, 1.0F, 0.0F);
+      return ia << 24 | ir << 16 | ig << 8 | ib;
    }
 
    private static boolean isOnGuideGrid(BlockPos anchor, BlockPos target) {
@@ -319,10 +278,10 @@ public final class WorldOverlays {
       }
    }
 
-   private static void drawGridMarkers(WorldRenderContext ctx, MinecraftClient client, BlockPos anchor) {
+   private static void drawGridMarkers(Minecraft client, BlockPos anchor) {
       if (client != null && client.player != null) {
          if (anchor != null) {
-            BlockPos p = client.player.getBlockPos();
+            BlockPos p = client.player.blockPosition();
             int y = anchor.getY();
             float r = 0.15F;
             float g = 1.0F;
@@ -345,8 +304,8 @@ public final class WorldOverlays {
                         double z2 = z + 0.9;
                         double y1 = y + 1.002;
                         double y2 = y + 1.1;
-                        Box cap = new Box(x1, y1, z1, x2, y2, z2).expand(0.002);
-                        DebugRenderer.drawBox(ctx.matrixStack(), ctx.consumers(), cap, r, g, b, a);
+                        AABB cap = new AABB(x1, y1, z1, x2, y2, z2).inflate(0.002);
+                        Gizmos.cuboid(cap, GizmoStyle.fill(argb(r, g, b, a)));
                      }
                   }
                }

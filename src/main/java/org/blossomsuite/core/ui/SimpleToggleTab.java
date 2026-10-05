@@ -1,9 +1,8 @@
 package org.blossomsuite.core.ui;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 public class SimpleToggleTab implements SuiteTab {
    private final String titleKey;
    private boolean enabled = false;
@@ -35,19 +34,19 @@ public class SimpleToggleTab implements SuiteTab {
       int rowH = 20;
       int toggleW = 80;
       int toggleX = x + w - toggleW;
-      screen.addWidget(StyledButton.of(Text.literal(this.enabled ? "ON" : "OFF"), b -> {
+      screen.addPanelWidget(StyledButton.of(Component.literal(this.enabled ? "ON" : "OFF"), b -> {
          this.enabled = !this.enabled;
          screen.rebuildFromTab();
       }).dimensions(toggleX, y, toggleW, rowH).build());
    }
 
    @Override
-   public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta) {
+   public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
       int x = screen.contentX();
       int y = screen.contentY();
-      ctx.drawTextWithShadow(screen.getTextRenderer(), Text.translatable("suitecore.option.enabled"), x, y + 6, -1);
+      ctx.text(screen.getFont(), Component.translatable("suitecore.option.enabled"), x, y + 6, -1);
       if (!this.enabled) {
-         ctx.drawTextWithShadow(screen.getTextRenderer(), Text.translatable("suitecore.option.disabled_hint"), x, y + 28, -3355444);
+         ctx.text(screen.getFont(), Component.translatable("suitecore.option.disabled_hint"), x, y + 28, -3355444);
       }
    }
 

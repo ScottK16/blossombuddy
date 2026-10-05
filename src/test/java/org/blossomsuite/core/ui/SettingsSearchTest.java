@@ -6,36 +6,36 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
 
 class SettingsSearchTest {
    private static final SettingsSearch.Leaf JOBS_OVERFLOW = new SettingsSearch.Leaf(null, null, null, null, "Jobs > Overflow", 0);
 
    private static HoverLabelWidget label(int y, String text) {
-      return new HoverLabelWidget(16, y, 220, 12, Text.literal(text), null);
+      return new HoverLabelWidget(16, y, 220, 12, Component.literal(text), null);
    }
 
    private static StyledButton button(int y, String text) {
-      return StyledButton.of(Text.literal(text), b -> {}).dimensions(300, y, 80, 20).build();
+      return StyledButton.of(Component.literal(text), b -> {}).dimensions(300, y, 80, 20).build();
    }
 
    /** A toggle row the way the tabs build them: label at y+6, 20px button at y. */
-   private static List<ClickableWidget> toggleRow(int y, String name, String state) {
-      List<ClickableWidget> row = new ArrayList<>();
+   private static List<AbstractWidget> toggleRow(int y, String name, String state) {
+      List<AbstractWidget> row = new ArrayList<>();
       row.add(label(y + 6, name));
       row.add(button(y, state));
       return row;
    }
 
-   private static List<SettingsSearch.Row> rowsOf(List<ClickableWidget> widgets) {
+   private static List<SettingsSearch.Row> rowsOf(List<AbstractWidget> widgets) {
       return SettingsSearch.group(widgets);
    }
 
    @Test
    void groupsALabelWithTheControlBesideIt() {
-      List<ClickableWidget> ws = new ArrayList<>();
+      List<AbstractWidget> ws = new ArrayList<>();
       ws.addAll(toggleRow(100, "Track overflow XP", "ON"));
       ws.addAll(toggleRow(124, "Level-up message", "OFF"));
 
@@ -50,7 +50,7 @@ class SettingsSearchTest {
 
    @Test
    void aSliderBelowItsLabelBelongsToThatLabel() {
-      List<ClickableWidget> ws = new ArrayList<>();
+      List<AbstractWidget> ws = new ArrayList<>();
       ws.add(label(100, "Volume"));
       ws.add(button(114, "Volume: 80%")); // slider sits ~14px under its label
       ws.addAll(toggleRow(148, "Pitch lock", "ON"));
@@ -63,7 +63,7 @@ class SettingsSearchTest {
 
    @Test
    void everyWordOfTheQueryMustMatch() {
-      List<ClickableWidget> ws = new ArrayList<>();
+      List<AbstractWidget> ws = new ArrayList<>();
       ws.addAll(toggleRow(100, "Track overflow XP", "ON"));
       ws.addAll(toggleRow(124, "Show stopwatch", "ON"));
       List<SettingsSearch.Row> rows = rowsOf(ws);
@@ -92,7 +92,7 @@ class SettingsSearchTest {
 
    @Test
    void controlsWithNoLabelAreStillSearchableByTheirOwnText() {
-      List<ClickableWidget> ws = new ArrayList<>();
+      List<AbstractWidget> ws = new ArrayList<>();
       ws.add(button(300, "Toggle HUD"));
       List<SettingsSearch.Row> rows = rowsOf(ws);
       assertEquals(1, rows.size());

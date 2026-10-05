@@ -3,12 +3,12 @@ package org.blossomsuite.core.hud;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.emote.EmoteState;
@@ -38,16 +38,16 @@ public final class EmoteTimerHud extends PanelHud {
       return FeatureConfig.INSTANCE.emotes.enabled && FeatureConfig.INSTANCE.emotes.showTimers;
    }
 
-   private static String nameOf(MinecraftClient client, UUID id) {
-      if (client.player != null && id.equals(client.player.getUuid())) {
+   private static String nameOf(Minecraft client, UUID id) {
+      if (client.player != null && id.equals(client.player.getUUID())) {
          return "You";
       }
 
-      PlayerListEntry entry = client.getNetworkHandler() == null ? null : client.getNetworkHandler().getPlayerListEntry(id);
-      return entry == null || entry.getProfile() == null ? "Someone" : entry.getProfile().getName();
+      PlayerInfo entry = client.getConnection() == null ? null : client.getConnection().getPlayerInfo(id);
+      return entry == null || entry.getProfile() == null ? "Someone" : entry.getProfile().name();
    }
 
-   public void render(DrawContext ctx, MinecraftClient client) {
+   public void render(GuiGraphicsExtractor ctx, Minecraft client) {
       if (!this.shown() || client.player == null || !SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
          return;
       }
@@ -59,11 +59,11 @@ public final class EmoteTimerHud extends PanelHud {
       }
 
       // you come first, whoever has been at it longest
-      UUID me = client.player.getUuid();
+      UUID me = client.player.getUUID();
       rows = new java.util.ArrayList<>(rows);
       rows.sort((a, b) -> Boolean.compare(b.getKey().equals(me), a.getKey().equals(me)));
 
-      TextRenderer tr = client.textRenderer;
+      Font tr = client.font;
       int shown = Math.min(rows.size(), MAX_ROWS);
       int extra = rows.size() - shown;
       int lines = Math.max(1, shown + (extra > 0 ? 1 : 0));
@@ -72,7 +72,7 @@ public final class EmoteTimerHud extends PanelHud {
       List<Map.Entry<UUID, EmoteState.Active>> shownRows = rows.subList(0, shown);
       this.draw(ctx, client, WIDTH, height, true, c -> {
          if (shownRows.isEmpty()) {
-            c.drawTextWithShadow(tr, Text.literal("Nobody is emoting").formatted(Formatting.DARK_GRAY), 6, 6, -1);
+            c.text(tr, Component.literal("Nobody is emoting").withStyle(ChatFormatting.DARK_GRAY), 6, 6, -1);
             return;
          }
 
@@ -80,13 +80,13 @@ public final class EmoteTimerHud extends PanelHud {
          for (Map.Entry<UUID, EmoteState.Active> row : shownRows) {
             String left = nameOf(client, row.getKey()) + " - " + row.getValue().emote().label();
             String time = EmoteState.formatElapsed(now - row.getValue().startMs());
-            c.drawTextWithShadow(tr, Text.literal(tr.trimToWidth(left, WIDTH - 12 - tr.getWidth(time) - 6)), 6, y, -1);
-            c.drawTextWithShadow(tr, Text.literal(time).formatted(Formatting.GREEN), WIDTH - 6 - tr.getWidth(time), y, -1);
+            c.text(tr, Component.literal(tr.plainSubstrByWidth(left, WIDTH - 12 - tr.width(time) - 6)), 6, y, -1);
+            c.text(tr, Component.literal(time).withStyle(ChatFormatting.GREEN), WIDTH - 6 - tr.width(time), y, -1);
             y += ROW_H;
          }
 
          if (extra > 0) {
-            c.drawTextWithShadow(tr, Text.literal("+" + extra + " more").formatted(Formatting.DARK_GRAY), 6, y, -1);
+            c.text(tr, Component.literal("+" + extra + " more").withStyle(ChatFormatting.DARK_GRAY), 6, y, -1);
          }
       });
    }

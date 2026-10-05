@@ -1,9 +1,9 @@
 package org.blossomsuite.core.hud;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.util.HudStyleUtil;
 import org.blossomsuite.core.config.SuiteConfig;
@@ -47,13 +47,13 @@ public final class ExtraHotbarHud extends PanelHud {
       return 36 - 9 * row + column;
    }
 
-   public void render(DrawContext ctx, MinecraftClient client) {
+   public void render(GuiGraphicsExtractor ctx, Minecraft client) {
       FeatureConfig.Hotbar cfg = FeatureConfig.INSTANCE.hotbar;
       if (!cfg.show || client.player == null || !SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
          return;
       }
 
-      PlayerInventory inv = client.player.getInventory();
+      Inventory inv = client.player.getInventory();
       int rows = Math.max(1, Math.min(2, cfg.extraRows));
       int baseH = rows * ROW_H;
       this.draw(ctx, client, W, baseH, false, c -> {
@@ -64,12 +64,12 @@ public final class ExtraHotbarHud extends PanelHud {
             c.fill(0, top, W, top + ROW_H, HudStyleUtil.panelBg(Math.max(0.35F, opacity)));
             c.fill(0, top, W, top + 1, HudStyleUtil.panelDivider(opacity));
             for (int col = 0; col < 9; col++) {
-               ItemStack stack = inv.getStack(inventoryIndex(row, col));
+               ItemStack stack = inv.getItem(inventoryIndex(row, col));
                int x = 1 + col * SLOT + 2;
                int y = top + 3;
                if (!stack.isEmpty()) {
-                  c.drawItem(stack, x, y);
-                  c.drawStackOverlay(client.textRenderer, stack, x, y);
+                  c.item(stack, x, y);
+                  c.itemDecorations(client.font, stack, x, y);
                }
             }
          }

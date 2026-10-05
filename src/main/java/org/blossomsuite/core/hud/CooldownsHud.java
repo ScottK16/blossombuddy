@@ -23,12 +23,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Map.Entry;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2fStack;
 
 public final class CooldownsHud {
@@ -129,10 +129,10 @@ public final class CooldownsHud {
    private CooldownsHud() {
    }
 
-   public static void renderPanel(DrawContext ctx, MinecraftClient client) {
+   public static void renderPanel(GuiGraphicsExtractor ctx, Minecraft client) {
       if (SuiteConfig.INSTANCE.CooldownsConfig.showHud) {
          if (client.player != null) {
-            if (!client.options.hudHidden) {
+            if (!client.options.hideGui) {
                boolean compact = SuiteConfig.INSTANCE.CooldownsConfig.mode.equals(CooldownsMode.COMPACT);
                long now = System.currentTimeMillis();
                boolean legacyActiveOnly = SuiteConfig.INSTANCE.CooldownsConfig.legacyActiveOnly;
@@ -161,8 +161,8 @@ public final class CooldownsHud {
                   int baseH = 2 + baseTitleH + rows * baseRowH + 4;
                   lastBaseW = baseW;
                   lastBaseH = baseH;
-                  int screenW = client.getWindow().getScaledWidth();
-                  int screenH = client.getWindow().getScaledHeight();
+                  int screenW = client.getWindow().getGuiScaledWidth();
+                  int screenH = client.getWindow().getGuiScaledHeight();
                   float s = HudScaleUtil.scaleFor(SuiteConfig.INSTANCE.CooldownsConfig.scale, 0.1F, 2.0F, baseW, baseH, screenW, screenH);
                   int w = Math.round(baseW * s);
                   int h = Math.round(baseH * s);
@@ -184,7 +184,7 @@ public final class CooldownsHud {
                   lastY = y;
                   lastW = w;
                   lastH = h;
-                  Matrix3x2fStack matrices = ctx.getMatrices();
+                  Matrix3x2fStack matrices = ctx.pose();
                   matrices.pushMatrix();
                   matrices.translate(x, y);
                   matrices.scale(s, s);
@@ -199,7 +199,7 @@ public final class CooldownsHud {
                         ctx.fill(x1, y1, x2, y2, HudStyleUtil.panelBg(bg));
                         ctx.fill(x1, y1, x2, y1 + baseTitleH, HudStyleUtil.panelHeader(bg));
                         ctx.fill(x1 + 4, y1 + baseTitleH, x2 - 4, y1 + baseTitleH + 1, HudStyleUtil.panelDivider(bg));
-                        ctx.drawTextWithShadow(client.textRenderer, "COOLDOWNS", basePad, 6, -1);
+                        ctx.text(client.font, "COOLDOWNS", basePad, 6, -1);
                      } else {
                         ctx.fill(x1, y1, x2, y2, HudStyleUtil.panelBg(bg));
                      }
@@ -212,7 +212,7 @@ public final class CooldownsHud {
                            int iconX = basePad;
                            int iconY = rowY + 1;
                            if (entry.stack != null && !entry.stack.isEmpty()) {
-                              ctx.drawItem(entry.stack, iconX, iconY);
+                              ctx.item(entry.stack, iconX, iconY);
                            } else {
                               ctx.fill(iconX, iconY, iconX + 16, iconY + 16, 1442840575);
                            }
@@ -222,7 +222,7 @@ public final class CooldownsHud {
                            }
 
                            String rightText = onCooldown ? (int)Math.ceil(remainingMs / 1000.0) + "s" : "READY";
-                           int rightW = client.textRenderer.getWidth(rightText);
+                           int rightW = client.font.width(rightText);
                            int rightX;
                            if (compact) {
                               rightX = iconX + 18;
@@ -232,17 +232,17 @@ public final class CooldownsHud {
 
                            int rightColor = onCooldown ? -4208683 : -8585317;
                            if (!compact) {
-                              Text name = entry.stack != null && !entry.stack.isEmpty()
-                                 ? TextUtil.stripLegacySectionCodes(entry.stack.getName())
-                                 : Text.literal(entry.rule.fallback());
+                              Component name = entry.stack != null && !entry.stack.isEmpty()
+                                 ? TextUtil.stripLegacySectionCodes(entry.stack.getHoverName())
+                                 : Component.literal(entry.rule.fallback());
                               int nameX = iconX + 18;
                               int avail = rightX - 6 - nameX;
                               name = trimToWidth(client, name, avail);
                               int nameColor = onCooldown ? -8551021 : -1;
-                              ctx.drawTextWithShadow(client.textRenderer, name, nameX, rowY + 2, nameColor);
-                              ctx.drawTextWithShadow(client.textRenderer, rightText, rightX, rowY + 2, rightColor);
+                              ctx.text(client.font, name, nameX, rowY + 2, nameColor);
+                              ctx.text(client.font, rightText, rightX, rowY + 2, rightColor);
                            } else {
-                              ctx.drawTextWithShadow(client.textRenderer, rightText, rightX, rowY + 4, rightColor);
+                              ctx.text(client.font, rightText, rightX, rowY + 4, rightColor);
                            }
 
                            rowY += baseRowH;
@@ -263,12 +263,12 @@ public final class CooldownsHud {
                            if (rr.type == CooldownsHud.RelayRowType.REALM_TITLE) {
                               String t = rr.text.toUpperCase(Locale.ROOT);
                               t = trimToWidth(client, t, baseW - basePad - 6);
-                              ctx.drawTextWithShadow(client.textRenderer, t, basePad, rowY + 2, -1);
+                              ctx.text(client.font, t, basePad, rowY + 2, -1);
                               rowY += baseRowH;
                            } else if (rr.type == CooldownsHud.RelayRowType.ALT_SUBTITLE) {
                               String t = rr.text;
                               t = trimToWidth(client, t, baseW - basePad - 6);
-                              ctx.drawTextWithShadow(client.textRenderer, t, basePad, rowY + 2, -8551021);
+                              ctx.text(client.font, t, basePad, rowY + 2, -8551021);
                               rowY += baseRowH;
                            } else {
                               boolean onCooldown = rr.endsAtMs > now;
@@ -276,7 +276,7 @@ public final class CooldownsHud {
                               int iconX = basePad;
                               int iconY = rowY + 1;
                               if (rr.stack != null && !rr.stack.isEmpty()) {
-                                 ctx.drawItem(rr.stack, iconX, iconY);
+                                 ctx.item(rr.stack, iconX, iconY);
                               } else {
                                  ctx.fill(iconX, iconY, iconX + 16, iconY + 16, 1442840575);
                               }
@@ -286,7 +286,7 @@ public final class CooldownsHud {
                               }
 
                               String rightText = onCooldown ? (int)Math.ceil(remainingMs / 1000.0) + "s" : "READY";
-                              int rightW = client.textRenderer.getWidth(rightText);
+                              int rightW = client.font.width(rightText);
                               int rightX = compact ? iconX + 18 : baseW - 6 - rightW;
                               int rightColor = onCooldown ? -4208683 : -8585317;
                               if (!compact) {
@@ -295,10 +295,10 @@ public final class CooldownsHud {
                                  String name = rr.name == null ? "Cooldown" : rr.name.toUpperCase();
                                  name = trimToWidth(client, name, avail);
                                  int nameColor = onCooldown ? -8551021 : -1;
-                                 ctx.drawTextWithShadow(client.textRenderer, name, nameX, rowY + 2, nameColor);
-                                 ctx.drawTextWithShadow(client.textRenderer, rightText, rightX, rowY + 2, rightColor);
+                                 ctx.text(client.font, name, nameX, rowY + 2, nameColor);
+                                 ctx.text(client.font, rightText, rightX, rowY + 2, rightColor);
                               } else {
-                                 ctx.drawTextWithShadow(client.textRenderer, rightText, rightX, rowY + 4, rightColor);
+                                 ctx.text(client.font, rightText, rightX, rowY + 4, rightColor);
                               }
 
                               rowY += baseRowH;
@@ -313,7 +313,7 @@ public final class CooldownsHud {
                         int iconY = rowY + 1;
                         ctx.fill(iconX, iconY, iconX + 16, iconY + 16, 1442840575);
                         String rightText = "READY";
-                        int rightW = client.textRenderer.getWidth(rightText);
+                        int rightW = client.font.width(rightText);
                         int rightX;
                         if (compact) {
                            rightX = iconX + 18;
@@ -326,10 +326,10 @@ public final class CooldownsHud {
                            int nameX = iconX + 18;
                            int avail = rightX - 6 - nameX;
                            name = trimToWidth(client, name, avail);
-                           ctx.drawTextWithShadow(client.textRenderer, name, nameX, rowY + 2, -8551021);
+                           ctx.text(client.font, name, nameX, rowY + 2, -8551021);
                         }
 
-                        ctx.drawTextWithShadow(client.textRenderer, rightText, rightX, rowY + 2, -8585317);
+                        ctx.text(client.font, rightText, rightX, rowY + 2, -8585317);
                         rowY += baseRowH;
                      }
                   } finally {
@@ -341,19 +341,19 @@ public final class CooldownsHud {
       }
    }
 
-   public static void renderHotbar(DrawContext ctx, MinecraftClient client) {
+   public static void renderHotbar(GuiGraphicsExtractor ctx, Minecraft client) {
       if (SuiteConfig.INSTANCE.CooldownsConfig.showHotbar) {
          if (client.player != null) {
-            if (!client.options.hudHidden) {
+            if (!client.options.hideGui) {
                if (!CooldownRules.activeByItemId.isEmpty()) {
                   long now = System.currentTimeMillis();
-                  int sw = client.getWindow().getScaledWidth();
-                  int sh = client.getWindow().getScaledHeight();
+                  int sw = client.getWindow().getGuiScaledWidth();
+                  int sh = client.getWindow().getGuiScaledHeight();
                   int hotbarLeft = sw / 2 - 91;
                   int hotbarTop = sh - 22;
 
                   for (int slot = 0; slot < 9; slot++) {
-                     ItemStack s = client.player.getInventory().getStack(slot);
+                     ItemStack s = client.player.getInventory().getItem(slot);
                      if (!s.isEmpty()) {
                         String id = CooldownRules.HOTBAR_IDS[slot];
                         if (id == null) {
@@ -399,17 +399,17 @@ public final class CooldownsHud {
       return out;
    }
 
-   private static String trimToWidth(MinecraftClient client, String s, int maxW) {
-      if (client.textRenderer.getWidth(s) <= maxW) {
+   private static String trimToWidth(Minecraft client, String s, int maxW) {
+      if (client.font.width(s) <= maxW) {
          return s;
       }
 
       String ell = "...";
-      int ellW = client.textRenderer.getWidth(ell);
+      int ellW = client.font.width(ell);
 
       for (int len = s.length(); len > 0; len--) {
          String sub = s.substring(0, len);
-         if (client.textRenderer.getWidth(sub) + ellW <= maxW) {
+         if (client.font.width(sub) + ellW <= maxW) {
             return sub + ell;
          }
       }
@@ -417,23 +417,23 @@ public final class CooldownsHud {
       return ell;
    }
 
-   private static Text trimToWidth(MinecraftClient client, Text t, int maxW) {
+   private static Component trimToWidth(Minecraft client, Component t, int maxW) {
       if (t == null) {
-         return Text.empty();
+         return Component.empty();
       }
 
-      if (client.textRenderer.getWidth(t) <= maxW) {
+      if (client.font.width(t) <= maxW) {
          return t;
       }
 
       String ell = "...";
-      int ellW = client.textRenderer.getWidth(ell);
+      int ellW = client.font.width(ell);
       int limit = maxW - ellW;
       if (limit <= 0) {
-         return Text.literal(ell);
+         return Component.literal(ell);
       }
 
-      MutableText out = Text.empty();
+      MutableComponent out = Component.empty();
       int[] w = new int[]{0};
       Optional<Boolean> stopped = t.visit((style, s) -> {
          if (s != null && !s.isEmpty()) {
@@ -441,8 +441,8 @@ public final class CooldownsHud {
 
             for (int i = 0; i < clean.length(); i++) {
                String ch = String.valueOf(clean.charAt(i));
-               Text piece = Text.literal(ch).setStyle(style);
-               int cw = client.textRenderer.getWidth(piece);
+               Component piece = Component.literal(ch).setStyle(style);
+               int cw = client.font.width(piece);
                if (w[0] + cw > limit) {
                   return Optional.of(Boolean.TRUE);
                }
@@ -456,11 +456,11 @@ public final class CooldownsHud {
             return Optional.empty();
          }
       }, Style.EMPTY);
-      out.append(Text.literal(ell));
+      out.append(Component.literal(ell));
       return out;
    }
 
-   private static void drawHotbarSlotCountdown(DrawContext ctx, MinecraftClient client, int hotbarLeft, int hotbarTop, int hotbarIndex, int secsLeft) {
+   private static void drawHotbarSlotCountdown(GuiGraphicsExtractor ctx, Minecraft client, int hotbarLeft, int hotbarTop, int hotbarIndex, int secsLeft) {
       String text = switch (secsLeft) {
          case 1 -> "1";
          case 2 -> "2";
@@ -471,15 +471,15 @@ public final class CooldownsHud {
       };
       int slotX = hotbarLeft + hotbarIndex * 20;
       int slotY = hotbarTop;
-      int tw = client.textRenderer.getWidth(text);
+      int tw = client.font.width(text);
       int th = 9;
       int tx = slotX + (20 - tw) / 2 + 1;
       int ty = slotY + (20 - th) / 2 + 1;
       int color = -1;
-      ctx.drawTextWithShadow(client.textRenderer, text, tx, ty, color);
+      ctx.text(client.font, text, tx, ty, color);
    }
 
-   private static void drawHotbarCooldownBarTop(DrawContext ctx, int hotbarLeft, int hotbarTop, int hotbarIndex, float remaining01) {
+   private static void drawHotbarCooldownBarTop(GuiGraphicsExtractor ctx, int hotbarLeft, int hotbarTop, int hotbarIndex, float remaining01) {
       int slotX = hotbarLeft + hotbarIndex * 20;
       int slotY = hotbarTop;
       int insetX = 2;
@@ -491,7 +491,7 @@ public final class CooldownsHud {
       ctx.fill(slotX + insetX, barY, slotX + insetX + w, barY + barH, -1);
    }
 
-   private static void drawHotbarCooldownVanillaSwipe(DrawContext ctx, int hotbarLeft, int hotbarTop, int hotbarIndex, float remaining01) {
+   private static void drawHotbarCooldownVanillaSwipe(GuiGraphicsExtractor ctx, int hotbarLeft, int hotbarTop, int hotbarIndex, float remaining01) {
       int iconX = hotbarLeft + hotbarIndex * 20 + 2;
       int iconY = hotbarTop + 2;
       int y1 = iconY + (int)Math.floor(16.0F * (1.0F - remaining01));
@@ -600,7 +600,7 @@ public final class CooldownsHud {
 
       for (Entry<String, Map<String, CooldownState.TrackedAltCooldown>> altEntry : CooldownState.trackedByAlt.entrySet()) {
          String altName = altEntry.getKey();
-         MinecraftClient mc = MinecraftClient.getInstance();
+         Minecraft mc = Minecraft.getInstance();
          String selfName = mc.player == null ? null : mc.player.getName().getString();
          if (selfName == null || altName == null || !altName.equalsIgnoreCase(selfName)) {
             Map<String, CooldownState.TrackedAltCooldown> cds = altEntry.getValue();
@@ -633,7 +633,7 @@ public final class CooldownsHud {
 
                   String name;
                   if (stack != null && !stack.isEmpty()) {
-                     name = TextUtil.stripLegacySectionCodes(stack.getName()).getString();
+                     name = TextUtil.stripLegacySectionCodes(stack.getHoverName()).getString();
                   } else if (rule != null && rule.fallback() != null && !rule.fallback().isBlank()) {
                      name = rule.fallback();
                   } else {

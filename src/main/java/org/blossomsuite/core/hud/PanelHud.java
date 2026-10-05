@@ -1,8 +1,8 @@
 package org.blossomsuite.core.hud;
 
 import java.util.function.Consumer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.util.HudStyleUtil;
 import org.joml.Matrix3x2fStack;
@@ -33,9 +33,9 @@ public abstract class PanelHud implements DraggableHud {
       return new int[]{6, 6};
    }
 
-   protected final void draw(DrawContext ctx, MinecraftClient client, int baseW, int baseH, boolean background, Consumer<DrawContext> content) {
-      int screenW = client.getWindow().getScaledWidth();
-      int screenH = client.getWindow().getScaledHeight();
+   protected final void draw(GuiGraphicsExtractor ctx, Minecraft client, int baseW, int baseH, boolean background, Consumer<GuiGraphicsExtractor> content) {
+      int screenW = client.getWindow().getGuiScaledWidth();
+      int screenH = client.getWindow().getGuiScaledHeight();
       FeatureConfig.Panel p = this.panel();
       this.lastBaseW = baseW;
       this.lastBaseH = baseH;
@@ -57,7 +57,7 @@ public abstract class PanelHud implements DraggableHud {
       this.lastY = y;
       this.lastW = w;
       this.lastH = h;
-      Matrix3x2fStack matrices = ctx.getMatrices();
+      Matrix3x2fStack matrices = ctx.pose();
       matrices.pushMatrix();
       matrices.translate(x, y);
       matrices.scale(scale, scale);

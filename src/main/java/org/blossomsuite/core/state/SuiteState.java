@@ -19,10 +19,9 @@ import org.blossomsuite.core.vote.VotePartySnapshot;
 import org.blossomsuite.core.vote.VoteRuntime;
 import org.blossomsuite.core.vote.VoteState;
 import java.util.function.BiConsumer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 public final class SuiteState {
    public static final SuiteState INSTANCE = new SuiteState();
    private static BiConsumer<String, Object[]> warnReporter = (message, args) -> {};
@@ -76,7 +75,7 @@ public final class SuiteState {
    }
 
    private static void executeOnClientThread(Runnable action) {
-      MinecraftClient client = MinecraftClient.getInstance();
+      Minecraft client = Minecraft.getInstance();
       if (client != null) {
          client.execute(action);
       }
@@ -109,26 +108,26 @@ public final class SuiteState {
       }
    }
 
-   private static Text requiredUpdateText(String current, String required, String latest) {
-      return Text.empty()
-         .append(Text.literal(SuiteRuntime.profile().displayName() + ": ").formatted(Formatting.LIGHT_PURPLE))
-         .append(Text.literal("REQUIRED UPDATE ").formatted(Formatting.RED, Formatting.BOLD))
-         .append(Text.literal("(min ").formatted(Formatting.GRAY))
-         .append(Text.literal(required).formatted(Formatting.RED))
-         .append(Text.literal(", you have ").formatted(Formatting.GRAY))
-         .append(Text.literal(current).formatted(Formatting.RED))
-         .append(Text.literal(")").formatted(Formatting.GRAY))
-         .append(Text.literal(" Latest: ").formatted(Formatting.GRAY))
-         .append(Text.literal(latest).formatted(Formatting.WHITE));
+   private static Component requiredUpdateText(String current, String required, String latest) {
+      return Component.empty()
+         .append(Component.literal(SuiteRuntime.profile().displayName() + ": ").withStyle(ChatFormatting.LIGHT_PURPLE))
+         .append(Component.literal("REQUIRED UPDATE ").withStyle(ChatFormatting.RED, ChatFormatting.BOLD))
+         .append(Component.literal("(min ").withStyle(ChatFormatting.GRAY))
+         .append(Component.literal(required).withStyle(ChatFormatting.RED))
+         .append(Component.literal(", you have ").withStyle(ChatFormatting.GRAY))
+         .append(Component.literal(current).withStyle(ChatFormatting.RED))
+         .append(Component.literal(")").withStyle(ChatFormatting.GRAY))
+         .append(Component.literal(" Latest: ").withStyle(ChatFormatting.GRAY))
+         .append(Component.literal(latest).withStyle(ChatFormatting.WHITE));
    }
 
-   private static Text optionalUpdateText(String current, String latest) {
-      return Text.empty()
-         .append(Text.literal(SuiteRuntime.profile().displayName() + ": ").formatted(Formatting.LIGHT_PURPLE))
-         .append(Text.literal("Optional update available ").formatted(Formatting.YELLOW))
-         .append(Text.literal(latest).formatted(Formatting.GOLD, Formatting.BOLD))
-         .append(Text.literal(" (you have ").formatted(Formatting.GRAY))
-         .append(Text.literal(current).formatted(Formatting.WHITE))
-         .append(Text.literal(")").formatted(Formatting.GRAY));
+   private static Component optionalUpdateText(String current, String latest) {
+      return Component.empty()
+         .append(Component.literal(SuiteRuntime.profile().displayName() + ": ").withStyle(ChatFormatting.LIGHT_PURPLE))
+         .append(Component.literal("Optional update available ").withStyle(ChatFormatting.YELLOW))
+         .append(Component.literal(latest).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
+         .append(Component.literal(" (you have ").withStyle(ChatFormatting.GRAY))
+         .append(Component.literal(current).withStyle(ChatFormatting.WHITE))
+         .append(Component.literal(")").withStyle(ChatFormatting.GRAY));
    }
 }

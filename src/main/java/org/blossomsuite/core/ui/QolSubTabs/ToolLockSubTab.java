@@ -8,15 +8,14 @@ import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.ui.HoverLabelWidget;
 import org.blossomsuite.core.ui.SuiteSettingsScreen;
 import org.blossomsuite.core.ui.SuiteSubTab;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.chat.Component;
 public final class ToolLockSubTab implements SuiteSubTab {
    private int hotbarX = -1;
    private int hotbarY = -1;
@@ -42,30 +41,30 @@ public final class ToolLockSubTab implements SuiteSubTab {
                y + 6,
                220,
                12,
-               Text.literal("Tool Lock"),
-               Tooltip.of(Text.literal("Blocks sneak + right-click tool mode swaps (ex: Silk Touch/Fortune) for locked hotbar slots."))
+               Component.literal("Tool Lock"),
+               Tooltip.create(Component.literal("Blocks sneak + right-click tool mode swaps (ex: Silk Touch/Fortune) for locked hotbar slots."))
             )
          );
-         ButtonWidget enabledBtn = StyledButton.of(Text.literal(cfg.QolConfig.toolLockEnabled ? "ON" : "OFF"), b -> {
+         Button enabledBtn = StyledButton.of(Component.literal(cfg.QolConfig.toolLockEnabled ? "ON" : "OFF"), b -> {
             cfg.QolConfig.toggleToolLockEnabled();
             cfg.markDirty();
             ConfigIO.saveIfDirty();
             screen.rebuildPreserveScroll();
          }).dimensions(x + w - 80, y, 80, 20).build();
-         enabledBtn.setTooltip(Tooltip.of(Text.literal("Enable/disable Tool Lock.")));
+         enabledBtn.setTooltip(Tooltip.create(Component.literal("Enable/disable Tool Lock.")));
          screen.addContentWidget(enabledBtn);
          y += 28;
          QolConfig q = cfg.QolConfig;
          q.ensureToolLockProfiles();
          screen.addContentWidget(
             new HoverLabelWidget(
-               x, y + 6, 220, 12, Text.literal("Profile"), Tooltip.of(Text.literal("Tool Lock profiles let you switch between saved hotbar lock setups."))
+               x, y + 6, 220, 12, Component.literal("Profile"), Tooltip.create(Component.literal("Tool Lock profiles let you switch between saved hotbar lock setups."))
             )
          );
          int deleteW = 70;
          int addW = 70;
          int profileW = w - deleteW - addW - 12;
-         ButtonWidget profileBtn = StyledButton.of(Text.literal(currentProfileTitle(q)), b -> {
+         Button profileBtn = StyledButton.of(Component.literal(currentProfileTitle(q)), b -> {
             if (!q.toolLockProfiles.isEmpty()) {
                q.syncActiveToolLockProfile();
                int next = q.toolLockActiveProfile + 1;
@@ -78,28 +77,28 @@ public final class ToolLockSubTab implements SuiteSubTab {
                screen.rebuildPreserveScroll();
             }
          }).dimensions(x, y + 20, profileW, 20).build();
-         profileBtn.setTooltip(Tooltip.of(Text.literal("Cycles through Tool Lock profiles.")));
+         profileBtn.setTooltip(Tooltip.create(Component.literal("Cycles through Tool Lock profiles.")));
          screen.addContentWidget(profileBtn);
-         ButtonWidget addProfileBtn = StyledButton.of(Text.literal("+ Add"), b -> {
+         Button addProfileBtn = StyledButton.of(Component.literal("+ Add"), b -> {
             q.addToolLockProfile(nextProfileName(q));
             ConfigIO.saveIfDirty();
             screen.rebuildPreserveScroll();
          }).dimensions(x + profileW + 6, y + 20, addW, 20).build();
-         addProfileBtn.setTooltip(Tooltip.of(Text.literal("Adds a new empty Tool Lock profile.")));
+         addProfileBtn.setTooltip(Tooltip.create(Component.literal("Adds a new empty Tool Lock profile.")));
          screen.addContentWidget(addProfileBtn);
-         ButtonWidget deleteProfileBtn = StyledButton.of(Text.literal("Delete"), b -> {
+         Button deleteProfileBtn = StyledButton.of(Component.literal("Delete"), b -> {
             q.deleteActiveToolLockProfile();
             ConfigIO.saveIfDirty();
             screen.rebuildPreserveScroll();
          }).dimensions(x + profileW + 6 + addW + 6, y + 20, deleteW, 20).build();
          deleteProfileBtn.active = q.toolLockProfiles.size() > 1;
-         deleteProfileBtn.setTooltip(Tooltip.of(Text.literal("Deletes the current Tool Lock profile.")));
+         deleteProfileBtn.setTooltip(Tooltip.create(Component.literal("Deletes the current Tool Lock profile.")));
          screen.addContentWidget(deleteProfileBtn);
-         TextFieldWidget profileNameField = new TextFieldWidget(screen.getTextRenderer(), x, y + 46, w, 20, Text.empty());
+         EditBox profileNameField = new EditBox(screen.getFont(), x, y + 46, w, 20, Component.empty());
          profileNameField.setMaxLength(32);
-         profileNameField.setText(currentProfileTitle(q));
-         profileNameField.setTooltip(Tooltip.of(Text.literal("Rename the current Tool Lock profile.")));
-         profileNameField.setChangedListener(newText -> q.renameActiveToolLockProfile(newText));
+         profileNameField.setValue(currentProfileTitle(q));
+         profileNameField.setTooltip(Tooltip.create(Component.literal("Rename the current Tool Lock profile.")));
+         profileNameField.setResponder(newText -> q.renameActiveToolLockProfile(newText));
          screen.addContentWidget(profileNameField);
          y += 76;
          screen.addContentWidget(
@@ -108,21 +107,21 @@ public final class ToolLockSubTab implements SuiteSubTab {
                y + 6,
                Math.min(w, 340),
                12,
-               Text.literal("Block On Interact Blocks"),
-               Tooltip.of(
-                  Text.literal(
+               Component.literal("Block On Interact Blocks"),
+               Tooltip.create(
+                  Component.literal(
                      "When OFF, Tool Lock will not block sneak-right-clicking on containers/interactive blocks.\nWhen ON, Tool Lock blocks on blocks too (more aggressive)."
                   )
                )
             )
          );
-         ButtonWidget blockOnBlockBtn = StyledButton.of(Text.literal(q.toolLockBlockOnInteractBlock ? "ON" : "OFF"), b -> {
+         Button blockOnBlockBtn = StyledButton.of(Component.literal(q.toolLockBlockOnInteractBlock ? "ON" : "OFF"), b -> {
             q.toggleToolLockBlockOnInteractBlock();
             cfg.markDirty();
             ConfigIO.saveIfDirty();
             screen.rebuildPreserveScroll();
          }).dimensions(x + w - 80, y, 80, 20).build();
-         blockOnBlockBtn.setTooltip(Tooltip.of(Text.literal("Toggle whether Tool Lock blocks interactions with blocks.")));
+         blockOnBlockBtn.setTooltip(Tooltip.create(Component.literal("Toggle whether Tool Lock blocks interactions with blocks.")));
          screen.addContentWidget(blockOnBlockBtn);
          y += 28;
          screen.addContentWidget(
@@ -131,17 +130,17 @@ public final class ToolLockSubTab implements SuiteSubTab {
                y + 6,
                Math.min(w, 340),
                12,
-               Text.literal("Blocked Input Reporting"),
-               Tooltip.of(Text.literal("Choose where Tool Lock reports blocked inputs."))
+               Component.literal("Blocked Input Reporting"),
+               Tooltip.create(Component.literal("Choose where Tool Lock reports blocked inputs."))
             )
          );
-         ButtonWidget reportBtn = StyledButton.of(Text.literal(reportModeLabel(q.toolLockReportMode)), b -> {
+         Button reportBtn = StyledButton.of(Component.literal(reportModeLabel(q.toolLockReportMode)), b -> {
             q.cycleToolLockReportMode();
             cfg.markDirty();
             ConfigIO.saveIfDirty();
             screen.rebuildPreserveScroll();
          }).dimensions(x + w - 100, y, 100, 20).build();
-         reportBtn.setTooltip(Tooltip.of(Text.literal("Off, Chat, or Notice. Message: Slot is locked.")));
+         reportBtn.setTooltip(Tooltip.create(Component.literal("Off, Chat, or Notice. Message: Slot is locked.")));
          screen.addContentWidget(reportBtn);
          y += 28;
          screen.addContentWidget(
@@ -150,8 +149,8 @@ public final class ToolLockSubTab implements SuiteSubTab {
                y + 6,
                Math.min(w, 340),
                12,
-               Text.literal("Locked Hotbar Slots"),
-               Tooltip.of(Text.literal("Click a hotbar slot to lock mode swaps. Shift+Click toggles left-click locking."))
+               Component.literal("Locked Hotbar Slots"),
+               Tooltip.create(Component.literal("Click a hotbar slot to lock mode swaps. Shift+Click toggles left-click locking."))
             )
          );
          int gridW = 180;
@@ -161,7 +160,7 @@ public final class ToolLockSubTab implements SuiteSubTab {
    }
 
    @Override
-   public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
+   public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
       this.drawHotbar(ctx, mouseX, mouseY);
    }
 
@@ -186,7 +185,7 @@ public final class ToolLockSubTab implements SuiteSubTab {
       }
 
       QolConfig q = SuiteConfig.INSTANCE.QolConfig;
-      if (Screen.hasShiftDown()) {
+      if (net.minecraft.client.Minecraft.getInstance().hasShiftDown()) {
          q.toggleToolLockLeftClickSlot(slot);
       } else {
          q.toggleToolLockSlot(slot);
@@ -196,9 +195,9 @@ public final class ToolLockSubTab implements SuiteSubTab {
       return true;
    }
 
-   private void drawHotbar(DrawContext ctx, int mouseX, int mouseY) {
+   private void drawHotbar(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
       if (this.hotbarX >= 0 && this.hotbarY >= 0) {
-         MinecraftClient client = MinecraftClient.getInstance();
+         Minecraft client = Minecraft.getInstance();
          QolConfig q = SuiteConfig.INSTANCE.QolConfig;
          int selected = -1;
          if (client != null && client.player != null) {
@@ -218,37 +217,37 @@ public final class ToolLockSubTab implements SuiteSubTab {
             int fill = locked ? -14273498 : (hover ? -14013910 : -15263977);
             int border = slot == selected ? -3722 : (locked ? -8585317 : (hover ? -5592406 : -11184811));
             ctx.fill(x, y, x + 18, y + 18, fill);
-            ctx.drawBorder(x, y, 18, 18, border);
-            if (client != null && client.player != null && slot < client.player.getInventory().size()) {
-               ItemStack stack = client.player.getInventory().getStack(slot);
+            ctx.outline(x, y, 18, 18, border);
+            if (client != null && client.player != null && slot < client.player.getInventory().getContainerSize()) {
+               ItemStack stack = client.player.getInventory().getItem(slot);
                if (stack != null && !stack.isEmpty()) {
-                  ctx.drawItem(stack, x + 1, y + 1);
-                  ctx.drawStackOverlay(client.textRenderer, stack, x + 1, y + 1);
+                  ctx.item(stack, x + 1, y + 1);
+                  ctx.itemDecorations(client.font, stack, x + 1, y + 1);
                }
             }
 
             if (swapLocked) {
                ctx.fill(x + 1, y + 1, x + 17, y + 17, 1434255259);
-               drawCentered(ctx, client, Text.literal("S"), x + 5, y + 4, -1);
+               drawCentered(ctx, client, Component.literal("S"), x + 5, y + 4, -1);
             }
 
             if (leftLocked) {
                ctx.fill(x + 1, y + 1, x + 17, y + 17, 1442801254);
-               drawCentered(ctx, client, Text.literal("L"), x + 13, y + 4, -1);
+               drawCentered(ctx, client, Component.literal("L"), x + 13, y + 4, -1);
             }
          }
 
          if (client != null) {
-            ctx.drawTextWithShadow(
-               client.textRenderer, Text.literal("Click: swap lock  Shift+Click: left-click lock"), this.hotbarX, this.hotbarY + 26, -4671304
+            ctx.text(
+               client.font, Component.literal("Click: swap lock  Shift+Click: left-click lock"), this.hotbarX, this.hotbarY + 26, -4671304
             );
          }
       }
    }
 
-   private static void drawCentered(DrawContext ctx, MinecraftClient client, Text text, int centerX, int y, int color) {
-      if (client != null && client.textRenderer != null) {
-         ctx.drawTextWithShadow(client.textRenderer, text, centerX - client.textRenderer.getWidth(text) / 2, y, color);
+   private static void drawCentered(GuiGraphicsExtractor ctx, Minecraft client, Component text, int centerX, int y, int color) {
+      if (client != null && client.font != null) {
+         ctx.text(client.font, text, centerX - client.font.width(text) / 2, y, color);
       }
    }
 

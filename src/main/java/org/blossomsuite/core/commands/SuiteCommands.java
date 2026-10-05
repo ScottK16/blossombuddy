@@ -24,18 +24,17 @@ import org.blossomsuite.core.util.WorldGate;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.BiConsumer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.RegistryWrapper.WrapperLookup;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.core.HolderLookup.Provider;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 public final class SuiteCommands {
    private static Runnable requestSettingsOpen = () -> {};
    private static Runnable requestHudEditOpen = () -> {};
@@ -55,7 +54,7 @@ public final class SuiteCommands {
    }
 
    private static LiteralArgumentBuilder<FabricClientCommandSource> extras(String commandName) {
-      LiteralArgumentBuilder<FabricClientCommandSource> root = ClientCommandManager.literal(commandName).then(ClientCommandManager.literal("reload").executes(ctx -> {
+      LiteralArgumentBuilder<FabricClientCommandSource> root = ClientCommands.literal(commandName).then(ClientCommands.literal("reload").executes(ctx -> {
          int count = CooldownRules.loadLocalFile();
          ChatOutput.info(count < 0 ? "No cooldowns.json found in the config folder." : "Loaded " + count + " cooldown rules.");
          return 1;
@@ -80,21 +79,21 @@ public final class SuiteCommands {
    }
 
    private static LiteralArgumentBuilder<FabricClientCommandSource> root(String commandName) {
-      return (LiteralArgumentBuilder<FabricClientCommandSource>)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)ClientCommandManager.literal(
+      return (LiteralArgumentBuilder<FabricClientCommandSource>)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)ClientCommands.literal(
                                           commandName
                                        )
                                        .executes(
                                           ctx -> {
                                              ((FabricClientCommandSource)ctx.getSource())
-                                                .sendFeedback(Text.literal(SuiteRuntime.profile().displayName() + " loaded. Try /" + commandName + " help"));
+                                                .sendFeedback(Component.literal(SuiteRuntime.profile().displayName() + " loaded. Try /" + commandName + " help"));
                                              return 1;
                                           }
                                        ))
-                                    .then(ClientCommandManager.literal("options").executes(ctx -> {
+                                    .then(ClientCommands.literal("options").executes(ctx -> {
                                        requestSettingsOpen.run();
                                        return 1;
                                     })))
-                                 .then(ClientCommandManager.literal("trade").executes(ctx -> {
+                                 .then(ClientCommands.literal("trade").executes(ctx -> {
                                     if (!requireActiveWorld()) {
                                        return 0;
                                     }
@@ -102,130 +101,130 @@ public final class SuiteCommands {
                                     reportTrade();
                                     return 1;
                                  })))
-                              .then(ClientCommandManager.literal("sort").executes(ctx -> {
+                              .then(ClientCommands.literal("sort").executes(ctx -> {
                                  if (!requireActiveWorld()) {
                                     return 0;
                                  }
 
-                                 InventorySorter.sortPlayerInventory(MinecraftClient.getInstance());
+                                 InventorySorter.sortPlayerInventory(Minecraft.getInstance());
                                  return 1;
                               })))
-                           .then(ClientCommandManager.literal("debug").then(ClientCommandManager.literal("notifyhand").executes(ctx -> notifyHeldItem()))))
+                           .then(ClientCommands.literal("debug").then(ClientCommands.literal("notifyhand").executes(ctx -> notifyHeldItem()))))
                         .then(
-                           ((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)ClientCommandManager.literal(
+                           ((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)ClientCommands.literal(
                                              "rent"
                                           )
-                                          .then(ClientCommandManager.literal("pause").executes(ctx -> pauseRentals())))
-                                       .then(ClientCommandManager.literal("resume").executes(ctx -> resumeRentals())))
-                                    .then(ClientCommandManager.literal("toggle").executes(ctx -> toggleRentalsPaused())))
-                                 .then(ClientCommandManager.literal("clear").executes(ctx -> clearExpiredRentals())))
-                              .then(((RequiredArgumentBuilder)ClientCommandManager.argument("minutes", StringArgumentType.word()).executes(ctx -> {
+                                          .then(ClientCommands.literal("pause").executes(ctx -> pauseRentals())))
+                                       .then(ClientCommands.literal("resume").executes(ctx -> resumeRentals())))
+                                    .then(ClientCommands.literal("toggle").executes(ctx -> toggleRentalsPaused())))
+                                 .then(ClientCommands.literal("clear").executes(ctx -> clearExpiredRentals())))
+                              .then(((RequiredArgumentBuilder)ClientCommands.argument("minutes", StringArgumentType.word()).executes(ctx -> {
                                  String minutes = StringArgumentType.getString(ctx, "minutes");
                                  return addRentalFromHand(minutes, "");
-                              })).then(ClientCommandManager.argument("place", StringArgumentType.greedyString()).executes(ctx -> {
+                              })).then(ClientCommands.argument("place", StringArgumentType.greedyString()).executes(ctx -> {
                                  String minutes = StringArgumentType.getString(ctx, "minutes");
                                  String place = StringArgumentType.getString(ctx, "place");
                                  return addRentalFromHand(minutes, place);
                               })))
                         ))
                   .then(
-                     ((LiteralArgumentBuilder)ClientCommandManager.literal("help")
+                     ((LiteralArgumentBuilder)ClientCommands.literal("help")
                            .executes(
                               ctx -> {
-                                 ChatOutput.info(Text.literal("-------- " + SuiteRuntime.profile().displayName() + " --------").formatted(Formatting.DARK_GRAY));
+                                 ChatOutput.info(Component.literal("-------- " + SuiteRuntime.profile().displayName() + " --------").withStyle(ChatFormatting.DARK_GRAY));
                                  ChatOutput.info(
-                                    Text.literal(commandText("help "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- Shows this menu").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("help "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- Shows this menu").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("options "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- Open settings UI").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("options "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- Open settings UI").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("reload "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- Reload cooldown rules from disk").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("reload "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- Reload cooldown rules from disk").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("editmode "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- Move HUD elements").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("editmode "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- Move HUD elements").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("totals "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- View lifetime job earnings").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("totals "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- View lifetime job earnings").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("trade "))
-                                       .formatted(Formatting.GRAY)
+                                    Component.literal(commandText("trade "))
+                                       .withStyle(ChatFormatting.GRAY)
                                        .append(
-                                          Text.literal("- View tracked balance, claim blocks, and " + SuiteRuntime.profile().primaryResourceDisplayName())
-                                             .formatted(Formatting.DARK_GRAY)
+                                          Component.literal("- View tracked balance, claim blocks, and " + SuiteRuntime.profile().primaryResourceDisplayName())
+                                             .withStyle(ChatFormatting.DARK_GRAY)
                                        )
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("sort "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- Sort unlocked inventory slots").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("sort "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- Sort unlocked inventory slots").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("rent <minutes> [place] "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- Track the held item as a rental").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("rent <minutes> [place] "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- Track the held item as a rental").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("rent clear "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- Clear expired rental counters").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("rent clear "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- Clear expired rental counters").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("jobs segment report "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- View job segment breakdown").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("jobs segment report "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- View job segment breakdown").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("jobs setlifetime <amount> "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- Set lifetime jobs total for your current recognized server").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("jobs setlifetime <amount> "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- Set lifetime jobs total for your current recognized server").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("help debug hand "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- Debug held item").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("help debug hand "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- Debug held item").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("help debug nbt "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- Log held item NBT").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("help debug nbt "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- Log held item NBT").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(commandText("debug notifyhand "))
-                                       .formatted(Formatting.GRAY)
-                                       .append(Text.literal("- Show held item in the screen notice spot").formatted(Formatting.DARK_GRAY))
+                                    Component.literal(commandText("debug notifyhand "))
+                                       .withStyle(ChatFormatting.GRAY)
+                                       .append(Component.literal("- Show held item in the screen notice spot").withStyle(ChatFormatting.DARK_GRAY))
                                  );
                                  ChatOutput.info(
-                                    Text.literal(
+                                    Component.literal(
                                           "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
                                        )
-                                       .formatted(Formatting.DARK_GRAY)
+                                       .withStyle(ChatFormatting.DARK_GRAY)
                                  );
                                  return 1;
                               }
                            ))
                         .then(
-                           ((LiteralArgumentBuilder)((LiteralArgumentBuilder)ClientCommandManager.literal("debug")
-                                    .then(ClientCommandManager.literal("hand").executes(ctx -> {
+                           ((LiteralArgumentBuilder)((LiteralArgumentBuilder)ClientCommands.literal("debug")
+                                    .then(ClientCommands.literal("hand").executes(ctx -> {
                                        if (!requireActiveWorld()) {
                                           return 0;
                                        } else {
-                                          MinecraftClient client = MinecraftClient.getInstance();
+                                          Minecraft client = Minecraft.getInstance();
                                           if (client.player == null) {
                                              return 0;
                                           } else {
-                                             ItemStack held = client.player.getMainHandStack();
+                                             ItemStack held = client.player.getMainHandItem();
                                              if (held.isEmpty()) {
                                                 ChatOutput.info("No item in hand");
                                                 return 1;
@@ -239,30 +238,30 @@ public final class SuiteCommands {
                                           }
                                        }
                                     })))
-                                 .then(ClientCommandManager.literal("notifyhand").executes(ctx -> notifyHeldItem())))
-                              .then(ClientCommandManager.literal("nbt").executes(ctx -> {
+                                 .then(ClientCommands.literal("notifyhand").executes(ctx -> notifyHeldItem())))
+                              .then(ClientCommands.literal("nbt").executes(ctx -> {
                                  if (!requireActiveWorld()) {
                                     return 0;
                                  }
 
-                                 MinecraftClient client = MinecraftClient.getInstance();
-                                 if (client.player != null && client.world != null) {
-                                    ItemStack held = client.player.getMainHandStack();
+                                 Minecraft client = Minecraft.getInstance();
+                                 if (client.player != null && client.level != null) {
+                                    ItemStack held = client.player.getMainHandItem();
                                     if (held.isEmpty()) {
                                        ChatOutput.info("No item in hand");
                                        return 1;
                                     }
 
                                     try {
-                                       WrapperLookup lookup = client.world.getRegistryManager();
-                                       NbtElement element = (NbtElement)ItemStack.CODEC.encodeStart(lookup.getOps(NbtOps.INSTANCE), held).getOrThrow();
-                                       if (element instanceof NbtCompound compound) {
+                                       Provider lookup = client.level.registryAccess();
+                                       Tag element = (Tag)ItemStack.CODEC.encodeStart(lookup.createSerializationContext(NbtOps.INSTANCE), held).getOrThrow();
+                                       if (element instanceof CompoundTag compound) {
                                           String snbt = compound.toString();
                                           infoLogger.accept("=== " + SuiteRuntime.profile().displayName() + " HELD ITEM NBT ===", null);
                                           infoLogger.accept(snbt, null);
                                           infoLogger.accept("=== /" + SuiteRuntime.profile().displayName() + " HELD ITEM NBT ===", null);
-                                          if (client.keyboard != null) {
-                                             client.keyboard.setClipboard(snbt);
+                                          if (client.keyboardHandler != null) {
+                                             client.keyboardHandler.setClipboard(snbt);
                                           }
 
                                           ChatOutput.info("Copied + logged held item NBT (" + snbt.length() + " chars)");
@@ -283,15 +282,15 @@ public final class SuiteCommands {
                         )
                   ))
                .then(
-                  ((LiteralArgumentBuilder)ClientCommandManager.literal("jobs")
-                        .then(ClientCommandManager.literal("segment").then(((LiteralArgumentBuilder)ClientCommandManager.literal("report").executes(ctx -> {
+                  ((LiteralArgumentBuilder)ClientCommands.literal("jobs")
+                        .then(ClientCommands.literal("segment").then(((LiteralArgumentBuilder)ClientCommands.literal("report").executes(ctx -> {
                            if (!requireActiveWorld()) {
                               return 0;
                            }
 
                            report();
                            return 1;
-                        })).then(ClientCommandManager.literal("segments").executes(ctx -> {
+                        })).then(ClientCommands.literal("segments").executes(ctx -> {
                            if (!requireActiveWorld()) {
                               return 0;
                            }
@@ -300,14 +299,14 @@ public final class SuiteCommands {
                            return 1;
                         })))))
                      .then(
-                        ClientCommandManager.literal("setlifetime")
+                        ClientCommands.literal("setlifetime")
                            .then(
-                              ClientCommandManager.argument("amount", StringArgumentType.greedyString())
+                              ClientCommands.argument("amount", StringArgumentType.greedyString())
                                  .executes(ctx -> setCurrentServerLifetime(StringArgumentType.getString(ctx, "amount")))
                            )
                      )
                ))
-            .then(ClientCommandManager.literal("editmode").executes(ctx -> {
+            .then(ClientCommands.literal("editmode").executes(ctx -> {
                if (!requireActiveWorld()) {
                   return 0;
                }
@@ -316,7 +315,7 @@ public final class SuiteCommands {
                return 1;
             })))
          .then(
-            ClientCommandManager.literal("totals")
+            ClientCommands.literal("totals")
                .executes(
                   ctx -> {
                      if (!requireActiveWorld()) {
@@ -324,17 +323,17 @@ public final class SuiteCommands {
                      }
 
                      ChatOutput.info(
-                        Text.literal("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500").formatted(Formatting.DARK_GRAY)
+                        Component.literal("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500").withStyle(ChatFormatting.DARK_GRAY)
                      );
-                     Formatting setFormatting = realmFormatting(recognizedRealm(JobsChattextSetup.realmName));
+                     ChatFormatting setFormatting = realmFormatting(recognizedRealm(JobsChattextSetup.realmName));
                      ChatOutput.info(
-                        Text.literal(SuiteRuntime.profile().displayName().toUpperCase(Locale.ROOT))
-                           .formatted(setFormatting, Formatting.BOLD)
-                           .append(Text.literal(" \u2022 ").formatted(Formatting.DARK_GRAY))
-                           .append(Text.literal("Job Lifetime").formatted(Formatting.GRAY))
+                        Component.literal(SuiteRuntime.profile().displayName().toUpperCase(Locale.ROOT))
+                           .withStyle(setFormatting, ChatFormatting.BOLD)
+                           .append(Component.literal(" \u2022 ").withStyle(ChatFormatting.DARK_GRAY))
+                           .append(Component.literal("Job Lifetime").withStyle(ChatFormatting.GRAY))
                      );
                      ChatOutput.info(
-                        Text.literal("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500").formatted(Formatting.DARK_GRAY)
+                        Component.literal("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500").withStyle(ChatFormatting.DARK_GRAY)
                      );
 
                      for (SuiteServer server : SuiteRuntime.profile().servers()) {
@@ -347,12 +346,12 @@ public final class SuiteCommands {
          );
    }
 
-   private static void sendLifetimeLine(String name, Formatting nameColor, double amount) {
+   private static void sendLifetimeLine(String name, ChatFormatting nameColor, double amount) {
       ChatOutput.info(
-         Text.literal(name)
-            .formatted(nameColor)
-            .append(Text.literal(": $").formatted(Formatting.GRAY))
-            .append(Text.literal(TextUtil.fmtMoney(amount)).formatted(Formatting.GREEN))
+         Component.literal(name)
+            .withStyle(nameColor)
+            .append(Component.literal(": $").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(TextUtil.fmtMoney(amount)).withStyle(ChatFormatting.GREEN))
       );
    }
 
@@ -374,13 +373,13 @@ public final class SuiteCommands {
          return 0;
       }
 
-      MinecraftClient client = MinecraftClient.getInstance();
+      Minecraft client = Minecraft.getInstance();
       if (client != null && client.player != null) {
-         ItemStack held = client.player.getMainHandStack();
+         ItemStack held = client.player.getMainHandItem();
          if (held != null && !held.isEmpty()) {
-            String itemName = TextUtil.stripLegacySectionCodes(held.getName()).getString();
+            String itemName = TextUtil.stripLegacySectionCodes(held.getHoverName()).getString();
             if (itemName == null || itemName.isBlank()) {
-               itemName = held.getItem().getName().getString();
+               itemName = held.getItemName().getString();
             }
 
             if (itemName == null || itemName.isBlank()) {
@@ -423,11 +422,11 @@ public final class SuiteCommands {
          SuiteConfig.INSTANCE.JobsConfig.setLifetimeForServer(realm, amount);
          ConfigIO.saveIfDirty();
          ChatOutput.info(
-            Text.literal("Set ")
-               .formatted(Formatting.GRAY)
-               .append(Text.literal(SuiteRuntime.profile().serverDisplayName(realm)).formatted(realmFormatting(realm)))
-               .append(Text.literal(" jobs lifetime to $").formatted(Formatting.GRAY))
-               .append(Text.literal(TextUtil.fmtMoney(amount)).formatted(Formatting.GREEN))
+            Component.literal("Set ")
+               .withStyle(ChatFormatting.GRAY)
+               .append(Component.literal(SuiteRuntime.profile().serverDisplayName(realm)).withStyle(realmFormatting(realm)))
+               .append(Component.literal(" jobs lifetime to $").withStyle(ChatFormatting.GRAY))
+               .append(Component.literal(TextUtil.fmtMoney(amount)).withStyle(ChatFormatting.GREEN))
          );
          return 1;
       }
@@ -442,16 +441,16 @@ public final class SuiteCommands {
       return SuiteRuntime.profile().isTrackedServerKey(key) ? key : null;
    }
 
-   private static Formatting realmFormatting(String realm) {
+   private static ChatFormatting realmFormatting(String realm) {
       return switch (realm) {
-         case "cherry" -> Formatting.LIGHT_PURPLE;
-         case "spirit" -> Formatting.BLUE;
-         case "lotus" -> Formatting.GREEN;
-         case "tulip" -> Formatting.YELLOW;
-         case "cosmic" -> Formatting.LIGHT_PURPLE;
-         case "arcane" -> Formatting.AQUA;
-         case "elysium" -> Formatting.GREEN;
-         default -> Formatting.WHITE;
+         case "cherry" -> ChatFormatting.LIGHT_PURPLE;
+         case "spirit" -> ChatFormatting.BLUE;
+         case "lotus" -> ChatFormatting.GREEN;
+         case "tulip" -> ChatFormatting.YELLOW;
+         case "cosmic" -> ChatFormatting.LIGHT_PURPLE;
+         case "arcane" -> ChatFormatting.AQUA;
+         case "elysium" -> ChatFormatting.GREEN;
+         default -> ChatFormatting.WHITE;
       };
    }
 
@@ -497,7 +496,7 @@ public final class SuiteCommands {
    }
 
    private static void reportTrade() {
-      MinecraftClient client = MinecraftClient.getInstance();
+      Minecraft client = Minecraft.getInstance();
       long now = System.currentTimeMillis();
       if (client != null && client.player != null && WorldGate.isActive()) {
          AltResourceState.scanInventoryNow(client, WorldGate.Server, now);
@@ -505,27 +504,27 @@ public final class SuiteCommands {
       }
 
       List<AltResourceState.Snapshot> snapshots = AltResourceState.snapshots();
-      ChatOutput.info(Text.literal("---- " + SuiteRuntime.profile().displayName().toUpperCase(Locale.ROOT) + " SERVER DATA ----").formatted(Formatting.GOLD));
+      ChatOutput.info(Component.literal("---- " + SuiteRuntime.profile().displayName().toUpperCase(Locale.ROOT) + " SERVER DATA ----").withStyle(ChatFormatting.GOLD));
       if (snapshots.isEmpty()) {
-         ChatOutput.info(Text.literal("No server data tracked yet.").formatted(Formatting.GRAY));
+         ChatOutput.info(Component.literal("No server data tracked yet.").withStyle(ChatFormatting.GRAY));
       } else {
          for (AltResourceState.Snapshot snapshot : snapshots) {
             ChatOutput.info(
-               Text.literal(snapshot.displayName())
-                  .formatted(Formatting.AQUA)
-                  .append(Text.literal(": ").formatted(Formatting.DARK_GRAY))
-                  .append(Text.literal(AltResourceState.formatBalance(snapshot)).formatted(Formatting.GREEN))
-                  .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
-                  .append(Text.literal(AltResourceState.formatClaimBlocks(snapshot)).formatted(Formatting.YELLOW))
-                  .append(Text.literal(" Claim Blocks").formatted(Formatting.GRAY))
-                  .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
-                  .append(Text.literal(AltResourceState.formatTrackedResource(snapshot)).formatted(Formatting.LIGHT_PURPLE))
-                  .append(Text.literal(" " + SuiteRuntime.profile().primaryResourceDisplayName()).formatted(Formatting.GRAY))
-                  .append(Text.literal(" (").formatted(Formatting.DARK_GRAY))
-                  .append(Text.literal(AltResourceState.formatTrackedResourceBreakdown(snapshot)).formatted(Formatting.GRAY))
-                  .append(Text.literal(")").formatted(Formatting.DARK_GRAY))
-                  .append(Text.literal(" | Updated ").formatted(Formatting.DARK_GRAY))
-                  .append(Text.literal(AltResourceState.formatLastUpdated(snapshot, now)).formatted(Formatting.GRAY))
+               Component.literal(snapshot.displayName())
+                  .withStyle(ChatFormatting.AQUA)
+                  .append(Component.literal(": ").withStyle(ChatFormatting.DARK_GRAY))
+                  .append(Component.literal(AltResourceState.formatBalance(snapshot)).withStyle(ChatFormatting.GREEN))
+                  .append(Component.literal(" | ").withStyle(ChatFormatting.DARK_GRAY))
+                  .append(Component.literal(AltResourceState.formatClaimBlocks(snapshot)).withStyle(ChatFormatting.YELLOW))
+                  .append(Component.literal(" Claim Blocks").withStyle(ChatFormatting.GRAY))
+                  .append(Component.literal(" | ").withStyle(ChatFormatting.DARK_GRAY))
+                  .append(Component.literal(AltResourceState.formatTrackedResource(snapshot)).withStyle(ChatFormatting.LIGHT_PURPLE))
+                  .append(Component.literal(" " + SuiteRuntime.profile().primaryResourceDisplayName()).withStyle(ChatFormatting.GRAY))
+                  .append(Component.literal(" (").withStyle(ChatFormatting.DARK_GRAY))
+                  .append(Component.literal(AltResourceState.formatTrackedResourceBreakdown(snapshot)).withStyle(ChatFormatting.GRAY))
+                  .append(Component.literal(")").withStyle(ChatFormatting.DARK_GRAY))
+                  .append(Component.literal(" | Updated ").withStyle(ChatFormatting.DARK_GRAY))
+                  .append(Component.literal(AltResourceState.formatLastUpdated(snapshot, now)).withStyle(ChatFormatting.GRAY))
             );
          }
       }
@@ -536,7 +535,7 @@ public final class SuiteCommands {
          return 0;
       }
 
-      MinecraftClient client = MinecraftClient.getInstance();
+      Minecraft client = Minecraft.getInstance();
       if (client != null && client.player != null) {
          int minutes;
          try {
@@ -547,11 +546,11 @@ public final class SuiteCommands {
          }
 
          if (minutes >= 1 && minutes <= 10080) {
-            ItemStack held = client.player.getMainHandStack();
+            ItemStack held = client.player.getMainHandItem();
             if (held != null && !held.isEmpty()) {
-               String itemName = held.getName().getString();
+               String itemName = held.getHoverName().getString();
                if (itemName == null || itemName.isBlank()) {
-                  itemName = held.getItem().getName().getString();
+                  itemName = held.getItemName().getString();
                }
 
                if (itemName == null || itemName.isBlank()) {
@@ -566,11 +565,11 @@ public final class SuiteCommands {
                SuiteConfig.INSTANCE.RentalsConfig.addRental(itemName, place, minutes);
                ConfigIO.saveIfDirty();
                ChatOutput.info(
-                  Text.literal("Tracking rental: ")
-                     .formatted(Formatting.GRAY)
-                     .append(Text.literal(itemName).formatted(Formatting.AQUA))
-                     .append(Text.literal(" for " + minutes + " min at ").formatted(Formatting.GRAY))
-                     .append(Text.literal(place).formatted(Formatting.YELLOW))
+                  Component.literal("Tracking rental: ")
+                     .withStyle(ChatFormatting.GRAY)
+                     .append(Component.literal(itemName).withStyle(ChatFormatting.AQUA))
+                     .append(Component.literal(" for " + minutes + " min at ").withStyle(ChatFormatting.GRAY))
+                     .append(Component.literal(place).withStyle(ChatFormatting.YELLOW))
                );
                return 1;
             } else {
@@ -662,29 +661,27 @@ public final class SuiteCommands {
    }
 
    private static void report() {
-      MinecraftClient client = MinecraftClient.getInstance();
+      Minecraft client = Minecraft.getInstance();
       List<JobsTracker.SegmentSnapshot> segments = SegmentStore.getRecent12();
       if (client != null && client.player != null) {
          client.player
-            .sendMessage(
-               Text.literal("---- " + SuiteRuntime.profile().displayName().toUpperCase(Locale.ROOT) + " LAST 12 SEGMENTS ----").formatted(Formatting.GOLD),
-               false
-            );
+            .sendSystemMessage(
+               Component.literal("---- " + SuiteRuntime.profile().displayName().toUpperCase(Locale.ROOT) + " LAST 12 SEGMENTS ----").withStyle(ChatFormatting.GOLD));
 
          for (JobsTracker.SegmentSnapshot s : segments) {
             String timeStr = TextUtil.fmtStopwatch(s.activeMs());
             String moneyStr = "$" + TextUtil.fmtMoney(s.totalMoney());
             String rateStr = TextUtil.fmtRate(s.moneyPerHr());
             int rateRgb = RateColors.rateColor(true, false, s.moneyPerHr()) & 16777215;
-            Text line = Text.literal("[" + timeStr + "] ")
-               .formatted(Formatting.DARK_GRAY)
-               .append(Text.literal(moneyStr + "  ").formatted(Formatting.WHITE))
-               .append(Text.literal(rateStr).setStyle(Style.EMPTY.withColor(rateRgb)))
-               .append(Text.literal(" | "))
-               .append(Text.literal(TextUtil.fmtExp(s.totalExp())))
-               .append(Text.literal(" "))
-               .append(Text.literal(TextUtil.fmtRate(s.expPerHr())));
-            client.player.sendMessage(line, false);
+            Component line = Component.literal("[" + timeStr + "] ")
+               .withStyle(ChatFormatting.DARK_GRAY)
+               .append(Component.literal(moneyStr + "  ").withStyle(ChatFormatting.WHITE))
+               .append(Component.literal(rateStr).setStyle(Style.EMPTY.withColor(rateRgb)))
+               .append(Component.literal(" | "))
+               .append(Component.literal(TextUtil.fmtExp(s.totalExp())))
+               .append(Component.literal(" "))
+               .append(Component.literal(TextUtil.fmtRate(s.expPerHr())));
+            client.player.sendSystemMessage(line);
          }
       }
    }

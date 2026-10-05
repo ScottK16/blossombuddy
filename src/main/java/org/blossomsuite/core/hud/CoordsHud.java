@@ -3,10 +3,10 @@ package org.blossomsuite.core.hud;
 import org.blossomsuite.core.config.ConfigIO;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.util.HudStyleUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.BlockPos;
 import org.joml.Matrix3x2fStack;
 
 public final class CoordsHud {
@@ -108,13 +108,13 @@ public final class CoordsHud {
       return !SuiteConfig.INSTANCE.CoordsConfig.showHeader ? 21 : 38;
    }
 
-   public static void render(DrawContext ctx, MinecraftClient client) {
+   public static void render(GuiGraphicsExtractor ctx, Minecraft client) {
       if (SuiteConfig.INSTANCE.CoordsConfig.showHud) {
          if (client.player != null) {
-            int screenH = client.getWindow().getScaledHeight();
-            int screenW = client.getWindow().getScaledWidth();
-            TextRenderer tr = client.textRenderer;
-            BlockPos p = client.player.getBlockPos();
+            int screenH = client.getWindow().getGuiScaledHeight();
+            int screenW = client.getWindow().getGuiScaledWidth();
+            Font tr = client.font;
+            BlockPos p = client.player.blockPosition();
             String header = "Coords";
             String row = p.getX() + ", " + p.getY() + ", " + p.getZ();
             boolean showHeader = SuiteConfig.INSTANCE.CoordsConfig.showHeader;
@@ -122,7 +122,7 @@ public final class CoordsHud {
             int pad = 4;
             int rowH = 9;
             int baseH = showHeader ? 2 + headerH + pad + rowH + pad + 2 : 2 + pad + rowH + pad + 2;
-            int textW = showHeader ? Math.max(tr.getWidth(header), tr.getWidth(row)) : tr.getWidth(row);
+            int textW = showHeader ? Math.max(tr.width(header), tr.width(row)) : tr.width(row);
             int baseW = Math.max(90, textW + 12);
             if (baseW > 220) {
                baseW = 220;
@@ -151,7 +151,7 @@ public final class CoordsHud {
             lastY = y;
             lastW = w;
             lastH = h;
-            Matrix3x2fStack matrices = ctx.getMatrices();
+            Matrix3x2fStack matrices = ctx.pose();
             matrices.pushMatrix();
             matrices.translate(x, y);
             matrices.scale(scale, scale);
@@ -162,13 +162,13 @@ public final class CoordsHud {
                if (showHeader) {
                   ctx.fill(0, 0, baseW, headerH, HudStyleUtil.panelHeader(opacity));
                   ctx.fill(0, headerH, baseW, headerH + 1, HudStyleUtil.panelDivider(opacity));
-                  ctx.drawTextWithShadow(tr, header, 6, 4, -1);
+                  ctx.text(tr, header, 6, 4, -1);
                }
 
                int rowY = showHeader ? headerH + pad : 2 + pad;
-               int rowW = tr.getWidth(row);
+               int rowW = tr.width(row);
                int rowX = baseW / 2 - rowW / 2;
-               ctx.drawTextWithShadow(tr, row, rowX, rowY, -1);
+               ctx.text(tr, row, rowX, rowY, -1);
                if (HudEditState.editMode) {
                   ctx.fill(0, 0, baseW, 1, -1996488705);
                   ctx.fill(0, baseH - 1, baseW, baseH, -1996488705);

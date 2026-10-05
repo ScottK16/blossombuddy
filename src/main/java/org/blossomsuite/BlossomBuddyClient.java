@@ -7,8 +7,7 @@ import org.blossomsuite.core.ui.SuiteSettingsScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 @Environment(EnvType.CLIENT)
 public class BlossomBuddyClient implements ClientModInitializer {
    public void onInitializeClient() {
@@ -26,8 +25,8 @@ public class BlossomBuddyClient implements ClientModInitializer {
             (message, args) -> BlossomBuddy.LOGGER.warn(message, args),
             BlossomBuddy.LOGGER::error,
             client -> {
-               MinecraftClient mc = MinecraftClient.getInstance();
-               mc.setScreen(new SuiteSettingsScreen(mc.currentScreen));
+               Minecraft mc = Minecraft.getInstance();
+               mc.setScreen(new SuiteSettingsScreen(mc.screen));
             },
             client -> client.setScreen(new HudEditScreen()),
             screen -> screen instanceof HudEditScreen,

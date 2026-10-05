@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ class SecondaryChatExternalTest {
    @Test
    void externalLinesAppearUnderTheRealmsTab() {
       SecondaryChat chat = new SecondaryChat();
-      chat.addExternal(Text.literal("[Cherry] Alice: hi"));
+      chat.addExternal(Component.literal("[Cherry] Alice: hi"));
       List<SecondaryChat.Line> lines = chat.recent(SecondaryChat.REALMS, 10);
       assertEquals(1, lines.size());
       assertEquals("[Cherry] Alice: hi", lines.get(0).text().getString());
@@ -45,7 +45,7 @@ class SecondaryChatExternalTest {
    @Test
    void gameChatIsNeverFiledUnderRealms() {
       SecondaryChat chat = new SecondaryChat();
-      assertFalse(chat.onMessage(Text.literal("anything at all, even the word Realms")));
+      assertFalse(chat.onMessage(Component.literal("anything at all, even the word Realms")));
       assertTrue(chat.recent(SecondaryChat.REALMS, 10).isEmpty());
    }
 

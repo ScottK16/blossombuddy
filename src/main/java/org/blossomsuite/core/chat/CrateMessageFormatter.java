@@ -3,11 +3,10 @@ package org.blossomsuite.core.chat;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 public final class CrateMessageFormatter {
    private static final String CRATES_PREFIX = "^Crates\\s*(?:\\u00BB|\\u00C2\\u00BB|\\u00C3\\u0082\\u00C2\\u00BB)\\s*";
    private static final Pattern CRATE_PATTERN = Pattern.compile(
@@ -22,7 +21,7 @@ public final class CrateMessageFormatter {
    private CrateMessageFormatter() {
    }
 
-   public static Text tryRewrite(Text original) {
+   public static Component tryRewrite(Component original) {
       if (original == null) {
          return null;
       }
@@ -39,11 +38,11 @@ public final class CrateMessageFormatter {
          }
 
          Matcher m = isPlayer ? playerMatch : youMatch;
-         MutableText result = Text.empty();
-         Text item = sliceStyled(original, m.start("item"), m.end("item"));
-         Text source = sourceText(original, trimmed, m);
+         MutableComponent result = Component.empty();
+         Component item = sliceStyled(original, m.start("item"), m.end("item"));
+         Component source = sourceText(original, trimmed, m);
          if (isPlayer) {
-            Text player = sliceStyled(original, m.start("player"), m.end("player"));
+            Component player = sliceStyled(original, m.start("player"), m.end("player"));
             result.append(player);
          } else {
             int youStart = trimmed.indexOf("You");
@@ -51,22 +50,22 @@ public final class CrateMessageFormatter {
                return null;
             }
 
-            Text you = sliceStyled(original, youStart, youStart + 3);
+            Component you = sliceStyled(original, youStart, youStart + 3);
             result.append(you);
          }
 
-         result.append(Text.literal(" got ").formatted(Formatting.WHITE));
+         result.append(Component.literal(" got ").withStyle(ChatFormatting.WHITE));
          result.append(item);
-         result.append(Text.literal(" from ").formatted(Formatting.WHITE));
+         result.append(Component.literal(" from ").withStyle(ChatFormatting.WHITE));
          result.append(source);
-         result.append(Text.literal("!").formatted(Formatting.WHITE));
+         result.append(Component.literal("!").withStyle(ChatFormatting.WHITE));
          return result;
       } else {
          return null;
       }
    }
 
-   public static boolean isCrateMessage(Text original) {
+   public static boolean isCrateMessage(Component original) {
       if (original == null) {
          return false;
       } else {
@@ -80,7 +79,7 @@ public final class CrateMessageFormatter {
       }
    }
 
-   private static Text sourceText(Text original, String trimmed, Matcher m) {
+   private static Component sourceText(Component original, String trimmed, Matcher m) {
       if (hasGroup(m, "suffix")) {
          int suffixStart = m.start("suffix");
          int suffixEnd = m.end("suffix");
@@ -117,8 +116,8 @@ public final class CrateMessageFormatter {
       }
    }
 
-   private static Text sliceStyled(Text original, int start, int end) {
-      MutableText out = Text.empty();
+   private static Component sliceStyled(Component original, int start, int end) {
+      MutableComponent out = Component.empty();
       if (start >= end) {
          return out;
       }
@@ -132,7 +131,7 @@ public final class CrateMessageFormatter {
             int to = Math.min(end, segEnd);
             if (from < to) {
                String part = segment.substring(from - segStart, to - segStart);
-               out.append(Text.literal(part).setStyle(style));
+               out.append(Component.literal(part).setStyle(style));
             }
 
             cursor[0] = segEnd;

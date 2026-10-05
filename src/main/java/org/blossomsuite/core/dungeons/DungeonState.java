@@ -24,10 +24,9 @@ import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 public final class DungeonState {
    private static final long MAX_TRACKED_RUN_MS = 2700000L;
    private static final long RUN_RECOVERY_WINDOW_MS = 7200000L;
@@ -145,14 +144,14 @@ public final class DungeonState {
       long now = System.currentTimeMillis();
       expireRunIfNeeded(now);
       if (!cfg.enabled) {
-         DungeonRuntime.sendChat(Text.literal("Dungeon tracking is OFF.").formatted(Formatting.GRAY));
+         DungeonRuntime.sendChat(Component.literal("Dungeon tracking is OFF.").withStyle(ChatFormatting.GRAY));
       } else {
          if (inDungeon) {
             DungeonRuntime.sendChat(
-               Text.literal("Dungeon active: ")
-                  .formatted(Formatting.GRAY)
-                  .append(Text.literal(activeDungeonName).formatted(Formatting.AQUA))
-                  .append(Text.literal(" for " + TextUtil.fmtStopwatch(now - startedAtMs)).formatted(Formatting.GRAY))
+               Component.literal("Dungeon active: ")
+                  .withStyle(ChatFormatting.GRAY)
+                  .append(Component.literal(activeDungeonName).withStyle(ChatFormatting.AQUA))
+                  .append(Component.literal(" for " + TextUtil.fmtStopwatch(now - startedAtMs)).withStyle(ChatFormatting.GRAY))
             );
          }
 
@@ -160,14 +159,14 @@ public final class DungeonState {
             long remaining = row.remainingMs();
             String displayServer = SuiteRuntime.profile().serverDisplayName(row.server());
             if (remaining <= 0L) {
-               DungeonRuntime.sendChat(Text.literal("Dungeon cooldown (" + displayServer + "): READY").formatted(Formatting.GREEN));
+               DungeonRuntime.sendChat(Component.literal("Dungeon cooldown (" + displayServer + "): READY").withStyle(ChatFormatting.GREEN));
             } else {
                DungeonRuntime.sendChat(
-                  Text.literal("Dungeon cooldown (" + displayServer + "): ")
-                     .formatted(Formatting.GRAY)
-                     .append(Text.literal(formatLongDuration(remaining)).formatted(Formatting.YELLOW))
-                     .append(Text.literal(" remaining, ready ").formatted(Formatting.GRAY))
-                     .append(Text.literal(READY_TIME_FORMAT.format(Instant.ofEpochMilli(row.endsAtMs()))).formatted(Formatting.GREEN))
+                  Component.literal("Dungeon cooldown (" + displayServer + "): ")
+                     .withStyle(ChatFormatting.GRAY)
+                     .append(Component.literal(formatLongDuration(remaining)).withStyle(ChatFormatting.YELLOW))
+                     .append(Component.literal(" remaining, ready ").withStyle(ChatFormatting.GRAY))
+                     .append(Component.literal(READY_TIME_FORMAT.format(Instant.ofEpochMilli(row.endsAtMs()))).withStyle(ChatFormatting.GREEN))
                );
             }
          }
@@ -177,24 +176,24 @@ public final class DungeonState {
    public static void reportAttempts() {
       Map<String, List<DungeonStore.DungeonAttempt>> byServer = DungeonStore.getRecent12ByServer();
       DungeonRuntime.sendChat(
-         Text.literal("---- " + SuiteRuntime.profile().displayName().toUpperCase(Locale.ROOT) + " DUNGEONS BY SERVER ----").formatted(Formatting.GOLD)
+         Component.literal("---- " + SuiteRuntime.profile().displayName().toUpperCase(Locale.ROOT) + " DUNGEONS BY SERVER ----").withStyle(ChatFormatting.GOLD)
       );
       if (byServer.isEmpty()) {
-         DungeonRuntime.sendChat(Text.literal("No dungeon attempts tracked yet.").formatted(Formatting.GRAY));
+         DungeonRuntime.sendChat(Component.literal("No dungeon attempts tracked yet.").withStyle(ChatFormatting.GRAY));
       } else {
          for (Entry<String, List<DungeonStore.DungeonAttempt>> entry : byServer.entrySet()) {
-            DungeonRuntime.sendChat(Text.literal(entry.getKey()).formatted(Formatting.AQUA));
+            DungeonRuntime.sendChat(Component.literal(entry.getKey()).withStyle(ChatFormatting.AQUA));
 
             for (DungeonStore.DungeonAttempt attempt : entry.getValue()) {
-               Formatting resultColor = attempt.completed() ? Formatting.GREEN : Formatting.RED;
+               ChatFormatting resultColor = attempt.completed() ? ChatFormatting.GREEN : ChatFormatting.RED;
                DungeonRuntime.sendChat(
-                  Text.literal("[" + TextUtil.fmtStopwatch(attempt.durationMs()) + "] ")
-                     .formatted(Formatting.DARK_GRAY)
-                     .append(Text.literal(attempt.completed() ? "Completed" : "Failed").formatted(resultColor))
-                     .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
-                     .append(Text.literal(attempt.dungeonName()).formatted(Formatting.AQUA))
-                     .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
-                     .append(Text.literal(attempt.names()).formatted(Formatting.GRAY))
+                  Component.literal("[" + TextUtil.fmtStopwatch(attempt.durationMs()) + "] ")
+                     .withStyle(ChatFormatting.DARK_GRAY)
+                     .append(Component.literal(attempt.completed() ? "Completed" : "Failed").withStyle(resultColor))
+                     .append(Component.literal(" | ").withStyle(ChatFormatting.DARK_GRAY))
+                     .append(Component.literal(attempt.dungeonName()).withStyle(ChatFormatting.AQUA))
+                     .append(Component.literal(" | ").withStyle(ChatFormatting.DARK_GRAY))
+                     .append(Component.literal(attempt.names()).withStyle(ChatFormatting.GRAY))
                );
             }
          }
@@ -207,7 +206,7 @@ public final class DungeonState {
       String server = currentServer();
       SuiteConfig.INSTANCE.DungeonConfig.resetCooldown(server);
       ConfigIO.saveIfDirty();
-      DungeonRuntime.sendChat(Text.literal("Dungeon cooldown reset for " + server + ".").formatted(Formatting.YELLOW));
+      DungeonRuntime.sendChat(Component.literal("Dungeon cooldown reset for " + server + ".").withStyle(ChatFormatting.YELLOW));
    }
 
    public static void resetForDisconnect() {
@@ -224,9 +223,9 @@ public final class DungeonState {
       expectedPartySize = Math.max(expectedPartySize, partyNames.size());
       String name = partyName == null ? "" : partyName.trim();
       DungeonRuntime.sendChat(
-         Text.literal("Dungeon party tracking started")
-            .formatted(Formatting.GREEN)
-            .append(Text.literal(name.isBlank() ? "." : ": " + name).formatted(Formatting.GRAY))
+         Component.literal("Dungeon party tracking started")
+            .withStyle(ChatFormatting.GREEN)
+            .append(Component.literal(name.isBlank() ? "." : ": " + name).withStyle(ChatFormatting.GRAY))
       );
    }
 
@@ -323,10 +322,10 @@ public final class DungeonState {
 
          String server = currentServer();
          DungeonStore.DungeonAttempt attempt = new DungeonStore.DungeonAttempt(server, now, duration, completed, activeDungeonName, joinNames(names));
-         Text chatMessage = Text.literal("Dungeon " + (completed ? "completed" : "failed") + ": ")
-            .formatted(completed ? Formatting.GREEN : Formatting.RED)
-            .append(Text.literal(attempt.names()).formatted(Formatting.GRAY))
-            .append(Text.literal(" took " + TextUtil.fmtStopwatch(duration)).formatted(Formatting.YELLOW));
+         Component chatMessage = Component.literal("Dungeon " + (completed ? "completed" : "failed") + ": ")
+            .withStyle(completed ? ChatFormatting.GREEN : ChatFormatting.RED)
+            .append(Component.literal(attempt.names()).withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(" took " + TextUtil.fmtStopwatch(duration)).withStyle(ChatFormatting.YELLOW));
          DungeonStore.saveAttempt(attempt);
          reportRunFinish(
             activeRemoteRunUid,
@@ -446,7 +445,7 @@ public final class DungeonState {
    }
 
    private static String selfName() {
-      MinecraftClient client = MinecraftClient.getInstance();
+      Minecraft client = Minecraft.getInstance();
       if (client != null && client.player != null) {
          String name = client.player.getName().getString();
          return name == null ? "" : name.trim();
@@ -678,9 +677,9 @@ public final class DungeonState {
    }
 
    private static DungeonState.PlayerIdentity playerIdentity() {
-      MinecraftClient client = MinecraftClient.getInstance();
+      Minecraft client = Minecraft.getInstance();
       if (client != null && client.player != null) {
-         String uuid = client.player.getUuidAsString();
+         String uuid = client.player.getStringUUID();
          String name = client.player.getName().getString();
          return uuid != null && !uuid.isBlank() && name != null && !name.isBlank() ? new DungeonState.PlayerIdentity(uuid, name.trim()) : null;
       } else {

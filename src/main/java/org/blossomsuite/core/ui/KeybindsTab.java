@@ -9,15 +9,14 @@ import org.blossomsuite.core.keybinds.KeybindActions;
 import org.blossomsuite.core.keybinds.KeybindUtil;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil.Key;
-import net.minecraft.client.util.InputUtil.Type;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.KeyMapping;
+import com.mojang.blaze3d.platform.InputConstants.Key;
+import com.mojang.blaze3d.platform.InputConstants.Type;
+import net.minecraft.network.chat.Component;
 public final class KeybindsTab implements SuiteTab {
    private KeybindActions.Action capturing = null;
    private int captureModifierMods = 0;
@@ -55,8 +54,8 @@ public final class KeybindsTab implements SuiteTab {
             y,
             160,
             12,
-            Text.literal("Keybinds"),
-            Tooltip.of(Text.literal("Custom " + suiteName() + " keybinds (supports left/right Ctrl/Shift/Alt and mouse buttons)."))
+            Component.literal("Keybinds"),
+            Tooltip.create(Component.literal("Custom " + suiteName() + " keybinds (supports left/right Ctrl/Shift/Alt and mouse buttons)."))
          )
       );
       y += 18;
@@ -77,11 +76,11 @@ public final class KeybindsTab implements SuiteTab {
    }
 
    @Override
-   public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta) {
+   public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
       if (this.capturing != null) {
-         ctx.drawCenteredTextWithShadow(
-            screen.getTextRenderer(),
-            Text.literal("Press a key, two keys like M + K, mouse button, or release modifiers to bind them alone. ESC cancels."),
+         ctx.centeredText(
+            screen.getFont(),
+            Component.literal("Press a key, two keys like M + K, mouse button, or release modifiers to bind them alone. ESC cancels."),
             screen.width / 2,
             screen.height - 52,
             -1
@@ -112,8 +111,8 @@ public final class KeybindsTab implements SuiteTab {
          return true;
       }
 
-      Key key = Type.KEYSYM.createFromCode(keyCode);
-      String translationKey = key.getTranslationKey();
+      Key key = Type.KEYSYM.getOrCreate(keyCode);
+      String translationKey = key.getName();
       if (translationKey != null && !translationKey.isBlank() && this.captureKeys.size() < 2 && !this.captureKeys.contains(translationKey)) {
          this.captureKeys.add(translationKey);
       }
@@ -144,8 +143,8 @@ public final class KeybindsTab implements SuiteTab {
       if (button != 0 && button != 1) {
          KeybindsConfig.Chord chord = chordFor(this.capturing);
          if (chord != null) {
-            Key key = Type.MOUSE.createFromCode(button);
-            String translationKey = key.getTranslationKey();
+            Key key = Type.MOUSE.getOrCreate(button);
+            String translationKey = key.getName();
             chord.key = translationKey == null ? "" : translationKey;
             chord.extraKey = "";
             chord.mods = KeybindUtil.normalizeMods(KeybindUtil.heldMods(KeybindUtil.windowHandle()));
@@ -230,7 +229,7 @@ public final class KeybindsTab implements SuiteTab {
    }
 
    private static int addHeaderRow(SuiteSettingsScreen screen, int x, int y, KeybindsTab.Header h) {
-      screen.addContentWidget(new HoverLabelWidget(x, y, 200, 12, Text.literal(h.label), Tooltip.of(Text.literal(h.tooltip))));
+      screen.addContentWidget(new HoverLabelWidget(x, y, 200, 12, Component.literal(h.label), Tooltip.create(Component.literal(h.tooltip))));
       return y + 14;
    }
 
@@ -239,20 +238,20 @@ public final class KeybindsTab implements SuiteTab {
       int blockW = 80;
       int minBindW = 160;
       int labelW = Math.min(220, Math.max(140, w - (clearW + blockW + gapX * 2 + minBindW)));
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, labelW, 12, Text.literal(r.label), Tooltip.of(Text.literal(r.tooltip))));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, labelW, 12, Component.literal(r.label), Tooltip.create(Component.literal(r.tooltip))));
       int bindW = w - labelW - gapX - blockW - gapX - clearW;
       int bindX = x + labelW + gapX;
       int blockX = x + w - clearW - gapX - blockW;
       int clearX = x + w - clearW;
       KeybindsConfig.Chord chord = chordFor(r.action);
       String buttonText = this.capturing == r.action ? "Press key..." : KeybindUtil.formatChord(chord);
-      ButtonWidget bindBtn = StyledButton.of(Text.literal(buttonText), b -> {
+      Button bindBtn = StyledButton.of(Component.literal(buttonText), b -> {
          this.capturing = this.capturing == r.action ? null : r.action;
          this.captureModifierMods = 0;
          screen.rebuildPreserveScroll();
       }).dimensions(bindX, y, bindW, rowH).build();
       screen.addContentWidget(bindBtn);
-      ButtonWidget blockBtn = StyledButton.of(Text.literal(chord != null && chord.blockVanilla ? "Block: ON" : "Block: OFF"), b -> {
+      Button blockBtn = StyledButton.of(Component.literal(chord != null && chord.blockVanilla ? "Block: ON" : "Block: OFF"), b -> {
          KeybindsConfig.Chord c = chordFor(r.action);
          if (c != null) {
             c.blockVanilla = !c.blockVanilla;
@@ -264,14 +263,14 @@ public final class KeybindsTab implements SuiteTab {
          screen.rebuildPreserveScroll();
       }).dimensions(blockX, y, blockW, rowH).build();
       blockBtn.setTooltip(
-         Tooltip.of(
-            Text.literal(
+         Tooltip.create(
+            Component.literal(
                "When ON, " + suiteName() + " will try to stop vanilla from also using the primary key.\nUse with care: this can block movement/chat/etc."
             )
          )
       );
       screen.addContentWidget(blockBtn);
-      ButtonWidget clearBtn = StyledButton.of(Text.literal("Clear"), b -> {
+      Button clearBtn = StyledButton.of(Component.literal("Clear"), b -> {
          KeybindsConfig.Chord c = chordFor(r.action);
          if (c != null) {
             c.key = "";
@@ -288,7 +287,7 @@ public final class KeybindsTab implements SuiteTab {
       screen.addContentWidget(clearBtn);
       String conflict = computeConflict(r.action);
       if (conflict != null && !conflict.isBlank()) {
-         screen.addContentWidget(new LabelWidget(x, y + rowH + 2, w, 12, Text.literal(conflict), -37266));
+         screen.addContentWidget(new LabelWidget(x, y + rowH + 2, w, 12, Component.literal(conflict), -37266));
          return y + rowH + 2 + 12 + 6;
       } else {
          return y + 24;
@@ -588,13 +587,13 @@ public final class KeybindsTab implements SuiteTab {
          }
       }
 
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (mc != null && mc.options != null && mc.options.allKeys != null) {
-         for (KeyBinding kb : mc.options.allKeys) {
+      Minecraft mc = Minecraft.getInstance();
+      if (mc != null && mc.options != null && mc.options.keyMappings != null) {
+         for (KeyMapping kb : mc.options.keyMappings) {
             if (kb != null) {
-               String bound = kb.getBoundKeyTranslationKey();
+               String bound = kb.saveString();
                if (bound != null && chordContainsKey(chord, bound)) {
-                  return "Vanilla also uses this key: " + Text.translatable(kb.getTranslationKey()).getString() + " (vanilla ignores modifiers).";
+                  return "Vanilla also uses this key: " + Component.translatable(kb.getName()).getString() + " (vanilla ignores modifiers).";
                }
             }
          }

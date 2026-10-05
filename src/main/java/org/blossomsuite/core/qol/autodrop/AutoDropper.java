@@ -9,16 +9,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.hit.HitResult.Type;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult.Type;
 public final class AutoDropper {
    private static long lastInventoryHash = 0L;
    private static boolean hadInventoryHash = false;
@@ -32,13 +31,13 @@ public final class AutoDropper {
    private static final long HELD_MINING_BURST_COOLDOWN_MS = 300L;
    private static final long PLAYER_COMBAT_PAUSE_MS = 3000L;
    private static Supplier<Boolean> externalMiningRunner = () -> false;
-   private static Consumer<MinecraftClient> externalMiningInterruptHandler = client -> {};
+   private static Consumer<Minecraft> externalMiningInterruptHandler = client -> {};
    private static Consumer<String> chatReporter = message -> {};
 
    private AutoDropper() {
    }
 
-   public static void setExternalMiningHooks(Supplier<Boolean> runningSupplier, Consumer<MinecraftClient> interruptHandler) {
+   public static void setExternalMiningHooks(Supplier<Boolean> runningSupplier, Consumer<Minecraft> interruptHandler) {
       externalMiningRunner = runningSupplier != null ? runningSupplier : () -> false;
       externalMiningInterruptHandler = interruptHandler != null ? interruptHandler : client -> {};
    }
@@ -53,7 +52,7 @@ public final class AutoDropper {
 
    public static void noteAttackTarget(Entity target) {
       QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
-      if (cfg != null && cfg.autoDropperPauseOnAttackingPlayer && target instanceof PlayerEntity) {
+      if (cfg != null && cfg.autoDropperPauseOnAttackingPlayer && target instanceof Player) {
          lastAttackingPlayerAtMs = System.currentTimeMillis();
       }
    }
@@ -62,14 +61,14 @@ public final class AutoDropper {
       lastPlayerAttackAtMs = System.currentTimeMillis();
    }
 
-   public static void tick(MinecraftClient client, long now) {
+   public static void tick(Minecraft client, long now) {
       QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
       if (client != null && client.player != null && cfg != null) {
          pollInboundPlayerCombat(client);
          if (!cfg.autoDropperEnabled) {
             resetTransient();
-         } else if (!cfg.autoDropperPauseWhileScreenOpen || client.currentScreen == null) {
-            if (!cfg.autoDropperPauseWhileSneaking || !client.player.isSneaking()) {
+         } else if (!cfg.autoDropperPauseWhileScreenOpen || client.screen == null) {
+            if (!cfg.autoDropperPauseWhileSneaking || !client.player.isShiftKeyDown()) {
                if (shouldPauseForPlayerCombat(client, now)) {
                   queuedAtMs = 0L;
                } else {
@@ -90,7 +89,7 @@ public final class AutoDropper {
                      queue(now);
                   }
 
-                  boolean sneaking = client.player.isSneaking();
+                  boolean sneaking = client.player.isShiftKeyDown();
                   if (cfg.autoDropperOnSneak && sneaking && !wasSneaking) {
                      queue(now);
                   }
@@ -109,10 +108,10 @@ public final class AutoDropper {
       }
    }
 
-   public static void triggerHotkey(MinecraftClient client) {
+   public static void triggerHotkey(Minecraft client) {
       if (client != null && client.player != null) {
          QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
-         if (cfg == null || !cfg.autoDropperPauseWhileSneaking || !client.player.isSneaking()) {
+         if (cfg == null || !cfg.autoDropperPauseWhileSneaking || !client.player.isShiftKeyDown()) {
             if (shouldPauseForPlayerCombat(client, System.currentTimeMillis())) {
                chatReporter.accept("AutoDropper paused during player combat.");
             } else {
@@ -129,11 +128,11 @@ public final class AutoDropper {
       }
    }
 
-   private static void runDrop(MinecraftClient client, long now, boolean manual) {
+   private static void runDrop(Minecraft client, long now, boolean manual) {
       QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
       if (cfg != null && cfg.autoDropperEnabled) {
-         if (client.interactionManager != null && client.player != null) {
-            if (!cfg.autoDropperPauseWhileSneaking || !client.player.isSneaking()) {
+         if (client.gameMode != null && client.player != null) {
+            if (!cfg.autoDropperPauseWhileSneaking || !client.player.isShiftKeyDown()) {
                if (!shouldPauseForPlayerCombat(client, now)) {
                   int dropped = 0;
                   int max = Math.max(1, Math.min(64, cfg.autoDropperMaxStacksPerTick));
@@ -148,9 +147,9 @@ public final class AutoDropper {
                      boolean burstStarted = false;
 
                      try {
-                        for (int invSlot = 0; invSlot < client.player.getInventory().size() && dropped < max; invSlot++) {
+                        for (int invSlot = 0; invSlot < client.player.getInventory().getContainerSize() && dropped < max; invSlot++) {
                            if ((cfg.autoDropperIncludeHotbar || invSlot < 0 || invSlot > 8) && (!cfg.autoDropperProtectSelectedSlot || invSlot != selected)) {
-                              ItemStack stack = client.player.getInventory().getStack(invSlot);
+                              ItemStack stack = client.player.getInventory().getItem(invSlot);
                               if (stack != null && !stack.isEmpty()) {
                                  AutoDropper.DropPlan plan = plans.match(stack);
                                  if (plan != null && (plan.minimumAmount <= 0 || matchingCounts.getOrDefault(plan, 0) >= plan.minimumAmount)) {
@@ -168,8 +167,8 @@ public final class AutoDropper {
                                              burstStarted = true;
                                           }
 
-                                          client.interactionManager
-                                             .clickSlot(client.player.currentScreenHandler.syncId, screenSlot, 1, SlotActionType.THROW, client.player);
+                                          client.gameMode
+                                             .handleContainerInput(client.player.containerMenu.containerId, screenSlot, 1, ContainerInput.THROW, client.player);
                                           dropped++;
                                        }
                                     } else {
@@ -212,11 +211,11 @@ public final class AutoDropper {
       return index;
    }
 
-   private static boolean shouldDeferForHeldMining(MinecraftClient client, long now) {
+   private static boolean shouldDeferForHeldMining(Minecraft client, long now) {
       return !isHeldMining(client) ? false : lastHeldMiningDropAtMs > 0L && now - lastHeldMiningDropAtMs < 300L;
    }
 
-   private static boolean shouldPauseForPlayerCombat(MinecraftClient client, long now) {
+   private static boolean shouldPauseForPlayerCombat(Minecraft client, long now) {
       QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
       if (cfg == null) {
          return false;
@@ -229,12 +228,12 @@ public final class AutoDropper {
       }
    }
 
-   private static void pollInboundPlayerCombat(MinecraftClient client) {
+   private static void pollInboundPlayerCombat(Minecraft client) {
       if (client != null && client.player != null) {
          QolConfig cfg = SuiteConfig.INSTANCE.QolConfig;
          if (cfg != null && cfg.autoDropperPauseOnPlayerAttack) {
             if (client.player.hurtTime > 0) {
-               if (client.player.getAttacker() instanceof PlayerEntity attacker && attacker != client.player) {
+               if (client.player.getLastHurtByMob() instanceof Player attacker && attacker != client.player) {
                   notePlayerAttack();
                }
             }
@@ -242,23 +241,23 @@ public final class AutoDropper {
       }
    }
 
-   private static boolean isCrosshairOnPlayer(MinecraftClient client) {
-      if (client != null && client.crosshairTarget != null) {
-         if (client.crosshairTarget.getType() != Type.ENTITY) {
+   private static boolean isCrosshairOnPlayer(Minecraft client) {
+      if (client != null && client.hitResult != null) {
+         if (client.hitResult.getType() != Type.ENTITY) {
             return false;
          } else {
-            return client.crosshairTarget instanceof EntityHitResult entityHit ? entityHit.getEntity() instanceof PlayerEntity : false;
+            return client.hitResult instanceof EntityHitResult entityHit ? entityHit.getEntity() instanceof Player : false;
          }
       } else {
          return false;
       }
    }
 
-   private static boolean isHeldMining(MinecraftClient client) {
+   private static boolean isHeldMining(Minecraft client) {
       return externalMiningRunner.get() || MiningResumeGuard.shouldKeepBreaking(client);
    }
 
-   private static void notifyMiningInterrupted(MinecraftClient client) {
+   private static void notifyMiningInterrupted(Minecraft client) {
       if (externalMiningRunner.get()) {
          externalMiningInterruptHandler.accept(client);
       } else {
@@ -276,11 +275,11 @@ public final class AutoDropper {
       }
    }
 
-   private static Map<AutoDropper.DropPlan, Integer> countMatchingItems(MinecraftClient client, AutoDropper.DropPlanIndex plans) {
+   private static Map<AutoDropper.DropPlan, Integer> countMatchingItems(Minecraft client, AutoDropper.DropPlanIndex plans) {
       Map<AutoDropper.DropPlan, Integer> counts = new HashMap<>();
 
-      for (int invSlot = 0; invSlot < client.player.getInventory().size(); invSlot++) {
-         ItemStack stack = client.player.getInventory().getStack(invSlot);
+      for (int invSlot = 0; invSlot < client.player.getInventory().getContainerSize(); invSlot++) {
+         ItemStack stack = client.player.getInventory().getItem(invSlot);
          if (stack != null && !stack.isEmpty()) {
             AutoDropper.DropPlan plan = plans.match(stack);
             if (plan != null) {
@@ -293,7 +292,7 @@ public final class AutoDropper {
    }
 
    private static String itemId(ItemStack stack) {
-      Identifier id = Registries.ITEM.getId(stack.getItem());
+      Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
       return id == null ? "" : id.toString();
    }
 
@@ -305,16 +304,16 @@ public final class AutoDropper {
       }
    }
 
-   private static AutoDropper.InventoryScan scanInventory(MinecraftClient client, QolConfig cfg) {
+   private static AutoDropper.InventoryScan scanInventory(Minecraft client, QolConfig cfg) {
       if (client != null && client.player != null && cfg != null) {
          long h = 1125899906842597L;
          boolean full = true;
          int selected = client.player.getInventory().getSelectedSlot();
-         int size = client.player.getInventory().size();
+         int size = client.player.getInventory().getContainerSize();
 
          for (int i = 0; i < size; i++) {
             boolean droppableSlot = i <= 35 && (cfg.autoDropperIncludeHotbar || i > 8) && (!cfg.autoDropperProtectSelectedSlot || i != selected);
-            ItemStack stack = client.player.getInventory().getStack(i);
+            ItemStack stack = client.player.getInventory().getItem(i);
             if (stack != null && !stack.isEmpty()) {
                h = h * 31L + itemId(stack).hashCode();
                h = h * 31L + stack.getCount();

@@ -2,26 +2,26 @@ package org.blossomsuite.core.mixin.client;
 
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.qol.toollock.ToolLock;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Hand;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.InteractionHand;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(MinecraftClient.class)
+@Mixin(Minecraft.class)
 public class MinecraftClientMixin {
-   @Inject(method = "doAttack", at = @At("HEAD"), cancellable = true)
+   @Inject(method = "startAttack", at = @At("HEAD"), cancellable = true)
    private void suitecore$toolLockDoAttackHead(CallbackInfoReturnable<Boolean> cir) {
-      MinecraftClient client = (MinecraftClient)(Object)this;
+      Minecraft client = (Minecraft)(Object)this;
       if (client.player != null) {
          if (SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
             if (ToolLock.shouldBlockLeftClick(client.player)) {
-               if (client.interactionManager != null) {
-                  client.interactionManager.cancelBlockBreaking();
+               if (client.gameMode != null) {
+                  client.gameMode.stopDestroyBlock();
                }
 
                ToolLock.reportBlocked();
@@ -32,25 +32,25 @@ public class MinecraftClientMixin {
       }
    }
 
-   @Inject(method = "doItemUse", at = @At("HEAD"), cancellable = true)
+   @Inject(method = "startUseItem", at = @At("HEAD"), cancellable = true)
    private void suitecore$toolLockDoItemUseHead(CallbackInfo ci) {
-      MinecraftClient client = (MinecraftClient)(Object)this;
+      Minecraft client = (Minecraft)(Object)this;
       if (client.player != null) {
          if (SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
             boolean sneakPressed = false;
 
             try {
-               if (client.options != null && client.options.sneakKey != null) {
-                  sneakPressed = client.options.sneakKey.isPressed();
+               if (client.options != null && client.options.keyShift != null) {
+                  sneakPressed = client.options.keyShift.isDown();
                }
             } catch (Throwable var5) {
             }
 
-            if (sneakPressed || client.player.isSneaking()) {
-               ItemStack stack = client.player.getStackInHand(Hand.MAIN_HAND);
+            if (sneakPressed || client.player.isShiftKeyDown()) {
+               ItemStack stack = client.player.getItemInHand(InteractionHand.MAIN_HAND);
                if (stack != null && !stack.isEmpty()) {
                   if (!(stack.getItem() instanceof BlockItem)) {
-                     if (ToolLock.shouldBlockRightClick(client.player, Hand.MAIN_HAND, stack, null)) {
+                     if (ToolLock.shouldBlockRightClick(client.player, InteractionHand.MAIN_HAND, stack, null)) {
                         ToolLock.reportBlocked();
                         ci.cancel();
                      }

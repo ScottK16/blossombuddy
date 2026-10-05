@@ -7,10 +7,9 @@ import java.util.Optional;
 import java.util.WeakHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 public final class SuiteItemIdUtil {
    public static boolean ALLOW_RAW_COMPONENTS_EI_SCAN = true;
    private static final WeakHashMap<ItemStack, SuiteItemIdUtil.CacheEntry> BEST_ID_CACHE = new WeakHashMap<>();
@@ -29,7 +28,7 @@ public final class SuiteItemIdUtil {
          }
 
          Optional<String> ei = findEiId(stack);
-         String best = ei.orElseGet(() -> TextUtil.foldName(stack.getName().getString()));
+         String best = ei.orElseGet(() -> TextUtil.foldName(stack.getHoverName().getString()));
          BEST_ID_CACHE.put(stack, new SuiteItemIdUtil.CacheEntry(componentsHash, best));
          return best;
       } else {
@@ -60,12 +59,12 @@ public final class SuiteItemIdUtil {
    }
 
    private static Optional<String> findEiIdFromCustomDataComponent(ItemStack stack) {
-      Optional<NbtCompound> pbv = getPublicBukkitValues(stack);
+      Optional<CompoundTag> pbv = getPublicBukkitValues(stack);
       if (pbv.isEmpty()) {
          return Optional.empty();
       }
 
-      for (String key : pbv.get().getKeys()) {
+      for (String key : pbv.get().keySet()) {
          if (key != null && key.endsWith(":ei-id")) {
             Optional<String> valOpt = pbv.get().getString(key);
             if (valOpt.isPresent()) {
@@ -80,17 +79,17 @@ public final class SuiteItemIdUtil {
       return Optional.empty();
    }
 
-   private static Optional<NbtCompound> getPublicBukkitValues(ItemStack stack) {
-      Object customData = stack.get(DataComponentTypes.CUSTOM_DATA);
+   private static Optional<CompoundTag> getPublicBukkitValues(ItemStack stack) {
+      Object customData = stack.get(DataComponents.CUSTOM_DATA);
       if (customData == null) {
          return Optional.empty();
       }
 
-      Optional<NbtCompound> rootOpt = extractCustomDataNbt(customData);
+      Optional<CompoundTag> rootOpt = extractCustomDataNbt(customData);
       return rootOpt.isEmpty() ? Optional.empty() : rootOpt.get().getCompound("PublicBukkitValues");
    }
 
-   private static Optional<NbtCompound> extractCustomDataNbt(Object customDataComponent) {
+   private static Optional<CompoundTag> extractCustomDataNbt(Object customDataComponent) {
       if (customDataComponent == null) {
          return Optional.empty();
       }
@@ -108,11 +107,11 @@ public final class SuiteItemIdUtil {
 
       try {
          Object result = mOpt.get().invoke(customDataComponent);
-         if (result instanceof NbtCompound c) {
+         if (result instanceof CompoundTag c) {
             return Optional.of(c);
          }
 
-         if (result instanceof Optional<?> opt && opt.isPresent() && opt.get() instanceof NbtCompound c2) {
+         if (result instanceof Optional<?> opt && opt.isPresent() && opt.get() instanceof CompoundTag c2) {
             return Optional.of(c2);
          }
       } catch (Throwable var7) {

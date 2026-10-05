@@ -2,8 +2,7 @@ package org.blossomsuite.core.chat;
 
 import org.blossomsuite.core.config.ChatConfig;
 import org.blossomsuite.core.config.SuiteConfig;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 public final class PublicChatSendState {
    private static final int PUBLIC_SEND_DELAY_TICKS = 0;
    private static final int RESTORE_AFTER_SEND_DELAY_TICKS = 2;
@@ -26,8 +25,8 @@ public final class PublicChatSendState {
    public static void requestSendPublic(String msg, boolean startAdvertisementCooldown) {
       if (msg != null && !msg.isBlank()) {
          if (!isActive()) {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client != null && client.player != null && client.getNetworkHandler() != null) {
+            Minecraft client = Minecraft.getInstance();
+            if (client != null && client.player != null && client.getConnection() != null) {
                ChatConfig chatCfg = SuiteConfig.INSTANCE.ChatConfig;
                // Which channel the player is actually in is tracked regardless of whether the "Show Tracked
                // Channel" HUD is turned on - that setting only controls a cosmetic display, so it must never decide
@@ -52,13 +51,13 @@ public final class PublicChatSendState {
                pendingMessage = msg;
                if (staffOn) {
                   step = PublicChatSendState.Step.WAIT_STAFF_OFF;
-                  client.getNetworkHandler().sendChatCommand("sch toggle");
+                  client.getConnection().sendCommand("sch toggle");
                } else if (partyOn) {
                   step = PublicChatSendState.Step.WAIT_PARTY_OFF;
-                  client.getNetworkHandler().sendChatCommand("party chat off");
+                  client.getConnection().sendCommand("party chat off");
                } else if (isMarry) {
                   step = PublicChatSendState.Step.WAIT_PUBLIC;
-                  client.getNetworkHandler().sendChatCommand("marry chattoggle");
+                  client.getConnection().sendCommand("marry chattoggle");
                } else if (isPublic) {
                   sendNow(client, msg);
                   finishAfterSend(client);
@@ -70,8 +69,8 @@ public final class PublicChatSendState {
 
    public static void onBaseChannelNowPublic() {
       if (step == PublicChatSendState.Step.WAIT_PUBLIC) {
-         MinecraftClient client = MinecraftClient.getInstance();
-         if (client != null && client.player != null && client.getNetworkHandler() != null) {
+         Minecraft client = Minecraft.getInstance();
+         if (client != null && client.player != null && client.getConnection() != null) {
             scheduleDelayedPublicSend();
          }
       }
@@ -79,14 +78,14 @@ public final class PublicChatSendState {
 
    public static void onBaseChannelNowMarry() {
       if (step == PublicChatSendState.Step.WAIT_MARRY_RESTORE) {
-         MinecraftClient client = MinecraftClient.getInstance();
-         if (client != null && client.player != null && client.getNetworkHandler() != null) {
+         Minecraft client = Minecraft.getInstance();
+         if (client != null && client.player != null && client.getConnection() != null) {
             if (restoreParty) {
                step = PublicChatSendState.Step.WAIT_PARTY_RESTORE;
-               client.getNetworkHandler().sendChatCommand("party chat on");
+               client.getConnection().sendCommand("party chat on");
             } else if (restoreStaff) {
                step = PublicChatSendState.Step.WAIT_STAFF_RESTORE;
-               client.getNetworkHandler().sendChatCommand("sch toggle");
+               client.getConnection().sendCommand("sch toggle");
             } else {
                clear();
             }
@@ -97,17 +96,17 @@ public final class PublicChatSendState {
    public static void onStaffChatToggled(boolean enabled) {
       if (StaffChatState.trackingEnabled()) {
          if (step == PublicChatSendState.Step.WAIT_STAFF_OFF && !enabled) {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client != null && client.player != null && client.getNetworkHandler() != null) {
+            Minecraft client = Minecraft.getInstance();
+            if (client != null && client.player != null && client.getConnection() != null) {
                if (restoreParty) {
                   step = PublicChatSendState.Step.WAIT_PARTY_OFF;
-                  client.getNetworkHandler().sendChatCommand("party chat off");
+                  client.getConnection().sendCommand("party chat off");
                } else if (restoreMarry) {
                   step = PublicChatSendState.Step.WAIT_PUBLIC;
-                  client.getNetworkHandler().sendChatCommand("marry chattoggle");
+                  client.getConnection().sendCommand("marry chattoggle");
                } else if (restoreParty) {
                   step = PublicChatSendState.Step.WAIT_PARTY_OFF;
-                  client.getNetworkHandler().sendChatCommand("party chat off");
+                  client.getConnection().sendCommand("party chat off");
                } else {
                   scheduleDelayedPublicSend();
                }
@@ -122,11 +121,11 @@ public final class PublicChatSendState {
 
    public static void onPartyChatToggled(boolean enabled) {
       if (step == PublicChatSendState.Step.WAIT_PARTY_OFF && !enabled) {
-         MinecraftClient client = MinecraftClient.getInstance();
-         if (client != null && client.player != null && client.getNetworkHandler() != null) {
+         Minecraft client = Minecraft.getInstance();
+         if (client != null && client.player != null && client.getConnection() != null) {
             if (restoreMarry) {
                step = PublicChatSendState.Step.WAIT_PUBLIC;
-               client.getNetworkHandler().sendChatCommand("marry chattoggle");
+               client.getConnection().sendCommand("marry chattoggle");
             } else {
                scheduleDelayedPublicSend();
             }
@@ -134,10 +133,10 @@ public final class PublicChatSendState {
       } else {
          if (step == PublicChatSendState.Step.WAIT_PARTY_RESTORE && enabled) {
             if (restoreStaff) {
-               MinecraftClient client = MinecraftClient.getInstance();
-               if (client != null && client.player != null && client.getNetworkHandler() != null) {
+               Minecraft client = Minecraft.getInstance();
+               if (client != null && client.player != null && client.getConnection() != null) {
                   step = PublicChatSendState.Step.WAIT_STAFF_RESTORE;
-                  client.getNetworkHandler().sendChatCommand("sch toggle");
+                  client.getConnection().sendCommand("sch toggle");
                   return;
                }
 
@@ -149,9 +148,9 @@ public final class PublicChatSendState {
       }
    }
 
-   public static void tick(MinecraftClient client) {
+   public static void tick(Minecraft client) {
       if (step == PublicChatSendState.Step.WAIT_SEND_PUBLIC || step == PublicChatSendState.Step.WAIT_RESTORE_AFTER_SEND) {
-         if (client == null || client.player == null || client.getNetworkHandler() == null) {
+         if (client == null || client.player == null || client.getConnection() == null) {
             clear();
          } else if (step == PublicChatSendState.Step.WAIT_RESTORE_AFTER_SEND) {
             if (restoreDelayTicks > 0) {
@@ -183,14 +182,14 @@ public final class PublicChatSendState {
       }
    }
 
-   private static void sendNow(MinecraftClient client, String msg) {
-      client.player.networkHandler.sendChatMessage(msg);
+   private static void sendNow(Minecraft client, String msg) {
+      client.player.connection.sendChat(msg);
       if (startAdCooldown) {
          AdvertisementState.startCooldown();
       }
    }
 
-   private static void finishAfterSend(MinecraftClient client) {
+   private static void finishAfterSend(Minecraft client) {
       if (!restoreMarry && !restoreParty && !restoreStaff) {
          clear();
       } else {
@@ -199,16 +198,16 @@ public final class PublicChatSendState {
       }
    }
 
-   private static void restoreAfterSend(MinecraftClient client) {
+   private static void restoreAfterSend(Minecraft client) {
       if (restoreMarry) {
          step = PublicChatSendState.Step.WAIT_MARRY_RESTORE;
-         client.getNetworkHandler().sendChatCommand("marry chattoggle");
+         client.getConnection().sendCommand("marry chattoggle");
       } else if (restoreParty) {
          step = PublicChatSendState.Step.WAIT_PARTY_RESTORE;
-         client.getNetworkHandler().sendChatCommand("party chat on");
+         client.getConnection().sendCommand("party chat on");
       } else if (restoreStaff) {
          step = PublicChatSendState.Step.WAIT_STAFF_RESTORE;
-         client.getNetworkHandler().sendChatCommand("sch toggle");
+         client.getConnection().sendCommand("sch toggle");
       } else {
          clear();
       }

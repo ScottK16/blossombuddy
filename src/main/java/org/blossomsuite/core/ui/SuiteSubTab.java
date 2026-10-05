@@ -1,7 +1,6 @@
 package org.blossomsuite.core.ui;
 
-import net.minecraft.client.gui.DrawContext;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 public interface SuiteSubTab {
    String titleKey();
 
@@ -9,7 +8,7 @@ public interface SuiteSubTab {
 
    void removed();
 
-   default void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
+   default void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
    }
 
    default int contentHeight(SuiteSettingsScreen screen, int contentTopOffset) {

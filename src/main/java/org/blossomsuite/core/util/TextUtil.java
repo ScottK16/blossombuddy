@@ -2,10 +2,9 @@ package org.blossomsuite.core.util;
 
 import java.util.Locale;
 import java.util.Optional;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
 public final class TextUtil {
    private TextUtil() {
    }
@@ -14,16 +13,16 @@ public final class TextUtil {
       return TextStrings.stripLegacySectionCodes(s);
    }
 
-   public static Text stripLegacySectionCodes(Text t) {
+   public static Component stripLegacySectionCodes(Component t) {
       if (t == null) {
-         return Text.empty();
+         return Component.empty();
       }
 
-      MutableText out = Text.empty();
+      MutableComponent out = Component.empty();
       t.visit((style, s) -> {
          String clean = stripLegacySectionCodes(s);
          if (!clean.isEmpty()) {
-            out.append(Text.literal(clean).setStyle(style));
+            out.append(Component.literal(clean).setStyle(style));
          }
 
          return Optional.empty();
@@ -61,7 +60,7 @@ public final class TextUtil {
          : "";
    }
 
-   public static Text gradient(String s, int startArgb, int endArgb, boolean bold) {
+   public static Component gradient(String s, int startArgb, int endArgb, boolean bold) {
       int len = s.length();
       int sr = startArgb >> 16 & 0xFF;
       int sg = startArgb >> 8 & 0xFF;
@@ -69,7 +68,7 @@ public final class TextUtil {
       int er = endArgb >> 16 & 0xFF;
       int eg = endArgb >> 8 & 0xFF;
       int eb = endArgb & 0xFF;
-      MutableText out = Text.empty();
+      MutableComponent out = Component.empty();
 
       for (int i = 0; i < len; i++) {
          float t = len == 1 ? 0.0F : (float)i / (len - 1);
@@ -82,7 +81,7 @@ public final class TextUtil {
             style = style.withBold(true);
          }
 
-         out.append(Text.literal(String.valueOf(s.charAt(i))).setStyle(style));
+         out.append(Component.literal(String.valueOf(s.charAt(i))).setStyle(style));
       }
 
       return out;

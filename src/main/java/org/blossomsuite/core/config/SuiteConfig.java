@@ -1,7 +1,6 @@
 package org.blossomsuite.core.config;
 
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 public final class SuiteConfig {
    public static final SuiteConfig INSTANCE = new SuiteConfig();
    public static final float HUD_MIN_SCALE = 0.1F;
@@ -42,8 +41,8 @@ public final class SuiteConfig {
          return true;
       }
 
-      MinecraftClient client = MinecraftClient.getInstance();
-      return client == null ? true : !client.isInSingleplayer();
+      Minecraft client = Minecraft.getInstance();
+      return client == null ? true : !client.isLocalServer();
    }
 
    public void cycleActivationMode() {

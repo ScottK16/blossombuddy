@@ -1,10 +1,10 @@
 package org.blossomsuite.core.keybinds;
 
 import org.blossomsuite.core.config.KeybindsConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.client.util.InputUtil.Key;
-import net.minecraft.client.util.InputUtil.Type;
+import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.InputConstants.Key;
+import com.mojang.blaze3d.platform.InputConstants.Type;
 import org.lwjgl.glfw.GLFW;
 
 public final class KeybindUtil {
@@ -28,6 +28,11 @@ public final class KeybindUtil {
       return out;
    }
 
+   /** Whether a keyboard key is held (same check Minecraft makes, but from the raw window handle the callers already have). */
+   private static boolean keyDown(long windowHandle, int key) {
+      return GLFW.glfwGetKey(windowHandle, key) == GLFW.GLFW_PRESS;
+   }
+
    public static boolean requiredModsHeld(long windowHandle, int requiredMods) {
       requiredMods = normalizeMods(requiredMods);
       if ((requiredMods & 1) != 0 && !isCtrlDown(windowHandle)) {
@@ -36,56 +41,56 @@ public final class KeybindUtil {
          return false;
       } else if ((requiredMods & 4) != 0 && !isAltDown(windowHandle)) {
          return false;
-      } else if ((requiredMods & 8) != 0 && !InputUtil.isKeyPressed(windowHandle, 341)) {
+      } else if ((requiredMods & 8) != 0 && !keyDown(windowHandle, 341)) {
          return false;
-      } else if ((requiredMods & 16) != 0 && !InputUtil.isKeyPressed(windowHandle, 345)) {
+      } else if ((requiredMods & 16) != 0 && !keyDown(windowHandle, 345)) {
          return false;
-      } else if ((requiredMods & 32) != 0 && !InputUtil.isKeyPressed(windowHandle, 340)) {
+      } else if ((requiredMods & 32) != 0 && !keyDown(windowHandle, 340)) {
          return false;
-      } else if ((requiredMods & 64) != 0 && !InputUtil.isKeyPressed(windowHandle, 344)) {
+      } else if ((requiredMods & 64) != 0 && !keyDown(windowHandle, 344)) {
          return false;
       } else {
-         return (requiredMods & 128) != 0 && !InputUtil.isKeyPressed(windowHandle, 342)
+         return (requiredMods & 128) != 0 && !keyDown(windowHandle, 342)
             ? false
-            : (requiredMods & 256) == 0 || InputUtil.isKeyPressed(windowHandle, 346);
+            : (requiredMods & 256) == 0 || keyDown(windowHandle, 346);
       }
    }
 
    public static boolean isCtrlDown(long windowHandle) {
-      return InputUtil.isKeyPressed(windowHandle, 341) || InputUtil.isKeyPressed(windowHandle, 345);
+      return keyDown(windowHandle, 341) || keyDown(windowHandle, 345);
    }
 
    public static boolean isShiftDown(long windowHandle) {
-      return InputUtil.isKeyPressed(windowHandle, 340) || InputUtil.isKeyPressed(windowHandle, 344);
+      return keyDown(windowHandle, 340) || keyDown(windowHandle, 344);
    }
 
    public static boolean isAltDown(long windowHandle) {
-      return InputUtil.isKeyPressed(windowHandle, 342) || InputUtil.isKeyPressed(windowHandle, 346);
+      return keyDown(windowHandle, 342) || keyDown(windowHandle, 346);
    }
 
    public static int heldMods(long windowHandle) {
       int held = 0;
-      if (InputUtil.isKeyPressed(windowHandle, 341)) {
+      if (keyDown(windowHandle, 341)) {
          held |= 8;
       }
 
-      if (InputUtil.isKeyPressed(windowHandle, 345)) {
+      if (keyDown(windowHandle, 345)) {
          held |= 16;
       }
 
-      if (InputUtil.isKeyPressed(windowHandle, 340)) {
+      if (keyDown(windowHandle, 340)) {
          held |= 32;
       }
 
-      if (InputUtil.isKeyPressed(windowHandle, 344)) {
+      if (keyDown(windowHandle, 344)) {
          held |= 64;
       }
 
-      if (InputUtil.isKeyPressed(windowHandle, 342)) {
+      if (keyDown(windowHandle, 342)) {
          held |= 128;
       }
 
-      if (InputUtil.isKeyPressed(windowHandle, 346)) {
+      if (keyDown(windowHandle, 346)) {
          held |= 256;
       }
 
@@ -139,11 +144,11 @@ public final class KeybindUtil {
       StringBuilder sb = new StringBuilder();
       int mods = normalizeMods(chord.mods);
       appendMods(sb, mods, " + ");
-      Key k = InputUtil.fromTranslationKey(chord.key);
+      Key k = InputConstants.getKey(chord.key);
       String keyName = formatKeyName(k, chord.key);
       sb.append(keyName);
       if (chord.extraKey != null && !chord.extraKey.isBlank()) {
-         Key extra = InputUtil.fromTranslationKey(chord.extraKey);
+         Key extra = InputConstants.getKey(chord.extraKey);
          sb.append(" + ").append(formatKeyName(extra, chord.extraKey));
       }
 
@@ -183,7 +188,7 @@ public final class KeybindUtil {
       if (key == null) {
          return fallback;
       } else {
-         return key.getCategory() == Type.MOUSE ? formatMouseButton(key.getCode()) : key.getLocalizedText().getString();
+         return key.getType() == Type.MOUSE ? formatMouseButton(key.getValue()) : key.getDisplayName().getString();
       }
    }
 
@@ -216,12 +221,12 @@ public final class KeybindUtil {
 
    public static boolean isMouseChord(KeybindsConfig.Chord chord) {
       if (chord != null && chord.key != null && !chord.key.isBlank()) {
-         Key k = InputUtil.fromTranslationKey(chord.key);
-         if (k != null && k.getCategory() == Type.MOUSE) {
+         Key k = InputConstants.getKey(chord.key);
+         if (k != null && k.getType() == Type.MOUSE) {
             return true;
          } else if (chord.extraKey != null && !chord.extraKey.isBlank()) {
-            Key extra = InputUtil.fromTranslationKey(chord.extraKey);
-            return extra != null && extra.getCategory() == Type.MOUSE;
+            Key extra = InputConstants.getKey(chord.extraKey);
+            return extra != null && extra.getType() == Type.MOUSE;
          } else {
             return false;
          }
@@ -249,24 +254,24 @@ public final class KeybindUtil {
             return false;
          }
 
-         Key k = InputUtil.fromTranslationKey(chord.key);
+         Key k = InputConstants.getKey(chord.key);
          if (k == null) {
             return false;
          }
 
-         if (k.getCategory() != Type.KEYSYM) {
+         if (k.getType() != Type.KEYSYM) {
             return false;
          }
 
-         boolean pressedPrimary = k.getCode() == keyCode;
+         boolean pressedPrimary = k.getValue() == keyCode;
          boolean pressedExtra = false;
          if (chord.extraKey != null && !chord.extraKey.isBlank()) {
-            Key extra = InputUtil.fromTranslationKey(chord.extraKey);
-            if (extra == null || extra.getCategory() != Type.KEYSYM) {
+            Key extra = InputConstants.getKey(chord.extraKey);
+            if (extra == null || extra.getType() != Type.KEYSYM) {
                return false;
             }
 
-            pressedExtra = extra.getCode() == keyCode;
+            pressedExtra = extra.getValue() == keyCode;
             if (!isKeyLikeDown(windowHandle(), extra)) {
                return false;
             }
@@ -283,15 +288,15 @@ public final class KeybindUtil {
    public static boolean isKeyLikeDown(long windowHandle, Key key) {
       if (key == null) {
          return false;
-      } else if (key.getCategory() == Type.KEYSYM) {
-         return InputUtil.isKeyPressed(windowHandle, key.getCode());
+      } else if (key.getType() == Type.KEYSYM) {
+         return keyDown(windowHandle, key.getValue());
       } else {
-         return key.getCategory() == Type.MOUSE ? GLFW.glfwGetMouseButton(windowHandle, key.getCode()) == 1 : false;
+         return key.getType() == Type.MOUSE ? GLFW.glfwGetMouseButton(windowHandle, key.getValue()) == 1 : false;
       }
    }
 
    public static long windowHandle() {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      return mc != null && mc.getWindow() != null ? mc.getWindow().getHandle() : 0L;
+      Minecraft mc = Minecraft.getInstance();
+      return mc != null && mc.getWindow() != null ? mc.getWindow().handle() : 0L;
    }
 }

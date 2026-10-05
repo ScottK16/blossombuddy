@@ -10,9 +10,9 @@ import org.blossomsuite.core.util.HudStyleUtil;
 import org.blossomsuite.core.util.RateColors;
 import org.blossomsuite.core.util.TextUtil;
 import java.util.Locale;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2fStack;
 
 public final class JobsHud {
@@ -114,7 +114,7 @@ public final class JobsHud {
    private JobsHud() {
    }
 
-   private static Text headerText() {
+   private static Component headerText() {
       return TextUtil.gradient(SuiteRuntime.profile().displayName().toUpperCase(Locale.ROOT), -11672879, -6591489, true);
    }
 
@@ -122,7 +122,7 @@ public final class JobsHud {
       tracker = jobsTracker;
    }
 
-   public static void render(DrawContext ctx, MinecraftClient client) {
+   public static void render(GuiGraphicsExtractor ctx, Minecraft client) {
       if (SuiteConfig.INSTANCE.JobsConfig.showHud) {
          if (tracker != null && client.player != null) {
             JobsTracker.LiveStats s = tracker.getLiveStats();
@@ -132,8 +132,8 @@ public final class JobsHud {
             boolean showSegment = SuiteConfig.INSTANCE.JobsConfig.showSegmentLines;
             boolean showSession = SuiteConfig.INSTANCE.JobsConfig.showSessionLines;
             boolean showAnyStats = showSegment || showSession;
-            int screenH = client.getWindow().getScaledHeight();
-            int screenW = client.getWindow().getScaledWidth();
+            int screenH = client.getWindow().getGuiScaledHeight();
+            int screenW = client.getWindow().getGuiScaledWidth();
             int lineH = 9;
             int lineGap = 4;
             int lineOffset = lineH + lineGap;
@@ -165,7 +165,7 @@ public final class JobsHud {
             lastY = y;
             lastW = w;
             lastH = h;
-            Matrix3x2fStack matrices = ctx.getMatrices();
+            Matrix3x2fStack matrices = ctx.pose();
             matrices.pushMatrix();
             matrices.translate(x, y);
             matrices.scale(scale, scale);
@@ -179,11 +179,11 @@ public final class JobsHud {
                ctx.fill(panelX1, panelY1, panelX2, panelY2, HudStyleUtil.panelBg(bg));
                ctx.fill(panelX1, panelY1, panelX2, panelY1 + titleH, HudStyleUtil.panelHeader(bg));
                ctx.fill(panelX1 + 4, panelY1 + titleH, panelX2 - 4, panelY1 + titleH + 1, HudStyleUtil.panelDivider(bg));
-               Text headerText = headerText();
-               int headerW = client.textRenderer.getWidth(headerText);
+               Component headerText = headerText();
+               int headerW = client.font.width(headerText);
                int headerX = (baseW - headerW) / 2;
                int headerY = 6;
-               ctx.drawTextWithShadow(client.textRenderer, headerText, headerX, headerY, -1);
+               ctx.text(client.font, headerText, headerX, headerY, -1);
                if (SuiteConfig.INSTANCE.JobsConfig.showLifetime) {
                   int lifeY1 = panelY1 + titleH + 1;
                   int lifeY2 = lifeY1 + lifetimeH;
@@ -194,10 +194,10 @@ public final class JobsHud {
                   String right = "$" + TextUtil.fmtMoney(lifeMoney);
                   int textY = lifeY1 + (lifetimeH - 9) / 2;
                   int leftX2 = panelX1 + 6;
-                  ctx.drawTextWithShadow(client.textRenderer, left, leftX2, textY, -4208683);
-                  int rightW = client.textRenderer.getWidth(right);
+                  ctx.text(client.font, left, leftX2, textY, -4208683);
+                  int rightW = client.font.width(right);
                   int rightX2 = panelX2 - 6 - rightW;
-                  ctx.drawTextWithShadow(client.textRenderer, right, rightX2, textY, -8585317);
+                  ctx.text(client.font, right, rightX2, textY, -8585317);
                }
 
                int leftX = 6;
@@ -214,13 +214,13 @@ public final class JobsHud {
                   int textY = timerY1 + (timerH - 9) / 2;
                   if (showSegment) {
                      int segX = panelX1 + 6;
-                     ctx.drawTextWithShadow(client.textRenderer, segText, segX, textY, -4208683);
+                     ctx.text(client.font, segText, segX, textY, -4208683);
                   }
 
                   if (showSession) {
-                     int sessW = client.textRenderer.getWidth(sessText);
+                     int sessW = client.font.width(sessText);
                      int sessX = showSegment ? panelX2 - 6 - sessW : panelX1 + 6;
-                     ctx.drawTextWithShadow(client.textRenderer, sessText, sessX, textY, -4208683);
+                     ctx.text(client.font, sessText, sessX, textY, -4208683);
                   }
                }
 
@@ -341,25 +341,25 @@ public final class JobsHud {
       return 2 + titleH + lifetimeH + timerH + padTop + rows * lineH + Math.max(0, rows - 1) * lineGap + padBot + 2;
    }
 
-   private static void renderPauseCrosshairIcon(DrawContext ctx, MinecraftClient client, JobsTracker.LiveStats stats) {
+   private static void renderPauseCrosshairIcon(GuiGraphicsExtractor ctx, Minecraft client, JobsTracker.LiveStats stats) {
       if (SuiteConfig.INSTANCE.JobsConfig.showPauseIconNearCrosshair) {
          if (stats != null && stats.paused()) {
             if (client != null && client.getWindow() != null) {
-               int screenW = client.getWindow().getScaledWidth();
-               int screenH = client.getWindow().getScaledHeight();
+               int screenW = client.getWindow().getGuiScaledWidth();
+               int screenH = client.getWindow().getGuiScaledHeight();
                String icon = "||";
-               int iconW = client.textRenderer.getWidth(icon);
+               int iconW = client.font.width(icon);
                int x = screenW / 2 - iconW / 2;
                int y = screenH / 2 + 10;
-               ctx.drawTextWithShadow(client.textRenderer, icon, x, y, -11410);
+               ctx.text(client.font, icon, x, y, -11410);
             }
          }
       }
    }
 
    private static void drawSegmentLine(
-      DrawContext ctx,
-      MinecraftClient client,
+      GuiGraphicsExtractor ctx,
+      Minecraft client,
       String leftText,
       String rateText,
       int leftX,
@@ -371,25 +371,25 @@ public final class JobsHud {
       boolean captureEnabled,
       boolean paused
    ) {
-      ctx.drawTextWithShadow(client.textRenderer, leftText, leftX, rowY, -1);
-      int rateW = client.textRenderer.getWidth(rateText);
+      ctx.text(client.font, leftText, leftX, rowY, -1);
+      int rateW = client.font.width(rateText);
       int rateX = x + w - rightPad - rateW;
       int segmentColor = RateColors.rateColor(captureEnabled, paused, rateValue);
-      ctx.drawTextWithShadow(client.textRenderer, rateText, rateX, rowY, segmentColor);
+      ctx.text(client.font, rateText, rateX, rowY, segmentColor);
    }
 
    private static void drawSegmentLine(
-      DrawContext ctx, MinecraftClient client, String leftText, String rateText, int leftX, int rowY, int x, int w, int rightPad
+      GuiGraphicsExtractor ctx, Minecraft client, String leftText, String rateText, int leftX, int rowY, int x, int w, int rightPad
    ) {
-      ctx.drawTextWithShadow(client.textRenderer, leftText, leftX, rowY, -8519782);
-      int rateW = client.textRenderer.getWidth(rateText);
+      ctx.text(client.font, leftText, leftX, rowY, -8519782);
+      int rateW = client.font.width(rateText);
       int rateX = x + w - rightPad - rateW;
-      ctx.drawTextWithShadow(client.textRenderer, rateText, rateX, rowY, -8519782);
+      ctx.text(client.font, rateText, rateX, rowY, -8519782);
    }
 
    private static void drawSessionLine(
-      DrawContext ctx,
-      MinecraftClient client,
+      GuiGraphicsExtractor ctx,
+      Minecraft client,
       String leftText,
       String rateText,
       int leftX,
@@ -401,19 +401,19 @@ public final class JobsHud {
       boolean captureEnabled,
       boolean paused
    ) {
-      ctx.drawTextWithShadow(client.textRenderer, leftText, leftX, rowY, -4208683);
-      int rateW = client.textRenderer.getWidth(rateText);
+      ctx.text(client.font, leftText, leftX, rowY, -4208683);
+      int rateW = client.font.width(rateText);
       int rateX = x + w - rightPad - rateW;
       int segmentColor = RateColors.rateColor(captureEnabled, paused, rateValue);
-      ctx.drawTextWithShadow(client.textRenderer, rateText, rateX, rowY, segmentColor);
+      ctx.text(client.font, rateText, rateX, rowY, segmentColor);
    }
 
    private static void drawSessionLine(
-      DrawContext ctx, MinecraftClient client, String leftText, String rateText, int leftX, int rowY, int x, int w, int rightPad
+      GuiGraphicsExtractor ctx, Minecraft client, String leftText, String rateText, int leftX, int rowY, int x, int w, int rightPad
    ) {
-      ctx.drawTextWithShadow(client.textRenderer, leftText, leftX, rowY, -8519782);
-      int rateW = client.textRenderer.getWidth(rateText);
+      ctx.text(client.font, leftText, leftX, rowY, -8519782);
+      int rateW = client.font.width(rateText);
       int rateX = x + w - rightPad - rateW;
-      ctx.drawTextWithShadow(client.textRenderer, rateText, rateX, rowY, -8519782);
+      ctx.text(client.font, rateText, rateX, rowY, -8519782);
    }
 }

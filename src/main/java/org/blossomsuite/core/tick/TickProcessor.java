@@ -34,21 +34,20 @@ import org.blossomsuite.core.util.WorldGate;
 import org.blossomsuite.core.vote.VotePartySnapshot;
 import org.blossomsuite.core.vote.VoteRuntime;
 import org.blossomsuite.core.vote.VoteState;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 public final class TickProcessor {
    private static long lastVoteExpiryCheckMs = 0L;
    private static long lastPauseReminderBucket = 0L;
    private static boolean wasActiveLastTick = false;
 
-   public static void process(MinecraftClient client) {
+   public static void process(Minecraft client) {
       if (client.player != null) {
          long now = System.currentTimeMillis();
          JobsTracker tracker = JobsModule.tracker();
          boolean active = WorldGate.isActive();
          if (HudEditState.editMode
-            && client.currentScreen != null
-            && !TickRuntime.isHudEditScreen(client.currentScreen)
+            && client.screen != null
+            && !TickRuntime.isHudEditScreen(client.screen)
             && !TickRuntime.hasHudEditOpenRequest()) {
             HudEditState.editMode = false;
             JobsHud.dragging = false;
@@ -129,7 +128,7 @@ public final class TickProcessor {
                }
 
                if (TickRuntime.consumeSettingsOpenRequest()) {
-                  TickRuntime.openSettings(MinecraftClient.getInstance());
+                  TickRuntime.openSettings(Minecraft.getInstance());
                }
 
                if (feature(SuiteFeature.REMOTE_CONFIG)) {
@@ -243,9 +242,9 @@ public final class TickProcessor {
       wasActiveLastTick = false;
    }
 
-   private static void handleEditScreenRequests(MinecraftClient client) {
+   private static void handleEditScreenRequests(Minecraft client) {
       if (TickRuntime.consumeHudEditOpenRequest()) {
-         if (client.currentScreen == null) {
+         if (client.screen == null) {
             TickRuntime.openHudEdit(client);
          } else {
             TickRuntime.requeueHudEditOpenRequest();
@@ -253,7 +252,7 @@ public final class TickProcessor {
       }
 
       if (TickRuntime.consumeHudEditCloseRequest()) {
-         if (TickRuntime.isHudEditScreen(client.currentScreen)) {
+         if (TickRuntime.isHudEditScreen(client.screen)) {
             client.setScreen(null);
          }
 

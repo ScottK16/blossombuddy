@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ class SecondaryChatTest {
       FeatureConfig.INSTANCE.chat.filters.add(filter("Hide", "beta", false, true));
       FeatureConfig.INSTANCE.chat.show = false;
       SecondaryChat chat = new SecondaryChat();
-      assertFalse(chat.onMessage(Text.literal("beta only")), "no window to read it in, so leave it in main chat");
+      assertFalse(chat.onMessage(Component.literal("beta only")), "no window to read it in, so leave it in main chat");
       assertEquals(1, chat.recent("Hide", 10).size(), "it is still filed, for /buddy chat");
    }
 
@@ -62,7 +62,7 @@ class SecondaryChatTest {
       FeatureConfig.INSTANCE.chat.filters.add(filter("TP", "teleport", false, false));
       FeatureConfig.INSTANCE.chat.filters.add(filter("Requests", "request", false, false));
       SecondaryChat chat = new SecondaryChat();
-      chat.onMessage(Text.literal("Alex sent you a teleport request"));
+      chat.onMessage(Component.literal("Alex sent you a teleport request"));
       assertEquals(1, chat.recent("TP", 10).size());
       assertEquals(1, chat.recent("Requests", 10).size());
       assertEquals(2, chat.recent(null, 10).size(), "'all' lists both copies");
@@ -73,9 +73,9 @@ class SecondaryChatTest {
       FeatureConfig.INSTANCE.chat.filters.add(filter("Keep", "alpha", false, false));
       FeatureConfig.INSTANCE.chat.filters.add(filter("Hide", "beta", false, true));
       SecondaryChat chat = new SecondaryChat();
-      assertFalse(chat.onMessage(Text.literal("alpha only")));
-      assertTrue(chat.onMessage(Text.literal("beta only")));
-      assertFalse(chat.onMessage(Text.literal("unrelated")));
+      assertFalse(chat.onMessage(Component.literal("alpha only")));
+      assertTrue(chat.onMessage(Component.literal("beta only")));
+      assertFalse(chat.onMessage(Component.literal("unrelated")));
    }
 
    @Test
@@ -84,7 +84,7 @@ class SecondaryChatTest {
       f.enabled = false;
       FeatureConfig.INSTANCE.chat.filters.add(f);
       SecondaryChat chat = new SecondaryChat();
-      assertFalse(chat.onMessage(Text.literal("anything at all")));
+      assertFalse(chat.onMessage(Component.literal("anything at all")));
       assertTrue(chat.recent(null, 10).isEmpty());
    }
 
@@ -93,7 +93,7 @@ class SecondaryChatTest {
       FeatureConfig.INSTANCE.chat.filters.add(filter("All", "msg", false, false));
       SecondaryChat chat = new SecondaryChat();
       for (int i = 1; i <= 5; i++) {
-         chat.onMessage(Text.literal("msg " + i));
+         chat.onMessage(Component.literal("msg " + i));
       }
 
       var last3 = chat.recent(null, 3);

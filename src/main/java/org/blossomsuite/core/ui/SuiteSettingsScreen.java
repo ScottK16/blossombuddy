@@ -1,24 +1,26 @@
 package org.blossomsuite.core.ui;
 
 import org.blossomsuite.core.commands.BuddyCommands;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Drawable;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.gui.screen.ConfirmLinkScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.screens.ConfirmLinkScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import org.blossomsuite.core.SuiteFeature;
 import org.blossomsuite.core.SuiteRuntime;
 import org.blossomsuite.core.config.ConfigIO;
@@ -67,17 +69,17 @@ public class SuiteSettingsScreen extends Screen {
    private int maxNavScroll = 0;
    private int navContentHeight = 0;
    private final Map<SuiteTab, TabButtonWidget> tabButtons = new IdentityHashMap<>();
-   private final List<Drawable> contentDrawables = new ArrayList<>();
-   private final List<Element> contentElements = new ArrayList<>();
+   private final List<Renderable> contentDrawables = new ArrayList<>();
+   private final List<GuiEventListener> contentElements = new ArrayList<>();
 
    // search
-   private TextFieldWidget searchField;
+   private EditBox searchField;
    private String query = "";
    private int searchX;
    private int searchW;
    private int resultCount = 0;
    /** Non-null only while a tab is being built for search; widgets go here instead of onto the screen. */
-   private List<ClickableWidget> capture;
+   private List<AbstractWidget> capture;
 
    private record Section(SettingsSearch.Leaf leaf, List<SettingsSearch.Row> rows) {
    }
@@ -86,7 +88,7 @@ public class SuiteSettingsScreen extends Screen {
    }
 
    public SuiteSettingsScreen(Screen parent) {
-      super(Text.literal(SuiteRuntime.profile().displayName() + " Settings"));
+      super(Component.literal(SuiteRuntime.profile().displayName() + " Settings"));
       this.parent = parent;
       if (feature(SuiteFeature.AUTO_FLY)) {
          this.tabs.add(new SubTabSuiteTab(new AutoFlySubTab()));
@@ -232,11 +234,11 @@ public class SuiteSettingsScreen extends Screen {
       this.searchW = Math.max(160, Math.min(320, this.contentWidth));
       this.searchX = this.contentLeft + this.contentWidth - this.searchW;
       if (this.searchField == null) {
-         this.searchField = new TextFieldWidget(this.textRenderer, 0, 0, 10, 10, Text.literal("Search settings"));
-         this.searchField.setDrawsBackground(false);
+         this.searchField = new EditBox(this.font, 0, 0, 10, 10, Component.literal("Search settings"));
+         this.searchField.setBordered(false);
          this.searchField.setMaxLength(48);
-         this.searchField.setPlaceholder(Text.literal("Search settings...").formatted(Formatting.DARK_GRAY));
-         this.searchField.setChangedListener(this::onSearchChanged);
+         this.searchField.setHint(Component.literal("Search settings...").withStyle(ChatFormatting.DARK_GRAY));
+         this.searchField.setResponder(this::onSearchChanged);
       }
 
       this.searchField.setX(this.searchX + 24);
@@ -247,8 +249,9 @@ public class SuiteSettingsScreen extends Screen {
    }
 
    @Override
-   public void resize(MinecraftClient client, int width, int height) {
-      super.resize(client, width, height);
+   public void resize(int width, int height) {
+      net.minecraft.client.Minecraft client = this.minecraft;
+      super.resize(width, height);
       this.rebuild();
    }
 
@@ -262,13 +265,13 @@ public class SuiteSettingsScreen extends Screen {
 
    private void clearSearch() {
       this.query = "";
-      this.searchField.setText("");
+      this.searchField.setValue("");
       this.scrollOffset = 0;
       this.rebuild();
    }
 
    private void rebuild() {
-      this.clearChildren();
+      this.clearWidgets();
       this.tabButtons.clear();
       this.contentDrawables.clear();
       this.contentElements.clear();
@@ -296,10 +299,10 @@ public class SuiteSettingsScreen extends Screen {
    // ---------------------------------------------------------------- search
 
    private void addSearchBox() {
-      this.addDrawableChild(this.searchField);
+      this.addRenderableWidget(this.searchField);
       if (this.searching()) {
-         this.addDrawableChild(
-            StyledButton.of(Text.literal("x"), b -> this.clearSearch()).dimensions(this.searchX + this.searchW - 22, 12 + 4, 16, SEARCH_H - 8).build()
+         this.addRenderableWidget(
+            StyledButton.of(Component.literal("x"), b -> this.clearSearch()).dimensions(this.searchX + this.searchW - 22, 12 + 4, 16, SEARCH_H - 8).build()
          );
       }
    }
@@ -350,21 +353,21 @@ public class SuiteSettingsScreen extends Screen {
       int w = this.contentW();
       int base = this.bodyContentY() - this.scrollOffset;
       if (layout.sections().isEmpty()) {
-         this.addContentWidget(new LabelWidget(x, base + 4, w, 14, Text.literal("No settings match \"" + this.query.trim() + "\"."), Theme.TEXT_DIM));
-         this.addContentWidget(new LabelWidget(x, base + 20, w, 14, Text.literal("Try a shorter word, like \"cooldown\" or \"hud\"."), Theme.TEXT_MUTED));
+         this.addContentWidget(new LabelWidget(x, base + 4, w, 14, Component.literal("No settings match \"" + this.query.trim() + "\"."), Theme.TEXT_DIM));
+         this.addContentWidget(new LabelWidget(x, base + 20, w, 14, Component.literal("Try a shorter word, like \"cooldown\" or \"hud\"."), Theme.TEXT_MUTED));
          return;
       }
 
       int y = 0;
       for (Section section : layout.sections()) {
-         this.addContentWidget(new LabelWidget(x, base + y + 4, w - 64, 12, Text.literal(section.leaf().path()), Theme.ACCENT));
+         this.addContentWidget(new LabelWidget(x, base + y + 4, w - 64, 12, Component.literal(section.leaf().path()), Theme.ACCENT));
          this.addContentWidget(
-            StyledButton.of(Text.literal("Open"), b -> this.openLeaf(section.leaf())).dimensions(x + w - 56, base + y, 56, 16).build()
+            StyledButton.of(Component.literal("Open"), b -> this.openLeaf(section.leaf())).dimensions(x + w - 56, base + y, 56, 16).build()
          );
          y += RESULT_HEADER_H;
          for (SettingsSearch.Row row : section.rows()) {
             int shift = base + y - row.top();
-            for (ClickableWidget widget : row.widgets()) {
+            for (AbstractWidget widget : row.widgets()) {
                widget.setY(widget.getY() + shift);
                this.addContentWidget(widget);
             }
@@ -378,7 +381,7 @@ public class SuiteSettingsScreen extends Screen {
 
    private void openLeaf(SettingsSearch.Leaf leaf) {
       this.query = "";
-      this.searchField.setText("");
+      this.searchField.setValue("");
       if (this.current != leaf.tab()) {
          if (this.current != null) {
             this.current.removed();
@@ -402,7 +405,7 @@ public class SuiteSettingsScreen extends Screen {
       boolean wasSearching = this.searching();
       if (wasSearching) {
          this.query = "";
-         this.searchField.setText("");
+         this.searchField.setValue("");
       }
 
       if (this.current != tab) {
@@ -435,7 +438,7 @@ public class SuiteSettingsScreen extends Screen {
 
       for (SuiteTab tab : this.tabs) {
          boolean selected = tab == this.current && !searching;
-         TabButtonWidget btn = new TabButtonWidget(x, y, w, rowH, Text.translatable(tab.titleKey()), selected, () -> this.selectTab(tab));
+         TabButtonWidget btn = new TabButtonWidget(x, y, w, rowH, Component.translatable(tab.titleKey()), selected, () -> this.selectTab(tab));
          this.tabButtons.put(tab, btn);
          btn.visible = fullyVisible(y, rowH, navListTop, navListBottom);
          this.addHeaderWidget(btn);
@@ -443,7 +446,7 @@ public class SuiteSettingsScreen extends Screen {
          if (tab == this.current && !searching && tab instanceof NestedSuiteTab nested) {
             for (SuiteSubTab subTab : nested.sidebarSubTabs()) {
                boolean subSelected = subTab == nested.currentSubTab();
-               TabButtonWidget subBtn = new TabButtonWidget(x + 12, y, w - 12, 18, Text.translatable(subTab.titleKey()), subSelected, () -> {
+               TabButtonWidget subBtn = new TabButtonWidget(x + 12, y, w - 12, 18, Component.translatable(subTab.titleKey()), subSelected, () -> {
                   nested.selectSubTab(subTab);
                   this.rebuildFromTab();
                });
@@ -453,7 +456,7 @@ public class SuiteSettingsScreen extends Screen {
                if (subTab instanceof SuiteSubTabGroup group && subSelected) {
                   for (SuiteSubTab child : group.children()) {
                      boolean childSelected = child == group.currentChild();
-                     TabButtonWidget childBtn = new TabButtonWidget(x + 24, y, w - 24, 18, Text.translatable(child.titleKey()), childSelected, () -> {
+                     TabButtonWidget childBtn = new TabButtonWidget(x + 24, y, w - 24, 18, Component.translatable(child.titleKey()), childSelected, () -> {
                         nested.selectSubTab(group);
                         group.selectChild(child);
                         this.rebuildFromTab();
@@ -501,32 +504,32 @@ public class SuiteSettingsScreen extends Screen {
 
    private void addFooter() {
       int y = this.height - 30;
-      this.addDrawableChild(
-         StyledButton.of(Text.literal("Discord"), ConfirmLinkScreen.opening(this, URI.create(BuddyCommands.DISCORD_INVITE)))
+      this.addRenderableWidget(
+         StyledButton.of(Component.literal("Discord"), ConfirmLinkScreen.confirmLink(this, URI.create(BuddyCommands.DISCORD_INVITE)))
             .dimensions(this.contentLeft, y, 90, 22)
             .build()
       );
-      this.addDrawableChild(
-         StyledButton.of(Text.literal("Privacy"), ConfirmLinkScreen.opening(this, URI.create(BuddyCommands.PRIVACY_URL)))
+      this.addRenderableWidget(
+         StyledButton.of(Component.literal("Privacy"), ConfirmLinkScreen.confirmLink(this, URI.create(BuddyCommands.PRIVACY_URL)))
             .dimensions(this.contentLeft + 96, y, 90, 22)
             .build()
       );
-      this.addDrawableChild(StyledButton.of(Text.translatable("gui.done"), b -> {
+      this.addRenderableWidget(StyledButton.of(Component.translatable("gui.done"), b -> {
          this.current.removed();
          ConfigIO.save();
-         this.client.setScreen(this.parent);
+         this.minecraft.setScreen(this.parent);
       }).dimensions(this.contentLeft + this.contentWidth - 126, y, 120, 22).build().accent());
    }
 
    @Override
-   public void close() {
+   public void onClose() {
       if (this.current != null) {
          this.current.removed();
       }
 
       ConfigIO.save();
-      if (this.client != null) {
-         this.client.setScreen(this.parent);
+      if (this.minecraft != null) {
+         this.minecraft.setScreen(this.parent);
       }
    }
 
@@ -573,7 +576,10 @@ public class SuiteSettingsScreen extends Screen {
    }
 
    @Override
-   public boolean mouseClicked(double mouseX, double mouseY, int button) {
+   public boolean mouseClicked(MouseButtonEvent inputEvent, boolean isDoubleClick) {
+      double mouseX = inputEvent.x();
+      double mouseY = inputEvent.y();
+      int button = inputEvent.button();
       boolean inSearchPill = mouseX >= this.searchX && mouseX <= this.searchX + this.searchW && mouseY >= 12 && mouseY <= 12 + SEARCH_H;
       if (inSearchPill && button == 0) {
          boolean onClear = this.searching() && mouseX >= this.searchX + this.searchW - 24;
@@ -588,14 +594,15 @@ public class SuiteSettingsScreen extends Screen {
          return true;
       } else {
          return !(mouseY < this.contentViewportTop()) && !(mouseY > this.contentViewportBottom())
-            ? super.mouseClicked(mouseX, mouseY, button)
-            : this.mouseClickedNonContent(mouseX, mouseY, button);
+            ? super.mouseClicked(inputEvent, isDoubleClick)
+            : this.mouseClickedNonContent(inputEvent, isDoubleClick);
       }
    }
 
-   private boolean mouseClickedNonContent(double mouseX, double mouseY, int button) {
-      for (Element child : this.children()) {
-         if (!this.contentElements.contains(child) && child.mouseClicked(mouseX, mouseY, button)) {
+   private boolean mouseClickedNonContent(MouseButtonEvent inputEvent, boolean isDoubleClick) {
+      int button = inputEvent.button();
+      for (GuiEventListener child : this.children()) {
+         if (!this.contentElements.contains(child) && child.mouseClicked(inputEvent, isDoubleClick)) {
             this.setFocused(child);
             if (button == 0) {
                this.setDragging(true);
@@ -609,8 +616,11 @@ public class SuiteSettingsScreen extends Screen {
    }
 
    @Override
-   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-      if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_F) {
+   public boolean keyPressed(KeyEvent inputEvent) {
+      int keyCode = inputEvent.key();
+      int scanCode = inputEvent.scancode();
+      int modifiers = inputEvent.modifiers();
+      if (net.minecraft.client.Minecraft.getInstance().hasControlDown() && keyCode == GLFW.GLFW_KEY_F) {
          this.setFocused(this.searchField);
          return true;
       }
@@ -624,25 +634,28 @@ public class SuiteSettingsScreen extends Screen {
          this.rebuildPreserveScroll();
          return true;
       } else {
-         return super.keyPressed(keyCode, scanCode, modifiers);
+         return super.keyPressed(inputEvent);
       }
    }
 
    @Override
-   public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+   public boolean keyReleased(KeyEvent inputEvent) {
+      int keyCode = inputEvent.key();
+      int scanCode = inputEvent.scancode();
+      int modifiers = inputEvent.modifiers();
       if (!this.searching() && this.current != null && this.current.keyReleased(keyCode, scanCode, modifiers)) {
          this.rebuildPreserveScroll();
          return true;
       } else {
-         return super.keyReleased(keyCode, scanCode, modifiers);
+         return super.keyReleased(inputEvent);
       }
    }
 
    // ---------------------------------------------------------------- drawing
 
    @Override
-   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-      TextRenderer tr = this.textRenderer;
+   public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+      Font tr = this.font;
       context.fillGradient(0, 0, this.width, this.height, Theme.BG_TOP, Theme.BG_BOTTOM);
       this.renderWordmark(context, tr);
       this.renderSearchPill(context);
@@ -656,27 +669,27 @@ public class SuiteSettingsScreen extends Screen {
       int panelY2 = this.contentBottom;
       Theme.roundBox(context, panelX1, panelY1, panelX2, panelY2, 5, Theme.PANEL_EDGE, Theme.PANEL);
 
-      Text title;
+      Component title;
       if (this.searching()) {
-         title = Text.literal("Search results").formatted(Formatting.BOLD)
-            .append(Text.literal("  " + this.resultCount + (this.resultCount == 1 ? " setting" : " settings")).formatted(Formatting.RESET));
+         title = Component.literal("Search results").withStyle(ChatFormatting.BOLD)
+            .append(Component.literal("  " + this.resultCount + (this.resultCount == 1 ? " setting" : " settings")).withStyle(ChatFormatting.RESET));
       } else {
-         title = Text.translatable(this.current.titleKey()).formatted(Formatting.BOLD);
+         title = Component.translatable(this.current.titleKey()).withStyle(ChatFormatting.BOLD);
       }
 
-      context.drawTextWithShadow(tr, title, this.contentLeft + 16, panelY1 + 10, Theme.TEXT);
-      context.drawHorizontalLine(this.contentLeft + 16, this.contentLeft + this.contentWidth - 16, this.dividerY(), Theme.PANEL_EDGE);
+      context.text(tr, title, this.contentLeft + 16, panelY1 + 10, Theme.TEXT);
+      context.horizontalLine(this.contentLeft + 16, this.contentLeft + this.contentWidth - 16, this.dividerY(), Theme.PANEL_EDGE);
       context.fill(this.contentLeft + 16, this.dividerY(), this.contentLeft + 16 + 36, this.dividerY() + 1, Theme.ACCENT);
 
       String hint = this.searching() ? "Esc  clear search" : "Ctrl+F  search settings";
-      context.drawTextWithShadow(tr, Text.literal(hint), this.contentLeft + 2, this.height - 24, Theme.TEXT_MUTED);
+      context.text(tr, Component.literal(hint), this.contentLeft + 2, this.height - 24, Theme.TEXT_MUTED);
 
-      super.render(context, mouseX, mouseY, delta);
+      super.extractRenderState(context, mouseX, mouseY, delta);
       if (this.contentViewportBottom() > this.contentViewportTop() && this.contentWidth > 2) {
          context.enableScissor(this.contentLeft + 1, this.contentViewportTop(), this.contentLeft + this.contentWidth - 1, this.contentViewportBottom());
 
-         for (Drawable drawable : this.contentDrawables) {
-            drawable.render(context, mouseX, mouseY, delta);
+         for (Renderable drawable : this.contentDrawables) {
+            drawable.extractRenderState(context, mouseX, mouseY, delta);
          }
 
          if (!this.searching()) {
@@ -687,7 +700,7 @@ public class SuiteSettingsScreen extends Screen {
       }
    }
 
-   private void renderWordmark(DrawContext context, TextRenderer tr) {
+   private void renderWordmark(GuiGraphicsExtractor context, Font tr) {
       String name = SuiteRuntime.profile().displayName();
       int split = -1;
       for (int i = 1; i < name.length(); i++) {
@@ -699,18 +712,18 @@ public class SuiteSettingsScreen extends Screen {
 
       String first = split < 0 ? name : name.substring(0, split);
       String second = split < 0 ? "" : name.substring(split);
-      Text a = Text.literal(first).formatted(Formatting.BOLD);
+      Component a = Component.literal(first).withStyle(ChatFormatting.BOLD);
       int x = this.navLeft + 2;
-      context.drawTextWithShadow(tr, a, x, 7, Theme.ACCENT);
+      context.text(tr, a, x, 7, Theme.ACCENT);
       if (!second.isEmpty()) {
-         context.drawTextWithShadow(tr, Text.literal(second).formatted(Formatting.BOLD), x + tr.getWidth(a), 7, Theme.LAVENDER);
+         context.text(tr, Component.literal(second).withStyle(ChatFormatting.BOLD), x + tr.width(a), 7, Theme.LAVENDER);
       }
 
-      context.drawTextWithShadow(tr, Text.literal("v" + SuiteModInfo.getVersion()), x, 19, Theme.TEXT_MUTED);
-      context.drawTextWithShadow(tr, Text.literal("Developed by " + BuddyCommands.DEVELOPER), x, 31, Theme.ACCENT_DIM);
+      context.text(tr, Component.literal("v" + SuiteModInfo.getVersion()), x, 19, Theme.TEXT_MUTED);
+      context.text(tr, Component.literal("Developed by " + BuddyCommands.DEVELOPER), x, 31, Theme.ACCENT_DIM);
    }
 
-   private void renderSearchPill(DrawContext context) {
+   private void renderSearchPill(GuiGraphicsExtractor context) {
       boolean focused = this.searchField != null && this.searchField.isFocused();
       Theme.roundBox(
          context, this.searchX, 12, this.searchX + this.searchW, 12 + SEARCH_H, 5, focused ? Theme.ACCENT_DIM : Theme.CONTROL_EDGE, Theme.CONTROL_OFF
@@ -719,15 +732,15 @@ public class SuiteSettingsScreen extends Screen {
    }
 
    @Override
-   public TextRenderer getTextRenderer() {
-      return this.textRenderer;
+   public Font getFont() {
+      return this.font;
    }
 
    private static boolean fullyVisible(int y, int height, int top, int bottom) {
       return y >= top && y + height <= bottom;
    }
 
-   private void renderNavScrollbar(DrawContext context) {
+   private void renderNavScrollbar(GuiGraphicsExtractor context) {
       if (this.maxNavScroll > 0) {
          int trackX = this.navLeft + this.navWidth - 5;
          int trackY = this.navListTop();
@@ -743,32 +756,32 @@ public class SuiteSettingsScreen extends Screen {
 
    // ---------------------------------------------------------------- widget registration used by the tabs
 
-   public <T extends Element & Drawable & Selectable> T addHeaderWidget(T widget) {
+   public <T extends GuiEventListener & Renderable & NarratableEntry> T addHeaderWidget(T widget) {
       if (this.capture != null) {
-         if (widget instanceof ClickableWidget clickable) {
+         if (widget instanceof AbstractWidget clickable) {
             this.capture.add(clickable);
          }
 
          return widget;
       }
 
-      return this.addDrawableChild(widget);
+      return this.addRenderableWidget(widget);
    }
 
-   public <T extends Element & Drawable & Selectable> T addWidget(T widget) {
+   public <T extends GuiEventListener & Renderable & NarratableEntry> T addPanelWidget(T widget) {
       return this.addHeaderWidget(widget);
    }
 
-   public <T extends Element & Drawable & Selectable> T addContentWidget(T widget) {
+   public <T extends GuiEventListener & Renderable & NarratableEntry> T addContentWidget(T widget) {
       if (this.capture != null) {
-         if (widget instanceof ClickableWidget clickable) {
+         if (widget instanceof AbstractWidget clickable) {
             this.capture.add(clickable);
          }
 
          return widget;
       }
 
-      this.addSelectableChild(widget);
+      this.addWidget(widget);
       this.contentDrawables.add(widget);
       this.contentElements.add(widget);
       return widget;

@@ -2,8 +2,7 @@ package org.blossomsuite.core.ui;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.gui.DrawContext;
-
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 public final class SuiteSubTabGroup implements SuiteSubTab {
    private final String titleKey;
    private final List<SuiteSubTab> children = new ArrayList<>();
@@ -44,7 +43,7 @@ public final class SuiteSubTabGroup implements SuiteSubTab {
    }
 
    @Override
-   public void renderText(SuiteSettingsScreen screen, DrawContext ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
+   public void renderText(SuiteSettingsScreen screen, GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta, int contentTopOffset) {
       if (this.current != null) {
          this.current.renderText(screen, ctx, mouseX, mouseY, delta, contentTopOffset);
       }

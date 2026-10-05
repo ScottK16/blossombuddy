@@ -2,11 +2,10 @@ package org.blossomsuite.core.mapart;
 
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicInteger;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.resources.Identifier;
 /**
  * The one map art design currently "loaded" - set whenever {@code /buddy mapart} loads one off disk, read by both
  * {@link org.blossomsuite.core.ui.MapArtScreen} and the on-screen preview/materials HUDs, so those keep showing the
@@ -63,9 +62,9 @@ public final class MapArtState {
    }
 
    private void releaseThumbnail() {
-      MinecraftClient client = MinecraftClient.getInstance();
+      Minecraft client = Minecraft.getInstance();
       if (this.thumbnailId != null && client != null) {
-         client.getTextureManager().destroyTexture(this.thumbnailId);
+         client.getTextureManager().release(this.thumbnailId);
       }
 
       this.thumbnailId = null;
@@ -87,8 +86,8 @@ public final class MapArtState {
          NativeImage image = NativeImage.read(bytes);
          this.thumbnailWidth = image.getWidth();
          this.thumbnailHeight = image.getHeight();
-         this.thumbnailId = Identifier.of("blossombuddy", "mapart_thumbnail_" + TEXTURE_SEQUENCE.incrementAndGet());
-         MinecraftClient.getInstance().getTextureManager().registerTexture(this.thumbnailId, new NativeImageBackedTexture(() -> "blossombuddy mapart thumbnail", image));
+         this.thumbnailId = Identifier.fromNamespaceAndPath("blossombuddy", "mapart_thumbnail_" + TEXTURE_SEQUENCE.incrementAndGet());
+         Minecraft.getInstance().getTextureManager().register(this.thumbnailId, new DynamicTexture(() -> "blossombuddy mapart thumbnail", image));
       } catch (Exception e) {
          this.thumbnailId = null; // a broken thumbnail should never stop the block list from showing
       }

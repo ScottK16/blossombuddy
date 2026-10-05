@@ -9,7 +9,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.config.FeatureConfig;
 
 /**
@@ -20,7 +20,7 @@ public final class SecondaryChat {
    public static final SecondaryChat INSTANCE = new SecondaryChat();
    private static final int MAX_LINES = 400;
 
-   public record Line(long atMs, Text text, String filter) {
+   public record Line(long atMs, Component text, String filter) {
    }
 
    private final Deque<Line> lines = new ArrayDeque<>();
@@ -44,7 +44,7 @@ public final class SecondaryChat {
    public static final String REALMS = "Realms";
 
    /** Adds a line that did not come from the game's chat (cross-realm chat). */
-   public void addExternal(Text text) {
+   public void addExternal(Component text) {
       if (text != null) {
          this.add(new Line(System.currentTimeMillis(), text, REALMS));
       }
@@ -56,7 +56,7 @@ public final class SecondaryChat {
     * @return true if a matching filter asks for the line to be hidden from the main chat. Lines are only hidden
     *         while the secondary window is switched on, so nothing is ever swallowed with nowhere to read it.
     */
-   public boolean onMessage(Text message) {
+   public boolean onMessage(Component message) {
       if (message == null) {
          return false;
       }

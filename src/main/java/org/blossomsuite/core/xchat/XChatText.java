@@ -3,11 +3,10 @@ package org.blossomsuite.core.xchat;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.regex.Pattern;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.ChatFormatting;
 /** Cleaning and showing cross-realm chat lines. */
 public final class XChatText {
    public static final int MAX_LENGTH = 200;
@@ -54,42 +53,42 @@ public final class XChatText {
    public static TextColor realmColor(String realmKey) {
       String k = realmKey == null ? "" : clean(realmKey, 16).toLowerCase(Locale.ROOT);
       return switch (k) {
-         case "cherry" -> TextColor.fromFormatting(Formatting.RED);
+         case "cherry" -> TextColor.fromLegacyFormat(ChatFormatting.RED);
          case "spirit" -> LIGHT_BLUE;
-         case "lotus" -> TextColor.fromFormatting(Formatting.GREEN);
-         case "tulip" -> TextColor.fromFormatting(Formatting.YELLOW);
-         case DISCORD_REALM -> TextColor.fromFormatting(Formatting.BLUE);
-         default -> TextColor.fromFormatting(Formatting.GRAY);
+         case "lotus" -> TextColor.fromLegacyFormat(ChatFormatting.GREEN);
+         case "tulip" -> TextColor.fromLegacyFormat(ChatFormatting.YELLOW);
+         case DISCORD_REALM -> TextColor.fromLegacyFormat(ChatFormatting.BLUE);
+         default -> TextColor.fromLegacyFormat(ChatFormatting.GRAY);
       };
    }
 
    /** How a message looks in chat: {@code [Cherry] Alice: hello}. */
-   public static Text format(XChatModels.Message m) {
-      MutableText line = Text.empty();
+   public static Component format(XChatModels.Message m) {
+      MutableComponent line = Component.empty();
       String realm = realmLabel(m.realm);
       if (!realm.isEmpty()) {
-         line.append(Text.literal("[").formatted(Formatting.DARK_GRAY))
-            .append(Text.literal(realm).styled(style -> style.withColor(realmColor(m.realm))))
-            .append(Text.literal("] ").formatted(Formatting.DARK_GRAY));
+         line.append(Component.literal("[").withStyle(ChatFormatting.DARK_GRAY))
+            .append(Component.literal(realm).withStyle(style -> style.withColor(realmColor(m.realm))))
+            .append(Component.literal("] ").withStyle(ChatFormatting.DARK_GRAY));
       }
 
       String name = clean(m.name, MAX_NAME_LENGTH);
       String shown = name.isEmpty() ? "?" : name;
-      line.append(GradientText.isValid(m.gradient) ? gradientName(shown, m.gradient) : Text.literal(shown).formatted(Formatting.WHITE))
-         .append(Text.literal(": ").formatted(Formatting.DARK_GRAY))
-         .append(Text.literal(clean(m.text, MAX_LENGTH)).formatted(Formatting.WHITE));
+      line.append(GradientText.isValid(m.gradient) ? gradientName(shown, m.gradient) : Component.literal(shown).withStyle(ChatFormatting.WHITE))
+         .append(Component.literal(": ").withStyle(ChatFormatting.DARK_GRAY))
+         .append(Component.literal(clean(m.text, MAX_LENGTH)).withStyle(ChatFormatting.WHITE));
       return line;
    }
 
    /** The name with one colour per character, blended across {@code colors} left to right. */
-   private static Text gradientName(String name, String[] colors) {
-      MutableText result = Text.empty();
+   private static Component gradientName(String name, String[] colors) {
+      MutableComponent result = Component.empty();
       int length = name.codePointCount(0, name.length());
       int i = 0;
       for (int idx = 0; idx < name.length(); ) {
          int cp = name.codePointAt(idx);
          int rgb = GradientText.colorAt(colors, i, length);
-         result.append(Text.literal(new String(Character.toChars(cp))).styled(style -> style.withColor(TextColor.fromRgb(rgb))));
+         result.append(Component.literal(new String(Character.toChars(cp))).withStyle(style -> style.withColor(TextColor.fromRgb(rgb))));
          idx += Character.charCount(cp);
          i++;
       }

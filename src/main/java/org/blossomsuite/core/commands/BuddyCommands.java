@@ -1,6 +1,6 @@
 package org.blossomsuite.core.commands;
 
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.blossomsuite.core.presence.PresenceClient;
 import org.blossomsuite.core.stats.StatsClient;
 import org.blossomsuite.core.emote.Emote;
@@ -22,18 +22,18 @@ import java.net.URI;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
+import net.minecraft.resources.Identifier;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.chat.SecondaryChat;
 import org.blossomsuite.core.config.FeatureConfig;
@@ -63,29 +63,29 @@ public final class BuddyCommands {
    public static final String PRIVACY_URL = "https://blossombuddy.site/privacy.html";
 
    public static void sendCredits() {
-      ChatOutput.info(Text.literal("Developed by ").formatted(Formatting.GRAY).append(Text.literal(DEVELOPER).formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD)));
+      ChatOutput.info(Component.literal("Developed by ").withStyle(ChatFormatting.GRAY).append(Component.literal(DEVELOPER).withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)));
       ChatOutput.info(
-         Text.literal("Acknowledgement to ").formatted(Formatting.GRAY)
-            .append(Text.literal("Zodancy").formatted(Formatting.AQUA))
-            .append(Text.literal(", who made the original BlossomSuite.").formatted(Formatting.GRAY))
+         Component.literal("Acknowledgement to ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal("Zodancy").withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(", who made the original BlossomSuite.").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
-         Text.literal("Jobs overflow tracking is based on Jobs Overflow XP by ").formatted(Formatting.GRAY)
-            .append(Text.literal("Mills").formatted(Formatting.AQUA))
-            .append(Text.literal(".").formatted(Formatting.GRAY))
+         Component.literal("Jobs overflow tracking is based on Jobs Overflow XP by ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal("Mills").withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(".").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
-         Text.literal("Support and suggestions: ").formatted(Formatting.GRAY)
+         Component.literal("Support and suggestions: ").withStyle(ChatFormatting.GRAY)
             .append(
-               Text.literal(DISCORD_INVITE)
-                  .formatted(Formatting.LIGHT_PURPLE, Formatting.UNDERLINE)
-                  .styled(style -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(DISCORD_INVITE))).withHoverEvent(new HoverEvent.ShowText(Text.literal("Open the Discord invite"))))
+               Component.literal(DISCORD_INVITE)
+                  .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.UNDERLINE)
+                  .withStyle(style -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(DISCORD_INVITE))).withHoverEvent(new HoverEvent.ShowText(Component.literal("Open the Discord invite"))))
             )
       );
    }
 
    private static LiteralArgumentBuilder<FabricClientCommandSource> credit() {
-      return ClientCommandManager.literal("credit").executes(ctx -> {
+      return ClientCommands.literal("credit").executes(ctx -> {
          sendCredits();
          return 1;
       });
@@ -93,46 +93,46 @@ public final class BuddyCommands {
 
    /** {@code /buddy privacy}: what the mod collects, what's opt-in, and where to read the full statement. */
    public static void sendPrivacy() {
-      ChatOutput.info(Text.literal("BlossomBuddy privacy").formatted(Formatting.LIGHT_PURPLE, Formatting.BOLD));
+      ChatOutput.info(Component.literal("BlossomBuddy privacy").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
       ChatOutput.info(
-         Text.literal("Self-hosted by ").formatted(Formatting.GRAY)
-            .append(Text.literal(DEVELOPER).formatted(Formatting.AQUA))
-            .append(Text.literal(" - no third-party service handles chat, and there's no access to your private or marry messages.").formatted(Formatting.GRAY))
+         Component.literal("Self-hosted by ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal(DEVELOPER).withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(" - no third-party service handles chat, and there's no access to your private or marry messages.").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
-         Text.literal("Cross-realm chat, the player list and vote-party sharing are ").formatted(Formatting.GRAY)
-            .append(Text.literal("opt-in").formatted(Formatting.AQUA))
-            .append(Text.literal(" (the player list is on by default with a notice first). The relay keeps them in memory only, but /xc messages are also posted to a BlossomBuddy Discord channel, where Discord keeps them.").formatted(Formatting.GRAY))
+         Component.literal("Cross-realm chat, the player list and vote-party sharing are ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal("opt-in").withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(" (the player list is on by default with a notice first). The relay keeps them in memory only, but /xc messages are also posted to a BlossomBuddy Discord channel, where Discord keeps them.").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
-         Text.literal("Usage stats are a random ID and the mod version by default; sharing your username is opt-in (").formatted(Formatting.GRAY)
-            .append(Text.literal("/buddy stats").formatted(Formatting.AQUA))
-            .append(Text.literal(").").formatted(Formatting.GRAY))
+         Component.literal("Usage stats are a random ID and the mod version by default; sharing your username is opt-in (").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal("/buddy stats").withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(").").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
-         Text.literal("Emote grants are stored against your Minecraft account so they persist between sessions - message ").formatted(Formatting.GRAY)
-            .append(Text.literal(DEVELOPER).formatted(Formatting.AQUA))
-            .append(Text.literal(" any time to have that removed.").formatted(Formatting.GRAY))
+         Component.literal("Emote grants are stored against your Minecraft account so they persist between sessions - message ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal(DEVELOPER).withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(" any time to have that removed.").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
-         Text.literal("Full statement: ").formatted(Formatting.GRAY)
+         Component.literal("Full statement: ").withStyle(ChatFormatting.GRAY)
             .append(
-               Text.literal(PRIVACY_URL)
-                  .formatted(Formatting.LIGHT_PURPLE, Formatting.UNDERLINE)
-                  .styled(style -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(PRIVACY_URL))).withHoverEvent(new HoverEvent.ShowText(Text.literal("Open the privacy page"))))
+               Component.literal(PRIVACY_URL)
+                  .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.UNDERLINE)
+                  .withStyle(style -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(PRIVACY_URL))).withHoverEvent(new HoverEvent.ShowText(Component.literal("Open the privacy page"))))
             )
       );
    }
 
    private static LiteralArgumentBuilder<FabricClientCommandSource> privacy() {
-      return ClientCommandManager.literal("privacy").executes(ctx -> {
+      return ClientCommands.literal("privacy").executes(ctx -> {
          sendPrivacy();
          return 1;
       });
    }
 
    private static LiteralArgumentBuilder<FabricClientCommandSource> xp() {
-      return ClientCommandManager.literal("xp").then(ClientCommandManager.literal("reset").executes(ctx -> {
+      return ClientCommands.literal("xp").then(ClientCommands.literal("reset").executes(ctx -> {
          JobXpTracker.INSTANCE.reset();
          ChatOutput.info("XP tracker reset.");
          return 1;
@@ -140,10 +140,10 @@ public final class BuddyCommands {
    }
 
    private static LiteralArgumentBuilder<FabricClientCommandSource> scoreboard() {
-      return ClientCommandManager.literal("scoreboard")
-         .then(ClientCommandManager.literal("hide").executes(ctx -> setHidden(true)))
-         .then(ClientCommandManager.literal("show").executes(ctx -> setHidden(false)))
-         .then(ClientCommandManager.literal("reset").executes(ctx -> {
+      return ClientCommands.literal("scoreboard")
+         .then(ClientCommands.literal("hide").executes(ctx -> setHidden(true)))
+         .then(ClientCommands.literal("show").executes(ctx -> setHidden(false)))
+         .then(ClientCommands.literal("reset").executes(ctx -> {
             FeatureConfig.Scoreboard sb = FeatureConfig.INSTANCE.scoreboard;
             sb.panel = new FeatureConfig.Panel();
             sb.hidden = false;
@@ -156,12 +156,12 @@ public final class BuddyCommands {
    /** {@code /xc <message>}: say something to every BlossomBuddy player on every realm. */
    public static void registerTopLevel(CommandDispatcher<FabricClientCommandSource> dispatcher) {
       dispatcher.register(
-         ClientCommandManager.literal("xc")
+         ClientCommands.literal("xc")
             .executes(ctx -> {
                XChatMode.toggleAndTell(); // "/xc" on its own switches cross-realm chat mode on or off
                return 1;
             })
-            .then(ClientCommandManager.argument("message", StringArgumentType.greedyString()).executes(ctx -> {
+            .then(ClientCommands.argument("message", StringArgumentType.greedyString()).executes(ctx -> {
                XChatClient.INSTANCE.sendAsync(StringArgumentType.getString(ctx, "message"));
                return 1;
             }))
@@ -170,22 +170,22 @@ public final class BuddyCommands {
 
    /** {@code /buddy xchat [on|off|mute <name>|unmute <name>]}: cross-realm chat. */
    private static LiteralArgumentBuilder<FabricClientCommandSource> xchat() {
-      return ClientCommandManager.literal("xchat")
+      return ClientCommands.literal("xchat")
          .executes(ctx -> {
             ChatOutput.info("Cross-realm chat is " + (FeatureConfig.INSTANCE.xchat.enabled ? "ON. " : "OFF. ") + XChatClient.INSTANCE.status());
             return 1;
          })
-         .then(ClientCommandManager.literal("on").executes(ctx -> setXChat(true)))
-         .then(ClientCommandManager.literal("off").executes(ctx -> setXChat(false)))
-         .then(ClientCommandManager.literal("mode")
+         .then(ClientCommands.literal("on").executes(ctx -> setXChat(true)))
+         .then(ClientCommands.literal("off").executes(ctx -> setXChat(false)))
+         .then(ClientCommands.literal("mode")
             .executes(ctx -> {
                XChatMode.toggleAndTell();
                return 1;
             })
-            .then(ClientCommandManager.literal("on").executes(ctx -> setXChatMode(true)))
-            .then(ClientCommandManager.literal("off").executes(ctx -> setXChatMode(false))))
-         .then(ClientCommandManager.literal("mute").then(ClientCommandManager.argument("name", StringArgumentType.word()).executes(ctx -> mute(StringArgumentType.getString(ctx, "name"), true))))
-         .then(ClientCommandManager.literal("unmute").then(ClientCommandManager.argument("name", StringArgumentType.word()).executes(ctx -> mute(StringArgumentType.getString(ctx, "name"), false))));
+            .then(ClientCommands.literal("on").executes(ctx -> setXChatMode(true)))
+            .then(ClientCommands.literal("off").executes(ctx -> setXChatMode(false))))
+         .then(ClientCommands.literal("mute").then(ClientCommands.argument("name", StringArgumentType.word()).executes(ctx -> mute(StringArgumentType.getString(ctx, "name"), true))))
+         .then(ClientCommands.literal("unmute").then(ClientCommands.argument("name", StringArgumentType.word()).executes(ctx -> mute(StringArgumentType.getString(ctx, "name"), false))));
    }
 
    private static int setXChatMode(boolean on) {
@@ -240,37 +240,37 @@ public final class BuddyCommands {
 
    /** {@code /buddy search [term...]}: find a name or word across main chat, and copy lines out. */
    private static LiteralArgumentBuilder<FabricClientCommandSource> search() {
-      return ClientCommandManager.literal("search")
+      return ClientCommands.literal("search")
          .executes(ctx -> {
-            MinecraftClient mc = MinecraftClient.getInstance();
-            mc.send(() -> mc.setScreen(new ChatSearchScreen(mc.currentScreen)));
+            Minecraft mc = Minecraft.getInstance();
+            mc.schedule(() -> mc.setScreen(new ChatSearchScreen(mc.screen)));
             return 1;
          })
-         .then(ClientCommandManager.argument("term", StringArgumentType.greedyString()).executes(ctx -> {
+         .then(ClientCommands.argument("term", StringArgumentType.greedyString()).executes(ctx -> {
             String term = StringArgumentType.getString(ctx, "term");
-            MinecraftClient mc = MinecraftClient.getInstance();
-            mc.send(() -> mc.setScreen(new ChatSearchScreen(mc.currentScreen, term)));
+            Minecraft mc = Minecraft.getInstance();
+            mc.schedule(() -> mc.setScreen(new ChatSearchScreen(mc.screen, term)));
             return 1;
          }));
    }
 
    /** {@code /buddy emote [list|stop|<name>]}: the emote wheel, or play one by name. */
    private static LiteralArgumentBuilder<FabricClientCommandSource> emote() {
-      return ClientCommandManager.literal("emote")
+      return ClientCommands.literal("emote")
          .executes(ctx -> {
-            MinecraftClient mc = MinecraftClient.getInstance();
-            mc.send(() -> mc.setScreen(new EmoteWheelScreen()));
+            Minecraft mc = Minecraft.getInstance();
+            mc.schedule(() -> mc.setScreen(new EmoteWheelScreen()));
             return 1;
          })
-         .then(ClientCommandManager.literal("list").executes(ctx -> {
+         .then(ClientCommands.literal("list").executes(ctx -> {
             ChatOutput.info("Emotes: " + EmoteClient.emoteNames() + ". Play one with /buddy emote <name>, or open the wheel with /buddy emote.");
             return 1;
          }))
-         .then(ClientCommandManager.literal("stop").executes(ctx -> {
+         .then(ClientCommands.literal("stop").executes(ctx -> {
             EmoteClient.INSTANCE.stop();
             return 1;
          }))
-         .then(ClientCommandManager.argument("name", StringArgumentType.word()).executes(ctx -> {
+         .then(ClientCommands.argument("name", StringArgumentType.word()).executes(ctx -> {
             EmoteClient.INSTANCE.play(StringArgumentType.getString(ctx, "name"));
             return 1;
          }));
@@ -278,33 +278,33 @@ public final class BuddyCommands {
 
    /** {@code /buddy mapart [<file>]}: opens the map art screen, opening a design by file name if one was given. */
    private static LiteralArgumentBuilder<FabricClientCommandSource> mapart() {
-      return ClientCommandManager.literal("mapart")
+      return ClientCommands.literal("mapart")
          .executes(ctx -> {
-            MinecraftClient mc = MinecraftClient.getInstance();
-            mc.send(() -> mc.setScreen(new MapArtScreen(mc.currentScreen, "")));
+            Minecraft mc = Minecraft.getInstance();
+            mc.schedule(() -> mc.setScreen(new MapArtScreen(mc.screen, "")));
             return 1;
          })
-         .then(ClientCommandManager.argument("file", StringArgumentType.greedyString()).executes(ctx -> {
+         .then(ClientCommands.argument("file", StringArgumentType.greedyString()).executes(ctx -> {
             String file = StringArgumentType.getString(ctx, "file");
-            MinecraftClient mc = MinecraftClient.getInstance();
-            mc.send(() -> mc.setScreen(new MapArtScreen(mc.currentScreen, file)));
+            Minecraft mc = Minecraft.getInstance();
+            mc.schedule(() -> mc.setScreen(new MapArtScreen(mc.screen, file)));
             return 1;
          }));
    }
 
    /** {@code /buddy who [on|off]}: the list of players using the mod, by realm. Appearing in it is opt-in. */
    private static LiteralArgumentBuilder<FabricClientCommandSource> who() {
-      return ClientCommandManager.literal("who")
+      return ClientCommands.literal("who")
          .executes(ctx -> {
-            MinecraftClient mc = MinecraftClient.getInstance();
-            mc.send(() -> mc.setScreen(new PlayerListScreen())); // a tick later, so the chat screen closing doesn't undo it
+            Minecraft mc = Minecraft.getInstance();
+            mc.schedule(() -> mc.setScreen(new PlayerListScreen())); // a tick later, so the chat screen closing doesn't undo it
             return 1;
          })
-         .then(ClientCommandManager.literal("on").executes(ctx -> {
+         .then(ClientCommands.literal("on").executes(ctx -> {
             PresenceClient.INSTANCE.setEnabled(true);
             return 1;
          }))
-         .then(ClientCommandManager.literal("off").executes(ctx -> {
+         .then(ClientCommands.literal("off").executes(ctx -> {
             PresenceClient.INSTANCE.setEnabled(false);
             return 1;
          }));
@@ -312,27 +312,27 @@ public final class BuddyCommands {
 
    /** {@code /buddy stats [on|off|name on|name off]}: anonymous usage counts, and sharing your username. */
    private static LiteralArgumentBuilder<FabricClientCommandSource> stats() {
-      return ClientCommandManager.literal("stats")
+      return ClientCommands.literal("stats")
          .executes(ctx -> {
             ChatOutput.info(StatsClient.INSTANCE.status());
             ChatOutput.info("Only a random ID and the mod version are sent. /buddy stats off stops it. /buddy stats name on|off shares or hides your username.");
             return 1;
          })
-         .then(ClientCommandManager.literal("on").executes(ctx -> {
+         .then(ClientCommands.literal("on").executes(ctx -> {
             StatsClient.INSTANCE.setEnabled(true);
             ChatOutput.info("Usage counting is on (random ID only).");
             return 1;
          }))
-         .then(ClientCommandManager.literal("off").executes(ctx -> {
+         .then(ClientCommands.literal("off").executes(ctx -> {
             StatsClient.INSTANCE.setEnabled(false);
             return 1;
          }))
-         .then(ClientCommandManager.literal("name")
-            .then(ClientCommandManager.literal("on").executes(ctx -> {
+         .then(ClientCommands.literal("name")
+            .then(ClientCommands.literal("on").executes(ctx -> {
                StatsClient.INSTANCE.setShareName(true);
                return 1;
             }))
-            .then(ClientCommandManager.literal("off").executes(ctx -> {
+            .then(ClientCommands.literal("off").executes(ctx -> {
                StatsClient.INSTANCE.setShareName(false);
                return 1;
             })));
@@ -340,14 +340,14 @@ public final class BuddyCommands {
 
    /** {@code /buddy share [on|off]}: vote-party sharing between realms. */
    private static LiteralArgumentBuilder<FabricClientCommandSource> share() {
-      return ClientCommandManager.literal("share")
+      return ClientCommands.literal("share")
          .executes(ctx -> {
             boolean relay = SuiteState.INSTANCE.http != null && SuiteState.INSTANCE.http.enabled();
             ChatOutput.info("Vote-party sharing is " + (FeatureConfig.INSTANCE.relay.share ? "ON" : "OFF") + (relay ? "." : " (no relay address is set, so nothing is sent)."));
             return 1;
          })
-         .then(ClientCommandManager.literal("on").executes(ctx -> setShare(true)))
-         .then(ClientCommandManager.literal("off").executes(ctx -> setShare(false)));
+         .then(ClientCommands.literal("on").executes(ctx -> setShare(true)))
+         .then(ClientCommands.literal("off").executes(ctx -> setShare(false)));
    }
 
    private static int setShare(boolean on) {
@@ -365,16 +365,16 @@ public final class BuddyCommands {
     * whatever timer the item already uses.
     */
    private static LiteralArgumentBuilder<FabricClientCommandSource> cooldown() {
-      return ClientCommandManager.literal("cooldown")
+      return ClientCommands.literal("cooldown")
          .then(
-            ClientCommandManager.literal("add")
+            ClientCommands.literal("add")
                .then(
-                  ClientCommandManager.argument("key", StringArgumentType.word())
+                  ClientCommands.argument("key", StringArgumentType.word())
                      .then(
-                        ClientCommandManager.argument("seconds", IntegerArgumentType.integer(1))
+                        ClientCommands.argument("seconds", IntegerArgumentType.integer(1))
                            .executes(ctx -> addCooldown(StringArgumentType.getString(ctx, "key"), IntegerArgumentType.getInteger(ctx, "seconds"), null))
                            .then(
-                              ClientCommandManager.argument("trigger", StringArgumentType.word())
+                              ClientCommands.argument("trigger", StringArgumentType.word())
                                  .executes(
                                     ctx -> addCooldown(
                                        StringArgumentType.getString(ctx, "key"), IntegerArgumentType.getInteger(ctx, "seconds"), StringArgumentType.getString(ctx, "trigger")
@@ -385,36 +385,36 @@ public final class BuddyCommands {
                )
          )
          .then(
-            ClientCommandManager.literal("addheld")
+            ClientCommands.literal("addheld")
                .then(
-                  ClientCommandManager.argument("seconds", IntegerArgumentType.integer(1))
+                  ClientCommands.argument("seconds", IntegerArgumentType.integer(1))
                      .executes(ctx -> addHeldCooldown(IntegerArgumentType.getInteger(ctx, "seconds"), null))
                      .then(
-                        ClientCommandManager.argument("trigger", StringArgumentType.word())
+                        ClientCommands.argument("trigger", StringArgumentType.word())
                            .executes(ctx -> addHeldCooldown(IntegerArgumentType.getInteger(ctx, "seconds"), StringArgumentType.getString(ctx, "trigger")))
                      )
                )
          )
-         .then(ClientCommandManager.literal("remove").then(ClientCommandManager.argument("key", StringArgumentType.word()).executes(ctx -> removeCooldown(StringArgumentType.getString(ctx, "key")))))
-         .then(ClientCommandManager.literal("removeheld").executes(ctx -> removeHeldCooldown()))
+         .then(ClientCommands.literal("remove").then(ClientCommands.argument("key", StringArgumentType.word()).executes(ctx -> removeCooldown(StringArgumentType.getString(ctx, "key")))))
+         .then(ClientCommands.literal("removeheld").executes(ctx -> removeHeldCooldown()))
          .then(
-            ClientCommandManager.literal("sound")
+            ClientCommands.literal("sound")
                .then(
-                  ClientCommandManager.argument("key", StringArgumentType.word())
+                  ClientCommands.argument("key", StringArgumentType.word())
                      .then(
-                        ClientCommandManager.argument("sound", StringArgumentType.greedyString())
+                        ClientCommands.argument("sound", StringArgumentType.greedyString())
                            .executes(ctx -> setCooldownSound(StringArgumentType.getString(ctx, "key"), StringArgumentType.getString(ctx, "sound")))
                      )
                )
          )
          .then(
-            ClientCommandManager.literal("soundheld")
+            ClientCommands.literal("soundheld")
                .then(
-                  ClientCommandManager.argument("sound", StringArgumentType.greedyString())
+                  ClientCommands.argument("sound", StringArgumentType.greedyString())
                      .executes(ctx -> setHeldCooldownSound(StringArgumentType.getString(ctx, "sound")))
                )
          )
-         .then(ClientCommandManager.literal("list").executes(ctx -> listCooldowns()));
+         .then(ClientCommands.literal("list").executes(ctx -> listCooldowns()));
    }
 
    private static int addCooldown(String key, int seconds, String triggerName) {
@@ -433,12 +433,12 @@ public final class BuddyCommands {
    }
 
    private static int addHeldCooldown(int seconds, String triggerName) {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       if (mc.player == null) {
          return 1;
       }
 
-      ItemStack stack = mc.player.getMainHandStack();
+      ItemStack stack = mc.player.getMainHandItem();
       if (stack.isEmpty()) {
          ChatOutput.info("Hold the item you want a cooldown on first, or use /buddy cooldown add <key> <seconds>.");
          return 1;
@@ -459,12 +459,12 @@ public final class BuddyCommands {
    }
 
    private static int removeHeldCooldown() {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       if (mc.player == null) {
          return 1;
       }
 
-      ItemStack stack = mc.player.getMainHandStack();
+      ItemStack stack = mc.player.getMainHandItem();
       if (stack.isEmpty()) {
          ChatOutput.info("Hold the item you want to remove a cooldown from first, or use /buddy cooldown remove <key>.");
          return 1;
@@ -513,22 +513,22 @@ public final class BuddyCommands {
       String normalized = soundId.contains(":") ? soundId : "minecraft:" + soundId;
       Identifier id;
       try {
-         id = Identifier.of(normalized);
+         id = Identifier.parse(normalized);
       } catch (Exception e) {
          ChatOutput.info("'" + soundId + "' isn't a valid sound id.");
          return 1;
       }
 
-      SoundEvent sound = Registries.SOUND_EVENT.get(id);
-      if (sound == null || sound == SoundEvents.INTENTIONALLY_EMPTY) {
+      SoundEvent sound = BuiltInRegistries.SOUND_EVENT.getValue(id);
+      if (sound == null || sound == SoundEvents.EMPTY) {
          ChatOutput.info("No sound called '" + normalized + "'. Try something like block.note_block.bell or entity.experience_orb.pickup.");
          return 1;
       }
 
       CooldownSoundStore.set(key, normalized);
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (mc.player != null && mc.world != null) {
-         mc.world.playSound(mc.player, mc.player.getX(), mc.player.getY(), mc.player.getZ(), sound, SoundCategory.MASTER, SuiteConfig.INSTANCE.CooldownsConfig.completeSoundVolume, 1.0F);
+      Minecraft mc = Minecraft.getInstance();
+      if (mc.player != null && mc.level != null) {
+         mc.level.playSound(mc.player, mc.player.getX(), mc.player.getY(), mc.player.getZ(), sound, SoundSource.MASTER, SuiteConfig.INSTANCE.CooldownsConfig.completeSoundVolume, 1.0F);
       }
 
       ChatOutput.info("'" + key + "' now plays " + normalized + " when it's ready. /buddy cooldown sound " + key + " default to undo.");
@@ -536,12 +536,12 @@ public final class BuddyCommands {
    }
 
    private static int setHeldCooldownSound(String soundId) {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       if (mc.player == null) {
          return 1;
       }
 
-      ItemStack stack = mc.player.getMainHandStack();
+      ItemStack stack = mc.player.getMainHandItem();
       if (stack.isEmpty()) {
          ChatOutput.info("Hold the item you want to set a sound for first, or use /buddy cooldown sound <key> <sound>.");
          return 1;
@@ -577,13 +577,13 @@ public final class BuddyCommands {
 
    /** {@code /buddy players [hide|show]}: hide other players on your screen (this session only); no argument flips it. */
    private static LiteralArgumentBuilder<FabricClientCommandSource> players() {
-      return ClientCommandManager.literal("players")
+      return ClientCommands.literal("players")
          .executes(ctx -> tellPlayers(PlayerVisibility.toggle()))
-         .then(ClientCommandManager.literal("hide").executes(ctx -> {
+         .then(ClientCommands.literal("hide").executes(ctx -> {
             PlayerVisibility.set(true);
             return tellPlayers(true);
          }))
-         .then(ClientCommandManager.literal("show").executes(ctx -> {
+         .then(ClientCommands.literal("show").executes(ctx -> {
             PlayerVisibility.set(false);
             return tellPlayers(false);
          }));
@@ -596,29 +596,29 @@ public final class BuddyCommands {
 
    /** {@code /buddy keys}: set the BlossomBuddy keys without needing the game's own controls menu. */
    private static LiteralArgumentBuilder<FabricClientCommandSource> keys() {
-      return ClientCommandManager.literal("keys").executes(ctx -> {
-         MinecraftClient mc = MinecraftClient.getInstance();
-         mc.send(() -> mc.setScreen(new BuddyKeysScreen(mc.currentScreen)));
+      return ClientCommands.literal("keys").executes(ctx -> {
+         Minecraft mc = Minecraft.getInstance();
+         mc.schedule(() -> mc.setScreen(new BuddyKeysScreen(mc.screen)));
          return 1;
       });
    }
 
    /** {@code /buddy verify [remove]}: link (or unlink) your Discord account to your Minecraft name with a one-time code. */
    private static LiteralArgumentBuilder<FabricClientCommandSource> verify() {
-      return ClientCommandManager.literal("verify")
+      return ClientCommands.literal("verify")
          .executes(ctx -> {
             ChatOutput.info("Checking your account with Mojang...");
             VerifyClient.INSTANCE.startAsync(BuddyCommands::tellVerify);
             return 1;
          })
-         .then(ClientCommandManager.literal("remove").executes(ctx -> {
+         .then(ClientCommands.literal("remove").executes(ctx -> {
             VerifyClient.INSTANCE.removeAsync(BuddyCommands::tellVerify);
             return 1;
          }));
    }
 
    private static void tellVerify(VerifyClient.Result result) {
-      MinecraftClient.getInstance().execute(() -> ChatOutput.info(result.message()));
+      Minecraft.getInstance().execute(() -> ChatOutput.info(result.message()));
    }
 
    private static int setHidden(boolean hidden) {
@@ -634,9 +634,9 @@ public final class BuddyCommands {
 
    /** {@code /buddy chat [filter]}: print the latest secondary-chat lines into the main chat. */
    private static LiteralArgumentBuilder<FabricClientCommandSource> chat() {
-      return ClientCommandManager.literal("chat")
+      return ClientCommands.literal("chat")
          .executes(ctx -> print(null))
-         .then(ClientCommandManager.argument("filter", StringArgumentType.greedyString()).executes(ctx -> print(StringArgumentType.getString(ctx, "filter"))));
+         .then(ClientCommands.argument("filter", StringArgumentType.greedyString()).executes(ctx -> print(StringArgumentType.getString(ctx, "filter"))));
    }
 
    private static int print(String filter) {
@@ -648,7 +648,7 @@ public final class BuddyCommands {
 
       ChatOutput.info(filter == null ? "Latest filtered chat:" : "Latest '" + filter + "':");
       for (SecondaryChat.Line line : lines) {
-         ChatOutput.raw(Text.literal("  ").append(line.text()));
+         ChatOutput.raw(Component.literal("  ").append(line.text()));
       }
 
       return 1;

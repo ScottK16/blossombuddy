@@ -3,13 +3,12 @@ package org.blossomsuite.core.ui;
 import org.blossomsuite.core.config.ConfigIO;
 import org.blossomsuite.core.config.DungeonConfig;
 import org.blossomsuite.core.config.SuiteConfig;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
 public final class DungeonTab implements SuiteTab {
-   private TextFieldWidget cooldownHoursField;
+   private EditBox cooldownHoursField;
 
    @Override
    public String titleKey() {
@@ -83,7 +82,7 @@ public final class DungeonTab implements SuiteTab {
    public void removed() {
       if (this.cooldownHoursField != null) {
          try {
-            SuiteConfig.INSTANCE.DungeonConfig.setCooldownHours(Integer.parseInt(this.cooldownHoursField.getText().trim()));
+            SuiteConfig.INSTANCE.DungeonConfig.setCooldownHours(Integer.parseInt(this.cooldownHoursField.getValue().trim()));
             ConfigIO.saveIfDirty();
          } catch (NumberFormatException var2) {
          }
@@ -96,28 +95,28 @@ public final class DungeonTab implements SuiteTab {
    }
 
    private int addToggleRow(SuiteSettingsScreen screen, int x, int w, int y, String label, boolean enabled, String tooltip, Runnable onPress) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      ButtonWidget button = StyledButton.of(Text.literal(enabled ? "ON" : "OFF"), b -> onPress.run()).dimensions(x + w - 80, y, 80, 20).build();
-      button.setTooltip(Tooltip.of(Text.literal(tooltip)));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      Button button = StyledButton.of(Component.literal(enabled ? "ON" : "OFF"), b -> onPress.run()).dimensions(x + w - 80, y, 80, 20).build();
+      button.setTooltip(Tooltip.create(Component.literal(tooltip)));
       screen.addContentWidget(button);
       return y + 24;
    }
 
    private int addCycleRow(SuiteSettingsScreen screen, int x, int w, int y, String label, String value, String tooltip, Runnable onPress) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      ButtonWidget button = StyledButton.of(Text.literal(value), b -> onPress.run()).dimensions(x + w - 120, y, 120, 20).build();
-      button.setTooltip(Tooltip.of(Text.literal(tooltip)));
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      Button button = StyledButton.of(Component.literal(value), b -> onPress.run()).dimensions(x + w - 120, y, 120, 20).build();
+      button.setTooltip(Tooltip.create(Component.literal(tooltip)));
       screen.addContentWidget(button);
       return y + 24;
    }
 
    private void addIntRow(SuiteSettingsScreen screen, int x, int w, int y, String label, int value, String tooltip, DungeonTab.IntSetter setter) {
-      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Text.literal(label), Tooltip.of(Text.literal(tooltip))));
-      this.cooldownHoursField = new TextFieldWidget(screen.getTextRenderer(), x + w - 80, y, 80, 20, Text.empty());
+      screen.addContentWidget(new HoverLabelWidget(x, y + 6, 220, 12, Component.literal(label), Tooltip.create(Component.literal(tooltip))));
+      this.cooldownHoursField = new EditBox(screen.getFont(), x + w - 80, y, 80, 20, Component.empty());
       this.cooldownHoursField.setMaxLength(2);
-      this.cooldownHoursField.setText(String.valueOf(value));
-      this.cooldownHoursField.setTooltip(Tooltip.of(Text.literal(tooltip)));
-      this.cooldownHoursField.setChangedListener(s -> {
+      this.cooldownHoursField.setValue(String.valueOf(value));
+      this.cooldownHoursField.setTooltip(Tooltip.create(Component.literal(tooltip)));
+      this.cooldownHoursField.setResponder(s -> {
          try {
             setter.set(Integer.parseInt(s != null && !s.isBlank() ? s.trim() : "8"));
             ConfigIO.saveIfDirty();
