@@ -40,6 +40,7 @@ public final class FeatureConfig {
    public Chat chat = new Chat();
    public MapArt mapart = new MapArt();
    public Render render = new Render();
+   public AltAccount altAccount = new AltAccount();
    /** Cooldown rules the player has switched off, by item id (or item name when a rule has no id). */
    public List<String> disabledCooldownItems = new ArrayList<>();
 
@@ -104,6 +105,13 @@ public final class FeatureConfig {
       public boolean fullBright = false;
       /** Hide other players on your screen while a vote party is going on in your realm. */
       public boolean hidePlayersDuringVoteParty = false;
+   }
+
+   /** Settings for alt accounts. Off unless the player turns them on. */
+   public static final class AltAccount {
+      /** Disconnect when the server's player count reaches {@link #playerLimit} (alts aren't allowed to stay on a crowded server). */
+      public boolean leaveWhenCrowded = false;
+      public int playerLimit = 60;
    }
 
    /** Vote-party sharing between realms: automatic, anonymous, and switchable. Off until the player opts in. */

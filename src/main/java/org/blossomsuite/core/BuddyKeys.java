@@ -66,6 +66,7 @@ public final class BuddyKeys {
       hidePlayers = register("hide_players");
       searchChat = register("search_chat");
       ClientTickEvents.END_CLIENT_TICK.register(BuddyKeys::tick);
+      ClientTickEvents.END_CLIENT_TICK.register(org.blossomsuite.core.alts.AltGuard::tick);
    }
 
    private static KeyBinding register(String id) {

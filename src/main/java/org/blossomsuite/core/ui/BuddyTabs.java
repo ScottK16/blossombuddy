@@ -4,6 +4,7 @@ import org.blossomsuite.core.config.SuiteConfig;
 
 import org.blossomsuite.core.config.VoteConfig;
 
+import org.blossomsuite.core.alts.AltGuard;
 import org.blossomsuite.core.emote.EmoteClient;
 import org.blossomsuite.core.presence.PresenceClient;
 import org.blossomsuite.core.stats.StatsClient;
@@ -386,6 +387,38 @@ public final class BuddyTabs {
             screen.rebuildPreserveScroll();
          });
          UiRows.note(screen, x, w, y, "Open a design first with /buddy mapart, downloaded from the map art website.");
+      }
+   }
+
+   // ------------------------------------------------------------------ alt account
+
+   public static final class AltAccount extends Page {
+      @Override
+      public String titleKey() {
+         return "suitecore.tab.altaccount";
+      }
+
+      @Override
+      int height(SuiteSettingsScreen screen) {
+         return UiRows.ROW + UiRows.SLIDER_ROW + 18 * 3 + 24;
+      }
+
+      @Override
+      void rows(SuiteSettingsScreen screen, int x, int w, int y) {
+         FeatureConfig.AltAccount alt = FeatureConfig.INSTANCE.altAccount;
+         y = UiRows.toggle(screen, x, w, y, "Leave when the server is crowded", alt.leaveWhenCrowded, "For alt accounts: disconnect as soon as the number of players online reaches the limit below. Off by default.", () -> {
+            alt.leaveWhenCrowded = !alt.leaveWhenCrowded;
+            FeatureConfig.markDirty();
+            screen.rebuildPreserveScroll();
+         });
+         int span = AltGuard.MAX_LIMIT - AltGuard.MIN_LIMIT;
+         y = UiRows.slider(screen, x, w, y, "Player limit", "Leave once this many players (or more) are online.", (AltGuard.clampLimit(alt.playerLimit) - AltGuard.MIN_LIMIT) / (double)span, v -> "Leave at " + (AltGuard.MIN_LIMIT + (int)Math.round(v * span)) + " players", v -> {
+            alt.playerLimit = AltGuard.MIN_LIMIT + (int)Math.round(v * span);
+            FeatureConfig.markDirty();
+         });
+         y = UiRows.note(screen, x, w, y, "Counts the players in the tab list. Only acts on BlossomCraft, never on other servers.");
+         y = UiRows.note(screen, x, w, y, "Rejoining while the server is still that full will disconnect you again.");
+         UiRows.note(screen, x, w, y, "Leave this off on your main account.");
       }
    }
 

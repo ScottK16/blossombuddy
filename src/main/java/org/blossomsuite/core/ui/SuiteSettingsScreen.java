@@ -140,6 +140,7 @@ public class SuiteSettingsScreen extends Screen {
       this.tabs.add(new SubTabSuiteTab(new BuddyTabs.Sharing()));
       this.tabs.add(new SubTabSuiteTab(new BuddyTabs.CrossRealm()));
       this.tabs.add(new SubTabSuiteTab(new BuddyTabs.XpTracker()));
+      this.tabs.add(new SubTabSuiteTab(new BuddyTabs.AltAccount()));
       this.tabs.add(new SubTabSuiteTab(new BuddyTabs.SecondaryChatPage()));
       this.tabs.add(new KeybindsTab());
       if (feature(SuiteFeature.MINING)) {
