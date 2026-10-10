@@ -5,4 +5,7 @@ import net.minecraft.client.multiplayer.chat.GuiMessage;
 public interface ChatHudLineLookup {
    /** The visible chat line at this screen position (vanilla's own coordinates, same ones {@code getTextStyleAt} uses), or null. */
    GuiMessage.Line suitecore$visibleLineAt(double mouseX, double mouseY);
+
+   /** The text style of the exact character under this screen position (null when it is not over a chat line's text). */
+   net.minecraft.network.chat.Style suitecore$styleAt(double mouseX, double mouseY);
 }

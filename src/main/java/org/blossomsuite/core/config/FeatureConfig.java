@@ -241,6 +241,10 @@ public final class FeatureConfig {
    public static final class Chat {
       public boolean show = false;
       public int lines = 8;
+      /** Fade the secondary chat windows out when nothing has been said for a while, the way the game's own chat does. */
+      public boolean fadeWhenIdle = true;
+      /** How long a window stays fully visible after its last new line (it also stays while the chat box is open). */
+      public int fadeSeconds = 10;
       /** Index into {@link #filters} of the filter shown in the panel, or -1 for all. */
       public int selected = -1;
       public List<Filter> filters = defaultFilters();

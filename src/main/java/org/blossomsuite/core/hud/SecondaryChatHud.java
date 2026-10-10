@@ -53,6 +53,13 @@ public final class SecondaryChatHud extends PanelHud {
       int maxLines = Math.max(2, Math.min(20, cfg.lines));
       String selected = SecondaryChat.INSTANCE.selectedName();
 
+      List<SecondaryChat.Line> newest = SecondaryChat.INSTANCE.recent(selected, 1);
+      final float f = ChatFade.current(newest.isEmpty() ? 0L : newest.get(newest.size() - 1).atMs());
+      this.fade = f;
+      if (f <= ChatFade.INVISIBLE) {
+         return;
+      }
+
       // like the main chat, you can only be scrolled back while the chat screen is open
       if (SecondaryChat.INSTANCE.scroll() > 0 && !(client.screen instanceof ChatScreen)) {
          SecondaryChat.INSTANCE.resetScroll();
@@ -77,29 +84,29 @@ public final class SecondaryChatHud extends PanelHud {
       int baseH = HEADER_H + lineCount * LINE_H + 8;
       final List<FormattedCharSequence> lines = wrapped;
       this.draw(ctx, client, WIDTH, baseH, true, c -> {
-         float opacity = cfg.panel.opacity;
+         float opacity = cfg.panel.opacity * f;
          c.fill(0, 0, WIDTH, HEADER_H, HudStyleUtil.panelHeader(opacity));
          c.fill(0, HEADER_H, WIDTH, HEADER_H + 1, HudStyleUtil.panelDivider(opacity));
          int x = 6;
-         x = tab(c, tr, x, "All", selected == null);
-         for (FeatureConfig.Filter f : cfg.filters) {
-            if (f != null && f.enabled) {
-               x = tab(c, tr, x, f.name, f.name.equalsIgnoreCase(selected));
+         x = tab(c, tr, x, "All", selected == null, f);
+         for (FeatureConfig.Filter flt : cfg.filters) {
+            if (flt != null && flt.enabled) {
+               x = tab(c, tr, x, flt.name, flt.name.equalsIgnoreCase(selected), f);
             }
          }
 
          if (newer > 0) {
             String hint = newer + " newer";
-            c.text(tr, hint, WIDTH - 6 - tr.width(hint), 4, 0xFFF48FB1);
+            c.text(tr, hint, WIDTH - 6 - tr.width(hint), 4, ChatFade.tint(0xFFF48FB1, f));
          }
 
          int y = HEADER_H + 5;
          if (lines.isEmpty()) {
-            c.text(tr, Component.literal(sample ? "Filtered chat shows up here." : "Nothing yet."), 6, y, 0xFF8A8098);
+            c.text(tr, Component.literal(sample ? "Filtered chat shows up here." : "Nothing yet."), 6, y, ChatFade.tint(0xFF8A8098, f));
          }
 
          for (FormattedCharSequence line : lines) {
-            c.text(tr, line, 6, y, -1);
+            c.text(tr, line, 6, y, ChatFade.tint(-1, f));
             y += LINE_H;
          }
       });
@@ -170,8 +177,8 @@ public final class SecondaryChatHud extends PanelHud {
       return true;
    }
 
-   private static int tab(GuiGraphicsExtractor c, Font tr, int x, String name, boolean on) {
-      c.text(tr, name, x, 4, on ? 0xFFF48FB1 : 0xFFA79BB8);
+   private static int tab(GuiGraphicsExtractor c, Font tr, int x, String name, boolean on, float fade) {
+      c.text(tr, name, x, 4, ChatFade.tint(on ? 0xFFF48FB1 : 0xFFA79BB8, fade));
       return x + tr.width(name) + 9;
    }
 }

@@ -473,7 +473,7 @@ public final class BuddyTabs {
 
       @Override
       int height(SuiteSettingsScreen screen) {
-         return UiRows.ROW * 2 + UiRows.SLIDER_ROW + FeatureConfig.INSTANCE.chat.filters.size() * FILTER_H + 30 + UiRows.ROW * 12 + 60;
+         return UiRows.ROW * 3 + UiRows.SLIDER_ROW * 2 + FeatureConfig.INSTANCE.chat.filters.size() * FILTER_H + 30 + UiRows.ROW * 12 + 60;
       }
 
       @Override
@@ -489,6 +489,18 @@ public final class BuddyTabs {
             chat.lines = 2 + (int)Math.round(v * 18);
             FeatureConfig.markDirty();
          });
+         y = UiRows.toggle(screen, x, w, y, "Fade when quiet", chat.fadeWhenIdle, "Like the game's own chat: the window fades away when nothing new has been said for a while, and comes back when a line arrives or you open the chat box.", () -> {
+            chat.fadeWhenIdle = !chat.fadeWhenIdle;
+            FeatureConfig.markDirty();
+            screen.rebuildPreserveScroll();
+         });
+         if (chat.fadeWhenIdle) {
+            y = UiRows.slider(screen, x, w, y, "Stays for", "How long a window stays fully visible after its last new line.", (Math.max(3, Math.min(60, chat.fadeSeconds)) - 3) / 57.0, v -> "Stays for: " + (3 + (int)Math.round(v * 57)) + "s", v -> {
+               chat.fadeSeconds = 3 + (int)Math.round(v * 57);
+               FeatureConfig.markDirty();
+            });
+         }
+
          String shown = SecondaryChat.INSTANCE.selectedName();
          y = UiRows.button(screen, x, w, y, "Showing", shown == null ? "All" : shown, "Which filter the window shows. Also cyclable with a key (Options > Controls).", () -> {
             SecondaryChat.INSTANCE.cycleFilter();

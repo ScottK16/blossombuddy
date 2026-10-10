@@ -41,6 +41,30 @@ public abstract class ChatHudTimestampMixin implements ChatHudLineLookup {
    public abstract int getLinesPerPage();
 
    @Override
+   public net.minecraft.network.chat.Style suitecore$styleAt(double mouseX, double mouseY) {
+      GuiMessage.Line line = this.suitecore$visibleLineAt(mouseX, mouseY);
+      if (line == null) {
+         return null;
+      }
+
+      net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
+      double target = mouseX / this.getScale() - 4.0;
+      float[] x = {0.0F};
+      net.minecraft.network.chat.Style[] found = {null};
+      line.content().accept((index, style, codePoint) -> {
+         float w = font.width(net.minecraft.util.FormattedCharSequence.codepoint(codePoint, style));
+         if (target >= x[0] && target < x[0] + w) {
+            found[0] = style;
+            return false;
+         }
+
+         x[0] += w;
+         return true;
+      });
+      return found[0];
+   }
+
+   @Override
    public GuiMessage.Line suitecore$visibleLineAt(double mouseX, double mouseY) {
       double scale = this.getScale();
       double chatX = mouseX / scale - 4.0;

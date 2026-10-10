@@ -64,6 +64,12 @@ public class ChatScreenMixin {
          return;
       }
 
+      // a part of the line that carries its own hover (an item or text popup, as CoreProtect inspect lines do) keeps its popup
+      net.minecraft.network.chat.Style under = lookup.suitecore$styleAt(mouseX, mouseY);
+      if (under != null && under.getHoverEvent() != null) {
+         return;
+      }
+
       Long atMs = ChatLineTimestamps.timeOf(line);
       if (atMs != null) {
          context.setTooltipForNextFrame(mc.font, Component.literal(ChatTimestampFormat.format(atMs, System.currentTimeMillis())).withStyle(ChatFormatting.GRAY), mouseX, mouseY);

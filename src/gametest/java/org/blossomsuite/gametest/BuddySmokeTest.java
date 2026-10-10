@@ -120,6 +120,31 @@ public class BuddySmokeTest implements FabricClientGameTest {
          context.waitTicks(20);
          context.takeScreenshot("40-sidebar-bossbar-chat");
 
+         // a chat line that carries its own item hover (as CoreProtect inspect does): hovering it must show the item, not a timestamp
+         world.getServer().runCommand("tellraw @a {\"text\":\"CoreProtect - hover this: added x1 dark prismarine\",\"hover_event\":{\"action\":\"show_item\",\"id\":\"minecraft:dark_prismarine\"}}");
+         context.waitTicks(10);
+         context.setScreen(() -> new net.minecraft.client.gui.screens.ChatScreen("", false));
+         context.waitTicks(5);
+         context.getInput().setCursorPos(300.0, 587.0);
+         context.waitTicks(5);
+         context.takeScreenshot("45-chat-hover-item");
+         context.setScreen(() -> null);
+
+         // the secondary chat window fading away when quiet, and coming back with a new line
+         context.runOnClient(mc -> {
+            FeatureConfig.INSTANCE.chat.show = true;
+            FeatureConfig.INSTANCE.chat.fadeWhenIdle = true;
+            FeatureConfig.INSTANCE.chat.fadeSeconds = 3;
+         });
+         world.getServer().runCommand("tellraw @a \"Alice and Bob are now married (secondary chat line one)\"");
+         context.waitTicks(20);
+         context.takeScreenshot("46-secondary-visible");
+         context.waitTicks(130);
+         context.takeScreenshot("47-secondary-faded");
+         world.getServer().runCommand("tellraw @a \"Alice and Bob got married again (secondary chat line two)\"");
+         context.waitTicks(10);
+         context.takeScreenshot("48-secondary-back");
+
          // the screens that need a world
          screen(context, "50-playerlist", PlayerListScreen::new);
          screen(context, "50-emotewheel", EmoteWheelScreen::new);

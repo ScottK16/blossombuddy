@@ -68,6 +68,13 @@ public final class ChatWindowHud extends PanelHud {
       String filter = cfg.filter;
       int maxLines = Math.max(2, Math.min(20, cfg.lines));
 
+      List<SecondaryChat.Line> newest = SecondaryChat.INSTANCE.recent(filter, 1);
+      final float f = ChatFade.current(newest.isEmpty() ? 0L : newest.get(newest.size() - 1).atMs());
+      this.fade = f;
+      if (f <= ChatFade.INVISIBLE) {
+         return;
+      }
+
       // like the main chat, you can only be scrolled back while the chat screen is open
       if (!(client.screen instanceof ChatScreen)) {
          this.state.reset();
@@ -91,22 +98,22 @@ public final class ChatWindowHud extends PanelHud {
       final int newer = skip;
       final List<FormattedCharSequence> lines = wrapped;
       this.draw(ctx, client, WIDTH, baseH, true, c -> {
-         float opacity = this.panel().opacity;
+         float opacity = this.panel().opacity * f;
          c.fill(0, 0, WIDTH, HEADER_H, HudStyleUtil.panelHeader(opacity));
          c.fill(0, HEADER_H, WIDTH, HEADER_H + 1, HudStyleUtil.panelDivider(opacity));
-         c.text(tr, filter, 6, 4, 0xFFF48FB1);
+         c.text(tr, filter, 6, 4, ChatFade.tint(0xFFF48FB1, f));
          if (newer > 0) {
             String hint = newer + " newer";
-            c.text(tr, hint, WIDTH - 6 - tr.width(hint), 4, 0xFFF48FB1);
+            c.text(tr, hint, WIDTH - 6 - tr.width(hint), 4, ChatFade.tint(0xFFF48FB1, f));
          }
 
          int y = HEADER_H + 5;
          if (lines.isEmpty()) {
-            c.text(tr, Component.literal(sample ? "Only " + filter + " lines show up here." : "Nothing yet."), 6, y, 0xFF8A8098);
+            c.text(tr, Component.literal(sample ? "Only " + filter + " lines show up here." : "Nothing yet."), 6, y, ChatFade.tint(0xFF8A8098, f));
          }
 
          for (FormattedCharSequence line : lines) {
-            c.text(tr, line, 6, y, -1);
+            c.text(tr, line, 6, y, ChatFade.tint(-1, f));
             y += LINE_H;
          }
       });

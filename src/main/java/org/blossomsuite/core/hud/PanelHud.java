@@ -18,6 +18,8 @@ public abstract class PanelHud implements DraggableHud {
    protected int lastH;
    protected int lastBaseW = 100;
    protected int lastBaseH = 24;
+   /** 1 = fully shown; a panel that fades out sets this before it draws (it scales the background; the panel scales its own text). */
+   protected float fade = 1.0F;
 
    protected abstract FeatureConfig.Panel panel();
 
@@ -64,7 +66,7 @@ public abstract class PanelHud implements DraggableHud {
 
       try {
          if (background) {
-            ctx.fill(0, 0, baseW, baseH, this.backgroundColor(p.opacity));
+            ctx.fill(0, 0, baseW, baseH, this.backgroundColor(p.opacity * this.fade));
          }
 
          content.accept(ctx);
