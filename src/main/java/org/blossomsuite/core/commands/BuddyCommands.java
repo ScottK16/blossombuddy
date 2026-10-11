@@ -36,6 +36,7 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import net.minecraft.resources.Identifier;
+import org.blossomsuite.core.chat.ChatNotify;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.chat.SecondaryChat;
 import org.blossomsuite.core.config.FeatureConfig;
@@ -43,6 +44,7 @@ import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.cooldowns.CooldownRules;
 import org.blossomsuite.core.cooldowns.CooldownSoundStore;
 import org.blossomsuite.core.cooldowns.CustomCooldownStore;
+import org.blossomsuite.core.dungeons.DungeonState;
 import org.blossomsuite.core.hud.ScoreboardHud;
 import org.blossomsuite.core.jobs.JobXpTracker;
 import org.blossomsuite.core.state.SuiteState;
@@ -58,7 +60,7 @@ public final class BuddyCommands {
    }
 
    public static List<LiteralArgumentBuilder<FabricClientCommandSource>> subcommands() {
-      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"));
+      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"), dungeon(), chatNotify());
    }
 
    public static final String DISCORD_INVITE = "https://discord.gg/EA4WwSdGTj";
@@ -313,6 +315,129 @@ public final class BuddyCommands {
          }))
          .then(ClientCommands.literal("off").executes(ctx -> {
             PresenceClient.INSTANCE.setEnabled(false);
+            return 1;
+         }));
+   }
+
+   /** {@code /buddy notify}: a ding when chosen words appear in chat. {@code add}/{@code remove} edit the word list. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> chatNotify() {
+      return ClientCommands.literal("notify")
+         .executes(ctx -> {
+            notifyStatus();
+            return 1;
+         })
+         .then(ClientCommands.literal("on").executes(ctx -> {
+            FeatureConfig.INSTANCE.chatNotify.enabled = true;
+            FeatureConfig.markDirty();
+            ChatOutput.info("Chat notify is ON. Add words with /buddy notify add <word>.");
+            return 1;
+         }))
+         .then(ClientCommands.literal("off").executes(ctx -> {
+            FeatureConfig.INSTANCE.chatNotify.enabled = false;
+            FeatureConfig.markDirty();
+            ChatOutput.info("Chat notify is OFF.");
+            return 1;
+         }))
+         .then(ClientCommands.literal("list").executes(ctx -> {
+            notifyStatus();
+            return 1;
+         }))
+         .then(ClientCommands.literal("test").executes(ctx -> {
+            ChatNotify.playNow();
+            return 1;
+         }))
+         .then(ClientCommands.literal("add").then(ClientCommands.argument("word", StringArgumentType.greedyString()).executes(ctx -> {
+            String word = StringArgumentType.getString(ctx, "word").replace('|', ' ').trim();
+            List<String> words = FeatureConfig.INSTANCE.chatNotify.words();
+            if (word.isEmpty()) {
+               ChatOutput.info("Type the word or phrase to add.");
+            } else if (words.stream().anyMatch(word::equalsIgnoreCase)) {
+               ChatOutput.info("'" + word + "' is already on the list.");
+            } else {
+               words.add(word);
+               FeatureConfig.INSTANCE.chatNotify.setWords(words);
+               FeatureConfig.markDirty();
+               ChatOutput.info("Added '" + word + "'." + (FeatureConfig.INSTANCE.chatNotify.enabled ? "" : " Chat notify is still OFF - turn it on with /buddy notify on."));
+            }
+
+            return 1;
+         })))
+         .then(ClientCommands.literal("remove").then(ClientCommands.argument("word", StringArgumentType.greedyString()).executes(ctx -> {
+            String word = StringArgumentType.getString(ctx, "word").trim();
+            List<String> words = FeatureConfig.INSTANCE.chatNotify.words();
+            if (words.removeIf(word::equalsIgnoreCase)) {
+               FeatureConfig.INSTANCE.chatNotify.setWords(words);
+               FeatureConfig.markDirty();
+               ChatOutput.info("Removed '" + word + "'.");
+            } else {
+               ChatOutput.info("'" + word + "' isn't on the list.");
+            }
+
+            return 1;
+         })))
+         .then(ClientCommands.literal("name")
+            .then(ClientCommands.literal("on").executes(ctx -> {
+               FeatureConfig.INSTANCE.chatNotify.mentionName = true;
+               FeatureConfig.markDirty();
+               ChatOutput.info("It will also ding when someone says your name.");
+               return 1;
+            }))
+            .then(ClientCommands.literal("off").executes(ctx -> {
+               FeatureConfig.INSTANCE.chatNotify.mentionName = false;
+               FeatureConfig.markDirty();
+               ChatOutput.info("Your own name no longer dings.");
+               return 1;
+            })))
+         .then(ClientCommands.literal("sound").then(ClientCommands.argument("id", StringArgumentType.word()).executes(ctx -> {
+            String id = StringArgumentType.getString(ctx, "id").trim().toLowerCase(Locale.ROOT);
+            if (!id.contains(":")) {
+               id = "minecraft:" + id;
+            }
+
+            Identifier parsed = Identifier.tryParse(id);
+            SoundEvent found = parsed == null ? null : BuiltInRegistries.SOUND_EVENT.getValue(parsed);
+            if (found == null || found == SoundEvents.EMPTY) {
+               ChatOutput.info("No sound called '" + id + "'. Try block.note_block.bell or entity.experience_orb.pickup.");
+            } else {
+               FeatureConfig.INSTANCE.chatNotify.sound = id.startsWith("minecraft:") ? id.substring("minecraft:".length()) : id;
+               FeatureConfig.markDirty();
+               ChatNotify.playNow();
+               ChatOutput.info("The ding is now " + FeatureConfig.INSTANCE.chatNotify.sound + ".");
+            }
+
+            return 1;
+         })));
+   }
+
+   private static void notifyStatus() {
+      FeatureConfig.ChatNotify cfg = FeatureConfig.INSTANCE.chatNotify;
+      List<String> words = cfg.words();
+      ChatOutput.info("Chat notify is " + (cfg.enabled ? "ON" : "OFF") + ". Your name " + (cfg.mentionName ? "dings too" : "does not ding") + ".");
+      ChatOutput.info(words.isEmpty() ? "No keywords yet. /buddy notify add <word>" : "Keywords: " + String.join(", ", words));
+   }
+
+   /** {@code /buddy dungeon}: your dungeon timer and cooldown; {@code attempts} lists recent runs, {@code reset} clears the cooldown, {@code start} begins one by hand. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> dungeon() {
+      return ClientCommands.literal("dungeon")
+         .executes(ctx -> {
+            DungeonState.reportStatus();
+            return 1;
+         })
+         .then(ClientCommands.literal("status").executes(ctx -> {
+            DungeonState.reportStatus();
+            return 1;
+         }))
+         .then(ClientCommands.literal("attempts").executes(ctx -> {
+            DungeonState.reportAttempts();
+            return 1;
+         }))
+         .then(ClientCommands.literal("reset").executes(ctx -> {
+            DungeonState.resetCurrentServer();
+            return 1;
+         }))
+         .then(ClientCommands.literal("start").executes(ctx -> {
+            DungeonState.startCooldownNow();
+            DungeonState.reportStatus();
             return 1;
          }));
    }

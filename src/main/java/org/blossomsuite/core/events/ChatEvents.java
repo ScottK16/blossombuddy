@@ -1,5 +1,6 @@
 package org.blossomsuite.core.events;
 
+import org.blossomsuite.core.chat.ChatNotify;
 import org.blossomsuite.core.chat.SecondaryChat;
 
 import org.blossomsuite.core.chat.ChatProcessor;
@@ -23,6 +24,7 @@ public final class ChatEvents {
          }
 
          if (!overlay && SecondaryChat.INSTANCE.onMessage(message)) {
+            ChatNotify.INSTANCE.onLine(message.getString());
             return false;
          }
 
@@ -30,6 +32,7 @@ public final class ChatEvents {
          // only what really lands in main chat is worth searching later; the action bar (overlay) is not chat
          if (show && !overlay) {
             MainChatLog.INSTANCE.record(message);
+            ChatNotify.INSTANCE.onLine(message.getString());
          }
 
          return show;
@@ -39,11 +42,14 @@ public final class ChatEvents {
             return true;
          }
 
+         String sentBy = sender == null ? null : sender.name();
          if (SecondaryChat.INSTANCE.onMessage(message)) {
+            ChatNotify.INSTANCE.onPlayerChat(message.getString(), sentBy);
             return false;
          }
 
          MainChatLog.INSTANCE.record(message);
+         ChatNotify.INSTANCE.onPlayerChat(message.getString(), sentBy);
          return true;
       });
    }

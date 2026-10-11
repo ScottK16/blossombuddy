@@ -4,6 +4,7 @@ import org.blossomsuite.core.SuiteRuntime;
 import org.blossomsuite.core.config.ChatConfig;
 import org.blossomsuite.core.config.ConfigIO;
 import org.blossomsuite.core.config.SuiteConfig;
+import org.blossomsuite.core.dungeons.DungeonState;
 import org.blossomsuite.core.util.TextUtil;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -70,6 +71,7 @@ public final class ChatProcessor {
       }
 
       observeChatToggleMessage(text);
+      DungeonState.observeChatLine(text);
    }
 
    private static boolean isSuiteMessage(String text) {

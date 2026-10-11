@@ -61,6 +61,9 @@ import org.blossomsuite.core.tick.TickProcessor;
 import org.blossomsuite.core.tick.TickRuntime;
 import org.blossomsuite.core.ui.SuiteSettingsScreen;
 import org.blossomsuite.core.util.WorldGate;
+import org.blossomsuite.core.dungeons.DungeonRuntime;
+import org.blossomsuite.core.dungeons.DungeonState;
+import org.blossomsuite.core.storage.DungeonStore;
 import org.blossomsuite.core.vote.VotePartySnapshot;
 import org.blossomsuite.core.vote.VoteRuntime;
 import org.blossomsuite.core.vote.VoteState;
@@ -211,6 +214,12 @@ public final class SuiteClientBootstrap {
       if (feature(SuiteFeature.JOBS)) {
          JobsModule.init();
          OverflowTracker.INSTANCE.init();
+      }
+
+      if (feature(SuiteFeature.DUNGEONS)) {
+         DungeonStore.init();
+         DungeonRuntime.setServerSupplier(() -> WorldGate.Server);
+         DungeonRuntime.setActiveWorldSupplier(() -> SuiteConfig.INSTANCE.isEnabledForCurrentWorld());
       }
 
       if (feature(SuiteFeature.COOLDOWNS)) {
@@ -369,6 +378,7 @@ public final class SuiteClientBootstrap {
          if (client != null) {
             VoteRuntime.onConnectionSessionChanged("disconnect");
             WorldGate.reset();
+            DungeonState.resetForDisconnect();
             PartyChatState.resetForJoin();
             StaffChatState.resetForJoin();
             ChatModeProbe.resetForJoin();

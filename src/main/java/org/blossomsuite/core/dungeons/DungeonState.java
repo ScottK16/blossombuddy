@@ -1,32 +1,36 @@
 package org.blossomsuite.core.dungeons;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import org.blossomsuite.core.SuiteRuntime;
 import org.blossomsuite.core.SuiteServer;
 import org.blossomsuite.core.config.ConfigIO;
 import org.blossomsuite.core.config.DungeonConfig;
 import org.blossomsuite.core.config.SuiteConfig;
-import org.blossomsuite.core.services.DungeonReportService;
-import org.blossomsuite.core.services.models.DungeonModels;
 import org.blossomsuite.core.storage.DungeonStore;
 import org.blossomsuite.core.util.TextUtil;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
-import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
-import net.minecraft.ChatFormatting;
+
+/**
+ * The dungeon timer. It reads the server's own [Dungeons] chat lines to know when YOUR run starts and ends, and keeps two clocks that
+ * belong to you alone: how long this run has taken, and the cooldown (8 hours by default) before you can run again.
+ *
+ * <p>Everything here stays on your computer. Other players' events (a teammate who runs out of lives, someone joining or leaving the
+ * party) only change who is listed in the party; they never stop, restart or reset your own clocks. Only your own death or your own
+ * completion ends your run and starts your cooldown.
+ */
 public final class DungeonState {
    private static final long MAX_TRACKED_RUN_MS = 2700000L;
    private static final long RUN_RECOVERY_WINDOW_MS = 7200000L;
@@ -47,84 +51,87 @@ public final class DungeonState {
    private static final Pattern SELF_LOST_LIVES = Pattern.compile("\\[Dungeons\\]\\s+You\\s+lost\\s+all\\s+your\\s+lives[.!]?", 2);
    private static final Pattern COMPLETED = Pattern.compile("(AKUMA HAS FALLEN[.!]?|\\bDungeon completed\\.\\s+.+\\btook\\b)", 2);
    private static final DateTimeFormatter READY_TIME_FORMAT = DateTimeFormatter.ofPattern("MMM d h:mm a", Locale.US).withZone(ZoneId.systemDefault());
-   private static String pendingDungeonName = "Dungeon";
+
+   private static Supplier<String> selfNameSource = DungeonState::gameSelfName;
+   private static Runnable saver = ConfigIO::saveIfDirty;
    private static boolean inDungeon = false;
    private static String activeDungeonName = "Dungeon";
    private static long startedAtMs = 0L;
-   private static String activeClientRunId = "";
-   private static String activePartyRunKey = "";
-   private static String activeRunMergeKey = "";
-   private static volatile String activeRemoteRunUid = "";
-   private static boolean activeCooldownReported = false;
-   private static boolean managedPartyActive = false;
-   private static boolean managedPartyReporter = false;
    private static long lastEnterSignalAtMs = 0L;
-   private static int expectedPartySize = 0;
    private static final LinkedHashSet<String> partyNames = new LinkedHashSet<>();
    private static final LinkedHashSet<String> lostLivesNames = new LinkedHashSet<>();
 
    private DungeonState() {
    }
 
+   /** Reads one line of chat (plain text). Safe to call for every message: lines that are not about dungeons or the party are ignored. */
    public static void observeChatLine(String raw) {
       DungeonConfig cfg = SuiteConfig.INSTANCE.DungeonConfig;
-      if (cfg.enabled) {
-         if (raw != null && !raw.isBlank()) {
-            long now = System.currentTimeMillis();
-            expireRunIfNeeded(now);
-            if (!observePartyLine(raw)) {
-               Matcher available = AVAILABLE.matcher(raw);
-               if (available.find()) {
-                  pendingDungeonName = cleanName(available.group(1), "Dungeon");
-               } else {
-                  Matcher ready = READY.matcher(raw);
-                  if (ready.find()) {
-                     partyNames.add(cleanName(ready.group(1), "Unknown"));
+      if (!cfg.enabled || raw == null || raw.isBlank()) {
+         return;
+      }
 
-                     try {
-                        expectedPartySize = Math.max(expectedPartySize, Integer.parseInt(ready.group(3)));
-                     } catch (NumberFormatException var9) {
-                     }
-                  } else if (ENTERING.matcher(raw).find()) {
-                     lastEnterSignalAtMs = now;
-                     ensureSelfInParty();
-                     if (!inDungeon) {
-                        startRun(now);
-                     }
-                  } else if (LOADING.matcher(raw).find()) {
-                     lastEnterSignalAtMs = now;
-                     ensureSelfInParty();
-                  } else if (LOADED.matcher(raw).find()) {
-                     long startAt = lastEnterSignalAtMs > 0L ? lastEnterSignalAtMs : now;
-                     lastEnterSignalAtMs = startAt;
-                     ensureSelfInParty();
-                     if (!inDungeon) {
-                        startRun(startAt);
-                     }
-                  } else {
-                     Matcher lost = LOST_LIVES.matcher(raw);
-                     if (lost.find()) {
-                        String lostName = cleanName(lost.group(1), "Unknown");
-                        boolean newlyObserved = lostLivesNames.add(lostName);
-                        partyNames.add(lostName);
-                        if (newlyObserved) {
-                           reportRunLostLives(now, Collections.singletonList(lostName));
-                        }
+      long now = System.currentTimeMillis();
+      expireRunIfNeeded(now);
+      if (observePartyLine(raw)) {
+         return;
+      }
 
-                        if (isSelf(lostName)) {
-                           finishSelfLostLives(now);
-                        }
-                     } else if (SELF_LOST_LIVES.matcher(raw).find()) {
-                        finishSelfLostLives(now);
-                     } else if (COMPLETED.matcher(raw).find()) {
-                        recoverRunIfNeeded(now);
-                        if (!selfLostLives()) {
-                           finishRun(true, now);
-                        }
-                     }
-                  }
-               }
-            }
+      if (AVAILABLE.matcher(raw).find()) {
+         return;
+      }
+
+      Matcher ready = READY.matcher(raw);
+      if (ready.find()) {
+         partyNames.add(cleanName(ready.group(1), "Unknown"));
+         return;
+      }
+
+      if (ENTERING.matcher(raw).find()) {
+         lastEnterSignalAtMs = now;
+         ensureSelfInParty();
+         if (!inDungeon) {
+            startRun(now);
+         }
+
+         return;
+      }
+
+      if (LOADING.matcher(raw).find()) {
+         lastEnterSignalAtMs = now;
+         ensureSelfInParty();
+         return;
+      }
+
+      if (LOADED.matcher(raw).find()) {
+         long startAt = lastEnterSignalAtMs > 0L ? lastEnterSignalAtMs : now;
+         lastEnterSignalAtMs = startAt;
+         ensureSelfInParty();
+         if (!inDungeon) {
+            startRun(startAt);
+         }
+
+         return;
+      }
+
+      Matcher lost = LOST_LIVES.matcher(raw);
+      if (lost.find()) {
+         String lostName = cleanName(lost.group(1), "Unknown");
+         lostLivesNames.add(lostName);
+         partyNames.add(lostName);
+         if (isSelf(lostName)) {
+            finishSelfLostLives(now);
+         }
+
+         return; // somebody else running out of lives changes nothing about your own run
+      }
+
+      if (SELF_LOST_LIVES.matcher(raw).find()) {
+         finishSelfLostLives(now);
+      } else if (COMPLETED.matcher(raw).find()) {
+         recoverRunIfNeeded(now);
+         if (!selfLostLives()) {
+            finishRun(true, now);
          }
       }
    }
@@ -134,9 +141,14 @@ public final class DungeonState {
       return currentCooldownEndsAt() > now;
    }
 
+   /** "Akuma: 03:21" while a run is on, else null. */
    public static String activeRunLine(long now) {
       expireRunIfNeeded(now);
       return inDungeon && startedAtMs > 0L ? activeDungeonName + ": " + TextUtil.fmtStopwatch(Math.max(0L, now - startedAtMs)) : null;
+   }
+
+   public static boolean inRun() {
+      return inDungeon;
    }
 
    public static void reportStatus() {
@@ -145,30 +157,31 @@ public final class DungeonState {
       expireRunIfNeeded(now);
       if (!cfg.enabled) {
          DungeonRuntime.sendChat(Component.literal("Dungeon tracking is OFF.").withStyle(ChatFormatting.GRAY));
-      } else {
-         if (inDungeon) {
-            DungeonRuntime.sendChat(
-               Component.literal("Dungeon active: ")
-                  .withStyle(ChatFormatting.GRAY)
-                  .append(Component.literal(activeDungeonName).withStyle(ChatFormatting.AQUA))
-                  .append(Component.literal(" for " + TextUtil.fmtStopwatch(now - startedAtMs)).withStyle(ChatFormatting.GRAY))
-            );
-         }
+         return;
+      }
 
-         for (DungeonState.CooldownRow row : allStatusRows(cfg, now)) {
-            long remaining = row.remainingMs();
-            String displayServer = SuiteRuntime.profile().serverDisplayName(row.server());
-            if (remaining <= 0L) {
-               DungeonRuntime.sendChat(Component.literal("Dungeon cooldown (" + displayServer + "): READY").withStyle(ChatFormatting.GREEN));
-            } else {
-               DungeonRuntime.sendChat(
-                  Component.literal("Dungeon cooldown (" + displayServer + "): ")
-                     .withStyle(ChatFormatting.GRAY)
-                     .append(Component.literal(formatLongDuration(remaining)).withStyle(ChatFormatting.YELLOW))
-                     .append(Component.literal(" remaining, ready ").withStyle(ChatFormatting.GRAY))
-                     .append(Component.literal(READY_TIME_FORMAT.format(Instant.ofEpochMilli(row.endsAtMs()))).withStyle(ChatFormatting.GREEN))
-               );
-            }
+      if (inDungeon) {
+         DungeonRuntime.sendChat(
+            Component.literal("Dungeon active: ")
+               .withStyle(ChatFormatting.GRAY)
+               .append(Component.literal(activeDungeonName).withStyle(ChatFormatting.AQUA))
+               .append(Component.literal(" for " + TextUtil.fmtStopwatch(now - startedAtMs)).withStyle(ChatFormatting.GRAY))
+         );
+      }
+
+      for (CooldownRow row : allStatusRows(cfg, now)) {
+         long remaining = row.remainingMs();
+         String displayServer = SuiteRuntime.profile().serverDisplayName(row.server());
+         if (remaining <= 0L) {
+            DungeonRuntime.sendChat(Component.literal("Dungeon cooldown (" + displayServer + "): READY").withStyle(ChatFormatting.GREEN));
+         } else {
+            DungeonRuntime.sendChat(
+               Component.literal("Dungeon cooldown (" + displayServer + "): ")
+                  .withStyle(ChatFormatting.GRAY)
+                  .append(Component.literal(formatCooldownDuration(remaining)).withStyle(ChatFormatting.YELLOW))
+                  .append(Component.literal(" remaining, ready ").withStyle(ChatFormatting.GRAY))
+                  .append(Component.literal(READY_TIME_FORMAT.format(Instant.ofEpochMilli(row.endsAtMs()))).withStyle(ChatFormatting.GREEN))
+            );
          }
       }
    }
@@ -180,89 +193,77 @@ public final class DungeonState {
       );
       if (byServer.isEmpty()) {
          DungeonRuntime.sendChat(Component.literal("No dungeon attempts tracked yet.").withStyle(ChatFormatting.GRAY));
-      } else {
-         for (Entry<String, List<DungeonStore.DungeonAttempt>> entry : byServer.entrySet()) {
-            DungeonRuntime.sendChat(Component.literal(entry.getKey()).withStyle(ChatFormatting.AQUA));
+         return;
+      }
 
-            for (DungeonStore.DungeonAttempt attempt : entry.getValue()) {
-               ChatFormatting resultColor = attempt.completed() ? ChatFormatting.GREEN : ChatFormatting.RED;
-               DungeonRuntime.sendChat(
-                  Component.literal("[" + TextUtil.fmtStopwatch(attempt.durationMs()) + "] ")
-                     .withStyle(ChatFormatting.DARK_GRAY)
-                     .append(Component.literal(attempt.completed() ? "Completed" : "Failed").withStyle(resultColor))
-                     .append(Component.literal(" | ").withStyle(ChatFormatting.DARK_GRAY))
-                     .append(Component.literal(attempt.dungeonName()).withStyle(ChatFormatting.AQUA))
-                     .append(Component.literal(" | ").withStyle(ChatFormatting.DARK_GRAY))
-                     .append(Component.literal(attempt.names()).withStyle(ChatFormatting.GRAY))
-               );
-            }
+      for (Entry<String, List<DungeonStore.DungeonAttempt>> entry : byServer.entrySet()) {
+         DungeonRuntime.sendChat(Component.literal(entry.getKey()).withStyle(ChatFormatting.AQUA));
+         for (DungeonStore.DungeonAttempt attempt : entry.getValue()) {
+            ChatFormatting resultColor = attempt.completed() ? ChatFormatting.GREEN : ChatFormatting.RED;
+            DungeonRuntime.sendChat(
+               Component.literal("[" + TextUtil.fmtStopwatch(attempt.durationMs()) + "] ")
+                  .withStyle(ChatFormatting.DARK_GRAY)
+                  .append(Component.literal(attempt.completed() ? "Completed" : "Failed").withStyle(resultColor))
+                  .append(Component.literal(" | ").withStyle(ChatFormatting.DARK_GRAY))
+                  .append(Component.literal(attempt.dungeonName()).withStyle(ChatFormatting.AQUA))
+                  .append(Component.literal(" | ").withStyle(ChatFormatting.DARK_GRAY))
+                  .append(Component.literal(attempt.names()).withStyle(ChatFormatting.GRAY))
+            );
          }
       }
    }
 
+   /** Forgets the run in progress and clears this realm's cooldown (for when the clock is wrong). */
    public static void resetCurrentServer() {
       resetRun();
-      clearManagedParty();
       String server = currentServer();
       SuiteConfig.INSTANCE.DungeonConfig.resetCooldown(server);
-      ConfigIO.saveIfDirty();
+      saver.run();
       DungeonRuntime.sendChat(Component.literal("Dungeon cooldown reset for " + server + ".").withStyle(ChatFormatting.YELLOW));
    }
 
+   /** Leaving the game ends the run being timed (a cooldown that already started is kept). */
    public static void resetForDisconnect() {
       resetRun();
-      clearManagedParty();
    }
 
-   public static void markManagedPartyCreated(String partyName) {
-      managedPartyActive = true;
-      managedPartyReporter = true;
-      partyNames.clear();
-      lostLivesNames.clear();
-      ensureSelfInParty();
-      expectedPartySize = Math.max(expectedPartySize, partyNames.size());
-      String name = partyName == null ? "" : partyName.trim();
-      DungeonRuntime.sendChat(
-         Component.literal("Dungeon party tracking started")
-            .withStyle(ChatFormatting.GREEN)
-            .append(Component.literal(name.isBlank() ? "." : ": " + name).withStyle(ChatFormatting.GRAY))
-      );
+   /** Starts a cooldown by hand, for when a run happened without the mod watching. */
+   public static void startCooldownNow() {
+      applyDungeonCooldown(System.currentTimeMillis());
    }
 
-   public static List<DungeonState.CooldownRow> hudCooldownRows(long now) {
+   public static List<CooldownRow> hudCooldownRows(long now) {
       DungeonConfig cfg = SuiteConfig.INSTANCE.DungeonConfig;
-      List<DungeonState.CooldownRow> rows = new ArrayList<>();
+      List<CooldownRow> rows = new ArrayList<>();
       if (cfg.hudServerMode == DungeonConfig.HudServerMode.CURRENT_SERVER) {
          String server = currentServer();
          long endsAt = cfg.cooldownEndsAt(server);
-         rows.add(new DungeonState.CooldownRow(server, endsAt, Math.max(0L, endsAt - now)));
+         rows.add(new CooldownRow(server, endsAt, Math.max(0L, endsAt - now)));
          return rows;
       }
 
       for (String server : allTrackedServerKeys(cfg)) {
          long endsAt = cfg.cooldownEndsAt(server);
-         rows.add(new DungeonState.CooldownRow(server, endsAt, Math.max(0L, endsAt - now)));
+         rows.add(new CooldownRow(server, endsAt, Math.max(0L, endsAt - now)));
       }
 
       if (rows.isEmpty()) {
-         String server = currentServer();
-         rows.add(new DungeonState.CooldownRow(server, 0L, 0L));
+         rows.add(new CooldownRow(currentServer(), 0L, 0L));
       }
 
       return rows;
    }
 
-   private static List<DungeonState.CooldownRow> allStatusRows(DungeonConfig cfg, long now) {
-      List<DungeonState.CooldownRow> rows = new ArrayList<>();
-
+   private static List<CooldownRow> allStatusRows(DungeonConfig cfg, long now) {
+      List<CooldownRow> rows = new ArrayList<>();
       for (String server : allTrackedServerKeys(cfg)) {
          long endsAt = cfg.cooldownEndsAt(server);
-         rows.add(new DungeonState.CooldownRow(server, endsAt, Math.max(0L, endsAt - now)));
+         rows.add(new CooldownRow(server, endsAt, Math.max(0L, endsAt - now)));
       }
 
       if (rows.isEmpty()) {
          String server = currentServer();
-         rows.add(new DungeonState.CooldownRow(server, cfg.cooldownEndsAt(server), 0L));
+         rows.add(new CooldownRow(server, cfg.cooldownEndsAt(server), 0L));
       }
 
       return rows;
@@ -270,7 +271,6 @@ public final class DungeonState {
 
    private static List<String> allTrackedServerKeys(DungeonConfig cfg) {
       LinkedHashSet<String> servers = new LinkedHashSet<>();
-
       for (SuiteServer server : SuiteRuntime.profile().servers()) {
          if (server != null && server.key() != null && !server.key().isBlank()) {
             servers.add(DungeonConfig.serverKey(server.key()));
@@ -296,56 +296,35 @@ public final class DungeonState {
       activeDungeonName = canonicalDungeonName();
       startedAtMs = now;
       ensureSelfInParty();
-      activeClientRunId = UUID.randomUUID().toString();
-      activePartyRunKey = partyRunKey(currentServer(), activeDungeonName, partyNames, startedAtMs);
-      activeRunMergeKey = runMergeKey(currentServer(), activeDungeonName, startedAtMs);
-      activeRemoteRunUid = "";
-      activeCooldownReported = false;
       lostLivesNames.clear();
-      if (expectedPartySize <= 0) {
-         expectedPartySize = Math.max(1, partyNames.size());
-      }
-
-      reportRunStart(activeClientRunId, activeDungeonName, startedAtMs, expectedPartySize, new LinkedHashSet<>(partyNames));
    }
 
    private static void finishRun(boolean completed, long now) {
-      if (inDungeon && startedAtMs > 0L) {
-         DungeonConfig cfg = SuiteConfig.INSTANCE.DungeonConfig;
-         long duration = startedAtMs > 0L ? Math.max(0L, now - startedAtMs) : 0L;
-         LinkedHashSet<String> names = new LinkedHashSet<>(partyNames);
-         names.addAll(lostLivesNames);
-         String self = selfName();
-         if (names.isEmpty() && !self.isBlank()) {
-            names.add(self);
-         }
+      if (!inDungeon || startedAtMs <= 0L) {
+         return;
+      }
 
-         String server = currentServer();
-         DungeonStore.DungeonAttempt attempt = new DungeonStore.DungeonAttempt(server, now, duration, completed, activeDungeonName, joinNames(names));
-         Component chatMessage = Component.literal("Dungeon " + (completed ? "completed" : "failed") + ": ")
-            .withStyle(completed ? ChatFormatting.GREEN : ChatFormatting.RED)
-            .append(Component.literal(attempt.names()).withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(" took " + TextUtil.fmtStopwatch(duration)).withStyle(ChatFormatting.YELLOW));
-         DungeonStore.saveAttempt(attempt);
-         reportRunFinish(
-            activeRemoteRunUid,
-            activeClientRunId,
-            activePartyRunKey,
-            activeDungeonName,
-            startedAtMs,
-            now,
-            duration,
-            completed,
-            expectedPartySize,
-            new LinkedHashSet<>(partyNames),
-            new LinkedHashSet<>(lostLivesNames)
-         );
-         applyDungeonCooldown(now, completed ? "party_completed" : "party_failed");
-         resetRun();
-         clearManagedParty();
-         if (cfg.reportRunsInChat) {
-            DungeonRuntime.sendChat(chatMessage);
-         }
+      DungeonConfig cfg = SuiteConfig.INSTANCE.DungeonConfig;
+      long duration = Math.max(0L, now - startedAtMs);
+      LinkedHashSet<String> names = new LinkedHashSet<>(partyNames);
+      names.addAll(lostLivesNames);
+      String self = selfName();
+      if (names.isEmpty() && !self.isBlank()) {
+         names.add(self);
+      }
+
+      DungeonStore.DungeonAttempt attempt = new DungeonStore.DungeonAttempt(
+         currentServer(), now, duration, completed, activeDungeonName, joinNames(names)
+      );
+      Component chatMessage = Component.literal("Dungeon " + (completed ? "completed" : "failed") + ": ")
+         .withStyle(completed ? ChatFormatting.GREEN : ChatFormatting.RED)
+         .append(Component.literal(attempt.names()).withStyle(ChatFormatting.GRAY))
+         .append(Component.literal(" took " + TextUtil.fmtStopwatch(duration)).withStyle(ChatFormatting.YELLOW));
+      DungeonStore.saveAttempt(attempt);
+      applyDungeonCooldown(now);
+      resetRun();
+      if (cfg.reportRunsInChat) {
+         DungeonRuntime.sendChat(chatMessage);
       }
    }
 
@@ -353,31 +332,14 @@ public final class DungeonState {
       inDungeon = false;
       activeDungeonName = "Dungeon";
       startedAtMs = 0L;
-      activeClientRunId = "";
-      activePartyRunKey = "";
-      activeRunMergeKey = "";
-      activeRemoteRunUid = "";
-      activeCooldownReported = false;
-      expectedPartySize = 0;
       lastEnterSignalAtMs = 0L;
       partyNames.clear();
       lostLivesNames.clear();
    }
 
-   private static void clearManagedParty() {
-      managedPartyActive = false;
-      managedPartyReporter = false;
-   }
-
    private static boolean observePartyLine(String raw) {
-      if (raw == null || raw.isBlank()) {
-         return false;
-      }
-
       if (PARTY_DISBANDED.matcher(raw).find()) {
-         clearManagedParty();
          partyNames.clear();
-         expectedPartySize = 0;
          return true;
       }
 
@@ -386,25 +348,24 @@ public final class DungeonState {
          String name = cleanName(joined.group(1), "");
          if (!name.isBlank()) {
             partyNames.add(name);
-            expectedPartySize = Math.max(expectedPartySize, partyNames.size());
          }
 
          return true;
-      } else {
-         Matcher left = PARTY_LEFT.matcher(raw);
-         if (left.find()) {
-            removePartyMember(left.group(1));
-            return true;
-         } else {
-            Matcher removed = PARTY_REMOVED.matcher(raw);
-            if (removed.find()) {
-               removePartyMember(removed.group(1));
-               return true;
-            } else {
-               return false;
-            }
-         }
       }
+
+      Matcher left = PARTY_LEFT.matcher(raw);
+      if (left.find()) {
+         removePartyMember(left.group(1));
+         return true;
+      }
+
+      Matcher removed = PARTY_REMOVED.matcher(raw);
+      if (removed.find()) {
+         removePartyMember(removed.group(1));
+         return true;
+      }
+
+      return false;
    }
 
    private static void removePartyMember(String rawName) {
@@ -412,23 +373,17 @@ public final class DungeonState {
       if (!name.isBlank()) {
          partyNames.removeIf(existing -> existing.equalsIgnoreCase(name));
          lostLivesNames.removeIf(existing -> existing.equalsIgnoreCase(name));
-         if (isSelf(name)) {
-            clearManagedParty();
-         }
       }
    }
 
    private static void expireRunIfNeeded(long now) {
-      if (inDungeon && startedAtMs > 0L) {
-         if (now - startedAtMs >= 2700000L) {
-            resetRun();
-         }
+      if (inDungeon && startedAtMs > 0L && now - startedAtMs >= MAX_TRACKED_RUN_MS) {
+         resetRun();
       }
    }
 
    private static String cleanName(String raw, String fallback) {
       String s = raw == null ? "" : raw.trim();
-
       while (!s.isEmpty() && (s.charAt(0) == '~' || s.charAt(0) == '"' || Character.isWhitespace(s.charAt(0)))) {
          s = s.substring(1).trim();
       }
@@ -444,14 +399,19 @@ public final class DungeonState {
       return SuiteRuntime.profile().primaryDungeonName();
    }
 
-   private static String selfName() {
+   private static String gameSelfName() {
       Minecraft client = Minecraft.getInstance();
       if (client != null && client.player != null) {
          String name = client.player.getName().getString();
          return name == null ? "" : name.trim();
-      } else {
-         return "";
       }
+
+      return "";
+   }
+
+   private static String selfName() {
+      String name = selfNameSource.get();
+      return name == null ? "" : name.trim();
    }
 
    private static void ensureSelfInParty() {
@@ -461,29 +421,11 @@ public final class DungeonState {
       }
    }
 
-   private static boolean partyContainsSelf() {
-      String self = selfName();
-      if (self.isBlank()) {
-         return false;
-      }
-
-      for (String name : partyNames) {
-         if (self.equalsIgnoreCase(name)) {
-            return true;
-         }
-      }
-
-      return false;
-   }
-
+   /** If the "entering" line was missed but the dungeon clearly started recently, count the run from then. */
    private static void recoverRunIfNeeded(long now) {
-      if (!inDungeon && startedAtMs <= 0L) {
-         if (lastEnterSignalAtMs > 0L) {
-            if (now - lastEnterSignalAtMs <= 7200000L) {
-               ensureSelfInParty();
-               startRun(lastEnterSignalAtMs);
-            }
-         }
+      if (!inDungeon && startedAtMs <= 0L && lastEnterSignalAtMs > 0L && now - lastEnterSignalAtMs <= RUN_RECOVERY_WINDOW_MS) {
+         ensureSelfInParty();
+         startRun(lastEnterSignalAtMs);
       }
    }
 
@@ -507,6 +449,7 @@ public final class DungeonState {
       return false;
    }
 
+   /** Your own death ends your run (as a failure) and starts your cooldown, whatever the rest of the party is still doing. */
    private static void finishSelfLostLives(long now) {
       String self = selfName();
       if (!self.isBlank()) {
@@ -518,222 +461,11 @@ public final class DungeonState {
       finishRun(false, now);
    }
 
-   private static void applyDungeonCooldown(long now, String reason) {
-      if (inDungeon && startedAtMs > 0L && !activeCooldownReported) {
-         DungeonConfig cfg = SuiteConfig.INSTANCE.DungeonConfig;
-         String server = currentServer();
-         cfg.cooldownTotalMs = Math.max(1, cfg.cooldownHours) * 60L * 60L * 1000L;
-         long endsAt = now + cfg.cooldownTotalMs;
-         cfg.setCooldownEndsAt(server, endsAt);
-         ConfigIO.saveIfDirty();
-         activeCooldownReported = true;
-         reportRunCooldown(activeRemoteRunUid, activeClientRunId, activePartyRunKey, activeDungeonName, startedAtMs, now, endsAt, cfg.cooldownHours, reason);
-      }
-   }
-
-   private static void reportRunStart(String clientRunId, String dungeonName, long startMs, int expectedSize, LinkedHashSet<String> names) {
-      if (shouldReportDungeonRun()) {
-         DungeonReportService service = DungeonRuntime.reportService();
-         DungeonState.PlayerIdentity identity = playerIdentity();
-         if (service != null && identity != null) {
-            DungeonModels.DungeonRunStartRequest req = new DungeonModels.DungeonRunStartRequest();
-            req.clientRunId = clientRunId;
-            req.partyRunKey = partyRunKey(currentServer(), dungeonName, names, startMs);
-            req.playerUuid = identity.uuid;
-            req.playerName = identity.name;
-            req.reporterUuid = identity.uuid;
-            req.reporterName = identity.name;
-            req.serverKey = currentServer();
-            req.dungeonName = dungeonName;
-            req.startedAtMs = startMs;
-            req.runMergeKey = runMergeKey(currentServer(), dungeonName, startMs);
-            req.partyNames = new ArrayList<>(names);
-            req.expectedPartySize = expectedSize;
-            service.reportStartIfAllowed(req).thenAccept(uid -> {
-               if (uid != null && !uid.isBlank()) {
-                  if (clientRunId.equals(activeClientRunId)) {
-                     activeRemoteRunUid = uid;
-                  }
-               }
-            }).exceptionally(ex -> null);
-         }
-      }
-   }
-
-   private static void reportRunFinish(
-      String remoteUid,
-      String clientRunId,
-      String partyRunKey,
-      String dungeonName,
-      long startMs,
-      long endMs,
-      long durationMs,
-      boolean completed,
-      int expectedSize,
-      LinkedHashSet<String> names,
-      LinkedHashSet<String> lostNames
-   ) {
-      if (shouldReportDungeonRun()) {
-         DungeonReportService service = DungeonRuntime.reportService();
-         DungeonState.PlayerIdentity identity = playerIdentity();
-         if (service != null && identity != null) {
-            DungeonModels.DungeonRunFinishRequest req = new DungeonModels.DungeonRunFinishRequest();
-            req.uid = remoteUid;
-            req.clientRunId = clientRunId;
-            req.partyRunKey = partyRunKey;
-            req.playerUuid = identity.uuid;
-            req.playerName = identity.name;
-            req.reporterUuid = identity.uuid;
-            req.reporterName = identity.name;
-            req.serverKey = currentServer();
-            req.dungeonName = dungeonName;
-            req.startedAtMs = startMs;
-            req.endedAtMs = endMs;
-            req.durationMs = durationMs;
-            req.status = completed ? "completed" : "failed";
-            req.completed = completed;
-            req.runMergeKey = runMergeKey(currentServer(), dungeonName, startMs);
-            req.partyNames = new ArrayList<>(names);
-            req.lostLivesNames = new ArrayList<>(lostNames);
-            req.expectedPartySize = expectedSize;
-            service.reportFinishIfAllowed(req);
-         }
-      }
-   }
-
-   private static void reportRunLostLives(long observedAtMs, List<String> observedLostNames) {
-      if (shouldReportDungeonRun()) {
-         DungeonReportService service = DungeonRuntime.reportService();
-         DungeonState.PlayerIdentity identity = playerIdentity();
-         if (service != null && identity != null) {
-            if (observedLostNames != null && !observedLostNames.isEmpty()) {
-               long startMs = startedAtMs > 0L ? startedAtMs : lastEnterSignalAtMs;
-               String dungeonName = activeDungeonName != null && !activeDungeonName.isBlank() ? activeDungeonName : canonicalDungeonName();
-               DungeonModels.DungeonLostLivesRequest req = new DungeonModels.DungeonLostLivesRequest();
-               req.uid = activeRemoteRunUid;
-               req.clientRunId = activeClientRunId;
-               req.partyRunKey = activePartyRunKey;
-               req.runMergeKey = activeRunMergeKey != null && !activeRunMergeKey.isBlank()
-                  ? activeRunMergeKey
-                  : runMergeKey(currentServer(), dungeonName, startMs > 0L ? startMs : observedAtMs);
-               req.playerUuid = identity.uuid;
-               req.playerName = identity.name;
-               req.reporterUuid = identity.uuid;
-               req.reporterName = identity.name;
-               req.serverKey = currentServer();
-               req.dungeonName = dungeonName;
-               req.startedAtMs = startMs > 0L ? startMs : null;
-               req.observedAtMs = observedAtMs;
-               req.partyNames = new ArrayList<>(partyNames);
-               req.lostLivesNames = new ArrayList<>(observedLostNames);
-               req.expectedPartySize = expectedPartySize;
-               service.reportLostLivesIfAllowed(req);
-            }
-         }
-      }
-   }
-
-   private static void reportRunCooldown(
-      String remoteUid,
-      String clientRunId,
-      String partyRunKey,
-      String dungeonName,
-      long startMs,
-      long triggeredAtMs,
-      long endsAtMs,
-      int cooldownHours,
-      String reason
-   ) {
-      if (shouldReportDungeonRun()) {
-         DungeonReportService service = DungeonRuntime.reportService();
-         DungeonState.PlayerIdentity identity = playerIdentity();
-         if (service != null && identity != null) {
-            DungeonModels.DungeonCooldownRequest req = new DungeonModels.DungeonCooldownRequest();
-            req.uid = remoteUid;
-            req.clientRunId = clientRunId;
-            req.partyRunKey = partyRunKey;
-            req.playerUuid = identity.uuid;
-            req.playerName = identity.name;
-            req.reporterUuid = identity.uuid;
-            req.reporterName = identity.name;
-            req.serverKey = currentServer();
-            req.dungeonName = dungeonName;
-            req.startedAtMs = startMs;
-            req.runMergeKey = runMergeKey(currentServer(), dungeonName, startMs);
-            req.cooldownTriggeredAtMs = triggeredAtMs;
-            req.cooldownEndsAtMs = endsAtMs;
-            req.cooldownHours = cooldownHours;
-            req.partyNames = new ArrayList<>(partyNames);
-            req.lostLivesNames = new ArrayList<>(lostLivesNames);
-            req.expectedPartySize = expectedPartySize;
-            req.reason = reason;
-            service.reportCooldownIfAllowed(req);
-         }
-      }
-   }
-
-   private static boolean shouldReportDungeonRun() {
-      return managedPartyActive && managedPartyReporter;
-   }
-
-   private static DungeonState.PlayerIdentity playerIdentity() {
-      Minecraft client = Minecraft.getInstance();
-      if (client != null && client.player != null) {
-         String uuid = client.player.getStringUUID();
-         String name = client.player.getName().getString();
-         return uuid != null && !uuid.isBlank() && name != null && !name.isBlank() ? new DungeonState.PlayerIdentity(uuid, name.trim()) : null;
-      } else {
-         return null;
-      }
-   }
-
-   private static String partyRunKey(String server, String dungeonName, LinkedHashSet<String> names, long startMs) {
-      long bucket = Math.max(0L, startMs) / 30000L;
-      String canonical = normalizeKeyPart(server) + "|" + normalizeKeyPart(dungeonName) + "|" + normalizedPartyNames(names) + "|" + bucket;
-      return sha256Hex(canonical);
-   }
-
-   private static String runMergeKey(String server, String dungeonName, long startMs) {
-      long bucket = Math.max(0L, startMs) / 30000L;
-      String canonical = normalizeKeyPart(server) + "|" + normalizeKeyPart(dungeonName) + "|" + bucket;
-      return sha256Hex(canonical);
-   }
-
-   private static String normalizedPartyNames(LinkedHashSet<String> names) {
-      ArrayList<String> normalized = new ArrayList<>();
-      if (names != null) {
-         for (String name : names) {
-            String clean = normalizeKeyPart(name);
-            if (!clean.isBlank() && !normalized.contains(clean)) {
-               normalized.add(clean);
-            }
-         }
-      }
-
-      Collections.sort(normalized);
-      return String.join(",", normalized);
-   }
-
-   private static String normalizeKeyPart(String raw) {
-      String s = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
-      return s.replaceAll("\\s+", " ");
-   }
-
-   private static String sha256Hex(String value) {
-      try {
-         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-         byte[] hash = digest.digest((value == null ? "" : value).getBytes(StandardCharsets.UTF_8));
-         StringBuilder out = new StringBuilder(hash.length * 2);
-
-         for (byte b : hash) {
-            out.append(Character.forDigit(b >> 4 & 15, 16));
-            out.append(Character.forDigit(b & 15, 16));
-         }
-
-         return out.toString();
-      } catch (Exception ignored) {
-         return UUID.nameUUIDFromBytes((value == null ? "" : value).getBytes(StandardCharsets.UTF_8)).toString();
-      }
+   private static void applyDungeonCooldown(long now) {
+      DungeonConfig cfg = SuiteConfig.INSTANCE.DungeonConfig;
+      cfg.cooldownTotalMs = Math.max(1, cfg.cooldownHours) * 60L * 60L * 1000L;
+      cfg.setCooldownEndsAt(currentServer(), now + cfg.cooldownTotalMs);
+      saver.run();
    }
 
    private static String joinNames(LinkedHashSet<String> names) {
@@ -755,21 +487,9 @@ public final class DungeonState {
       long s = totalSec % 60L;
       if (h > 0L) {
          return h + "h " + m + "m";
-      } else {
-         return m > 0L ? m + "m" : s + "s";
       }
-   }
 
-   private static String formatLongDuration(long ms) {
-      long totalSec = Math.max(0L, (long)Math.ceil(ms / 1000.0));
-      long h = totalSec / 3600L;
-      long m = totalSec % 3600L / 60L;
-      long s = totalSec % 60L;
-      if (h > 0L) {
-         return h + "h " + m + "m";
-      } else {
-         return m > 0L ? m + "m" : s + "s";
-      }
+      return m > 0L ? m + "m" : s + "s";
    }
 
    public record CooldownRow(String server, long endsAtMs, long remainingMs) {
@@ -778,6 +498,10 @@ public final class DungeonState {
       }
    }
 
-   private record PlayerIdentity(String uuid, String name) {
+   /** Pretends to be this player and forgets everything, so tests can replay chat from a clean start. */
+   static void resetForTests(String selfName) {
+      selfNameSource = () -> selfName;
+      saver = () -> {};
+      resetRun();
    }
 }

@@ -118,7 +118,9 @@ public final class DungeonHud {
             long now = System.currentTimeMillis();
             List<DungeonState.CooldownRow> rows = DungeonState.hudCooldownRows(now);
             String activeRunLine = DungeonState.activeRunLine(now);
-            if (!rows.isEmpty() || activeRunLine != null || HudEditState.editMode) {
+            boolean anyCooldown = rows.stream().anyMatch(DungeonState.CooldownRow::active);
+            boolean quiet = cfg.hudServerMode == DungeonConfig.HudServerMode.CURRENT_SERVER && !anyCooldown && activeRunLine == null;
+            if (!quiet || HudEditState.editMode) {
                int screenH = client.getWindow().getGuiScaledHeight();
                int screenW = client.getWindow().getGuiScaledWidth();
                Font tr = client.font;
@@ -209,7 +211,7 @@ public final class DungeonHud {
 
    private static String lineText(DungeonState.CooldownRow row, boolean includeServer) {
       String status = row.active() ? DungeonState.formatCooldownDuration(row.remainingMs()) : "READY";
-      return includeServer ? SuiteRuntime.profile().serverDisplayName(row.server()) + ": " + status : status;
+      return (includeServer ? SuiteRuntime.profile().serverDisplayName(row.server()) : "Cooldown") + ": " + status;
    }
 
    private static String trimToWidth(Minecraft client, String s, int maxW) {

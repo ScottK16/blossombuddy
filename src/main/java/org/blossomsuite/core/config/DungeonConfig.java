@@ -11,7 +11,6 @@ public final class DungeonConfig {
    public boolean showHeader = true;
    public DungeonConfig.HudServerMode hudServerMode = DungeonConfig.HudServerMode.CURRENT_SERVER;
    public boolean reportRunsInChat = true;
-   public boolean reportRunsHttp = true;
    public int cooldownHours = 8;
    public long cooldownTotalMs = 28800000L;
    public float positionX = -1.0F;
@@ -36,11 +35,6 @@ public final class DungeonConfig {
 
    public void toggleReportRunsInChat() {
       this.reportRunsInChat = !this.reportRunsInChat;
-      SuiteConfig.INSTANCE.markDirty();
-   }
-
-   public void toggleReportRunsHttp() {
-      this.reportRunsHttp = !this.reportRunsHttp;
       SuiteConfig.INSTANCE.markDirty();
    }
 

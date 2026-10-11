@@ -25,6 +25,6 @@ public final class SuiteRuntime {
    }
 
    public static boolean isEnabled(SuiteFeature feature) {
-      return feature == SuiteFeature.DUNGEONS ? false : profile().isEnabled(feature);
+      return profile().isEnabled(feature);
    }
 }

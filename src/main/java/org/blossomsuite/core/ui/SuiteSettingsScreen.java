@@ -118,6 +118,10 @@ public class SuiteSettingsScreen extends Screen {
          this.tabs.add(new SubTabSuiteTab(new CoordsSubTab()));
       }
 
+      if (feature(SuiteFeature.DUNGEONS)) {
+         this.tabs.add(new DungeonTab());
+      }
+
       if (feature(SuiteFeature.FISHING)) {
          this.tabs.add(new SubTabSuiteTab(new FishingSubTab()));
       }
@@ -144,6 +148,7 @@ public class SuiteSettingsScreen extends Screen {
       this.tabs.add(new SubTabSuiteTab(new BuddyTabs.XpTracker()));
       this.tabs.add(new SubTabSuiteTab(new BuddyTabs.AltAccount()));
       this.tabs.add(new SubTabSuiteTab(new BuddyTabs.SecondaryChatPage()));
+      this.tabs.add(new SubTabSuiteTab(new BuddyTabs.ChatNotifyPage()));
       this.tabs.add(new KeybindsTab());
       if (feature(SuiteFeature.MINING)) {
          this.tabs.add(new SubTabSuiteTab(new MiningSubTab()));

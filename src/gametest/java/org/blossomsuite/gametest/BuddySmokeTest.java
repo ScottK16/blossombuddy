@@ -166,6 +166,39 @@ public class BuddySmokeTest implements FabricClientGameTest {
          context.waitTicks(10);
          context.takeScreenshot("48-secondary-back");
 
+         // the dungeon timer: chat lines from the server start it, a teammate dying changes nothing, finishing starts the cooldown
+         context.runOnClient(mc -> {
+            FeatureConfig.INSTANCE.chat.show = false;
+            org.blossomsuite.core.config.SuiteConfig.INSTANCE.DungeonConfig.cooldownEndsByServer.clear();
+         });
+         world.getServer().runCommand("tellraw @a \"[Dungeons] All players are ready! Entering the dungeon!\"");
+         context.waitTicks(40);
+         world.getServer().runCommand("tellraw @a \"[Dungeons] Bob lost all their lives!\"");
+         context.waitTicks(20);
+         boolean stillRunning = context.computeOnClient(mc -> org.blossomsuite.core.dungeons.DungeonState.inRun());
+         if (!stillRunning) {
+            throw new AssertionError("a teammate dying must not end your dungeon run");
+         }
+
+         context.takeScreenshot("70-dungeon-running");
+         world.getServer().runCommand("tellraw @a \"AKUMA HAS FALLEN!\"");
+         context.waitTicks(20);
+         context.takeScreenshot("71-dungeon-cooldown");
+
+         // chat notify rings when a keyword shows up in a chat line that arrives through the normal chat events
+         context.runOnClient(mc -> {
+            FeatureConfig.INSTANCE.chatNotify.enabled = true;
+            FeatureConfig.INSTANCE.chatNotify.keywords = "Claude";
+         });
+         world.getServer().runCommand("tellraw @a \"Somebody said Claude in chat\"");
+         context.waitTicks(10);
+         long dinged = context.computeOnClient(mc -> org.blossomsuite.core.chat.ChatNotify.INSTANCE.lastDingAtMs());
+         if (System.currentTimeMillis() - dinged > 30_000L) {
+            throw new AssertionError("chat notify did not ring for a keyword in chat");
+         }
+
+         context.runOnClient(mc -> FeatureConfig.INSTANCE.chatNotify.enabled = false);
+
          // the leaderboard window, reading from a throwaway local relay seeded with made-up players (started by the dev script)
          if (System.getenv("BLOSSOMBUDDY_SEEDED_RELAY") != null) {
             context.runOnClient(mc -> org.blossomsuite.core.state.SuiteState.INSTANCE.http.setBaseUrl("http://127.0.0.1:8799"));

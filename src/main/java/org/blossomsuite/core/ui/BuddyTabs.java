@@ -5,6 +5,7 @@ import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.config.VoteConfig;
 
 import org.blossomsuite.core.alts.AltGuard;
+import org.blossomsuite.core.chat.ChatNotify;
 import org.blossomsuite.core.emote.EmoteClient;
 import org.blossomsuite.core.board.LeaderboardClient;
 import org.blossomsuite.core.presence.PresenceClient;
@@ -428,6 +429,88 @@ public final class BuddyTabs {
          y = UiRows.note(screen, x, w, y, "Counts the players in the tab list. Only acts on BlossomCraft, never on other servers.");
          y = UiRows.note(screen, x, w, y, "Rejoining while the server is still that full will disconnect you again.");
          UiRows.note(screen, x, w, y, "Leave this off on your main account.");
+      }
+   }
+
+   // ------------------------------------------------------------------ chat notify
+
+   public static final class ChatNotifyPage extends Page {
+      private static final String[][] SOUNDS = {
+         {"Pling", "block.note_block.pling"},
+         {"Bell", "block.note_block.bell"},
+         {"Chime", "block.note_block.chime"},
+         {"XP orb", "entity.experience_orb.pickup"},
+         {"Level up", "entity.player.levelup"}
+      };
+
+      @Override
+      public String titleKey() {
+         return "suitecore.tab.chatnotify";
+      }
+
+      @Override
+      int height(SuiteSettingsScreen screen) {
+         return UiRows.ROW * 4 + UiRows.SLIDER_ROW + 48 + 18 * 3 + 24;
+      }
+
+      static String soundName(String id) {
+         for (String[] s : SOUNDS) {
+            if (s[1].equalsIgnoreCase(id)) {
+               return s[0];
+            }
+         }
+
+         return "Custom";
+      }
+
+      static String nextSound(String id) {
+         for (int i = 0; i < SOUNDS.length; i++) {
+            if (SOUNDS[i][1].equalsIgnoreCase(id)) {
+               return SOUNDS[(i + 1) % SOUNDS.length][1];
+            }
+         }
+
+         return SOUNDS[0][1];
+      }
+
+      @Override
+      void rows(SuiteSettingsScreen screen, int x, int w, int y) {
+         FeatureConfig.ChatNotify cfg = FeatureConfig.INSTANCE.chatNotify;
+         y = UiRows.toggle(screen, x, w, y, "Ding on keywords", cfg.enabled, "Plays a sound when one of the words below shows up in chat. Off by default.", () -> {
+            cfg.enabled = !cfg.enabled;
+            FeatureConfig.markDirty();
+            screen.rebuildPreserveScroll();
+         });
+         screen.addContentWidget(new HoverLabelWidget(x, y + 4, w, 12, Component.literal("Keywords"), Tooltip.create(Component.literal("Words or phrases separated by |, any case, matched as whole words. Example: Claude|diamond key"))));
+         EditBox words = new EditBox(screen.getFont(), x, y + 20, w, 20, Component.literal("Keywords"));
+         words.setMaxLength(300);
+         words.setValue(cfg.keywords == null ? "" : cfg.keywords);
+         words.setHint(Component.literal("words separated by |"));
+         words.setResponder(s -> {
+            cfg.keywords = s;
+            FeatureConfig.markDirty();
+         });
+         screen.addContentWidget(words);
+         y += 48;
+         y = UiRows.toggle(screen, x, w, y, "Ding when my name is said", cfg.mentionName, "Also rings when someone else says your Minecraft name.", () -> {
+            cfg.mentionName = !cfg.mentionName;
+            FeatureConfig.markDirty();
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.button(screen, x, w, y, "Sound", soundName(cfg.sound), "Click to cycle the sound. Any other sound id works through /buddy notify sound <id>.", () -> {
+            cfg.sound = nextSound(cfg.sound);
+            FeatureConfig.markDirty();
+            ChatNotify.playNow();
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.slider(screen, x, w, y, "Volume", "How loud the ding is.", Math.max(0.0F, Math.min(1.0F, cfg.volume)), v -> "Volume: " + (int)Math.round(v * 100.0) + "%", v -> {
+            cfg.volume = (float)v;
+            FeatureConfig.markDirty();
+         });
+         y = UiRows.button(screen, x, w, y, "Try it", "Play", "Plays the ding now.", ChatNotify::playNow);
+         y = UiRows.note(screen, x, w, y, "Your own messages never ring it, and it rings at most about once a second.");
+         y = UiRows.note(screen, x, w, y, "Everything stays on your computer: chat is read and compared, nothing is sent anywhere.");
+         UiRows.note(screen, x, w, y, "Also: /buddy notify add <word>, remove <word>, list, on, off.");
       }
    }
 

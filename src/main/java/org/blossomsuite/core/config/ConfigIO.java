@@ -561,7 +561,6 @@ public final class ConfigIO {
                DungeonConfig.HudServerMode.CURRENT_SERVER
             );
             config.DungeonConfig.reportRunsInChat = extractBoolCompat(json, true, "dungeon.reportRunsInChat");
-            config.DungeonConfig.reportRunsHttp = true;
             config.DungeonConfig.cooldownHours = Math.max(1, Math.min(72, extractIntCompat(json, 8, "dungeon.cooldownHours")));
             config.DungeonConfig.cooldownTotalMs = config.DungeonConfig.cooldownHours * 60L * 60L * 1000L;
             config.DungeonConfig.positionX = extractNormalizedFloatCompat(json, -1.0F, "dungeon.position.x");
@@ -1043,8 +1042,6 @@ public final class ConfigIO {
             + config.DungeonConfig.hudServerMode
             + "\",\n  \"dungeon.reportRunsInChat\": "
             + config.DungeonConfig.reportRunsInChat
-            + ",\n  \"dungeon.reportRunsHttp\": "
-            + config.DungeonConfig.reportRunsHttp
             + ",\n  \"dungeon.cooldownHours\": "
             + config.DungeonConfig.cooldownHours
             + ",\n  \"dungeon.position.x\": "

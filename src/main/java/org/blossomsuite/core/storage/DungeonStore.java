@@ -52,6 +52,10 @@ public final class DungeonStore {
             addRecent(attempt);
          }
 
+         if (file == null) {
+            return;
+         }
+
          try (BufferedWriter w = Files.newBufferedWriter(file, StandardCharsets.UTF_8, StandardOpenOption.APPEND)) {
             w.write(encodeLine(attempt));
             w.newLine();

@@ -20,6 +20,7 @@ public final class HudCallbacks {
                      JobsHud.render(ctx, client);
                      CooldownsHud.renderPanel(ctx, client);
                      CooldownsHud.renderHotbar(ctx, client);
+                     DungeonHud.render(ctx, client);
                      ToolLockHotbarOverlay.render(ctx, client);
                      CoordsHud.render(ctx, client);
                      BiomeHud.render(ctx, client);

@@ -32,7 +32,7 @@ public final class DungeonTab implements SuiteTab {
       int x = screen.contentX();
       int w = screen.contentW();
       int y = screen.bodyContentY() - screen.scrollOffset();
-      y = this.addToggleRow(screen, x, w, y, "Dungeon Tracking", cfg.enabled, "Watches dungeon chat messages to track runs and the 8 hour cooldown.", () -> {
+      y = this.addToggleRow(screen, x, w, y, "Dungeon Tracking", cfg.enabled, "Times your own dungeon runs and the cooldown from the dungeon chat messages. A teammate dying never resets your timer; only your own death or finish ends your run.", () -> {
          cfg.toggleEnabled();
          ConfigIO.saveIfDirty();
          screen.rebuildPreserveScroll();

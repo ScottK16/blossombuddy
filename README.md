@@ -9,6 +9,8 @@ A Fabric client mod for the BlossomCraft server, continuing on from the still ex
 - Vote-party alerts shared across realms
 - Emotes (dances, a backflip, a cartwheel and more) other BlossomBuddy players can see
 - Leaderboards: top earners and top overflow XP, overall or per realm, in game (`/buddy top`) and on the website - opt-in
+- A dungeon timer: your own run clock and the 8 hour cooldown, kept per player (a teammate dying never resets it) - `/buddy dungeon`
+- Chat Notify: a ding when words you pick (or your name) show up in chat - `/buddy notify`, off by default
 - A map art tool: turn a picture into a real in-game build, including a Litematica-compatible schematic export
 - Item cooldown tracking, Jobs Overflow XP, inventory slot locks, and the rest of the original BlossomSuite toolkit
 - A searchable options screen, and a draggable HUD editor for every panel

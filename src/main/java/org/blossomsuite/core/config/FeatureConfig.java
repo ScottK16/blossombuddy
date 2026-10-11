@@ -42,6 +42,7 @@ public final class FeatureConfig {
    public MapArt mapart = new MapArt();
    public Render render = new Render();
    public AltAccount altAccount = new AltAccount();
+   public ChatNotify chatNotify = new ChatNotify();
    /** Cooldown rules the player has switched off, by item id (or item name when a rule has no id). */
    public List<String> disabledCooldownItems = new ArrayList<>();
 
@@ -113,6 +114,41 @@ public final class FeatureConfig {
       /** Disconnect when the server's player count reaches {@link #playerLimit} (alts aren't allowed to stay on a crowded server). */
       public boolean leaveWhenCrowded = false;
       public int playerLimit = 60;
+   }
+
+   /** A ding when chosen words show up in chat (your name, a friend, a rare item). Off until the player turns it on; nothing leaves the game. */
+   public static final class ChatNotify {
+      public boolean enabled = false;
+      /** Words or phrases separated by | (any case, matched as whole words), e.g. {@code Claude|diamond key}. */
+      public String keywords = "";
+      /** Also ding when someone else says your own Minecraft name. */
+      public boolean mentionName = true;
+      /** A sound id, e.g. {@code block.note_block.pling}. */
+      public String sound = "block.note_block.pling";
+      public float volume = 0.8F;
+
+      /** The words as a clean list: blanks dropped, no repeats, a sensible cap on how many and how long. */
+      public List<String> words() {
+         List<String> out = new ArrayList<>();
+         if (this.keywords != null) {
+            for (String part : this.keywords.split("[|,]")) {
+               String word = part.trim();
+               if (word.length() > 40) {
+                  word = word.substring(0, 40);
+               }
+
+               if (!word.isEmpty() && out.stream().noneMatch(word::equalsIgnoreCase) && out.size() < 30) {
+                  out.add(word);
+               }
+            }
+         }
+
+         return out;
+      }
+
+      public void setWords(List<String> words) {
+         this.keywords = String.join("|", words);
+      }
    }
 
    /** Vote-party sharing between realms: automatic, anonymous, and switchable. Off until the player opts in. */
