@@ -82,7 +82,7 @@ class EmoteAnimatorTest {
             assertSane(p.leftLeg, e.id() + " left leg");
             assertSane(p.torso, e.id() + " torso");
             assertTrue(p.prone >= 0.0F && p.prone <= 1.0F, e.id() + " lies down between not at all and completely: " + p.prone);
-            assertTrue(Math.abs(p.yOffset) < 1.0F, e.id() + " stays within a block of where it stands: " + p.yOffset);
+            assertTrue(Math.abs(p.yOffset) < 1.5F, e.id() + " stays within a block and a half of where it stands (flips jump): " + p.yOffset);
             assertTrue(Math.abs(p.bodyYawDegrees) <= 720.5F, e.id() + " turns at most twice round");
          }
 
@@ -289,6 +289,6 @@ class EmoteAnimatorTest {
          assertTrue(e.label().length() <= 9, "fits a slot: " + e.label());
       }
 
-      assertEquals(23, Emote.ALL.size());
+      assertEquals(25, Emote.ALL.size());
    }
 }

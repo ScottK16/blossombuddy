@@ -59,6 +59,8 @@ public final class EmoteAnimator {
          case "kickback" -> kickback(t, duration);
          case "wiggle" -> wiggle(t, k);
          case "money" -> money(t, k);
+         case "backflip" -> backflip(t, k);
+         case "cartwheel" -> cartwheel(t, k);
          default -> null;
       };
    }
@@ -325,6 +327,42 @@ public final class EmoteAnimator {
       float[] left = blend(LEFT_ARM_REST, new float[]{-2.7F, 0.0F, 0.1F}, prone);
       float[] head = scaled(new float[]{-1.0F + 0.08F * sin(t * 3.0F), 0.0F, 0.0F}, prone);
       return new EmotePose(head, right, left, rightLeg, leftLeg).withProne(prone);
+   }
+
+   /** How long one flip takes, crouch to landing. The emote lasts two of them, and a looping one just keeps repeating. */
+   static final float FLIP_SECONDS = 2.2F;
+
+   /** Crouch, spring up with the arms swung overhead, tuck and turn right over backwards in the air, land and straighten. */
+   private static EmotePose backflip(float t, float k) {
+      float p = (t % FLIP_SECONDS) / FLIP_SECONDS;
+      float air = Math.max(0.0F, Math.min(1.0F, (p - 0.18F) / 0.64F)); // 0..1 while off the ground
+      float crouch = p < 0.18F ? smooth(p / 0.18F) : p > 0.82F ? 0.8F * sin(PI * (p - 0.82F) / 0.18F) : 0.0F;
+      float tuck = air <= 0.0F || air >= 1.0F ? 0.0F : (float)Math.pow(sin(PI * air), 0.6);
+      // the arms swing up as the jump starts, stay there through the flip, and come back down on landing
+      float swing = p < 0.18F ? smooth(p / 0.18F) : p > 0.82F ? 1.0F - smooth((p - 0.82F) / 0.18F) : 1.0F;
+      float height = 1.25F * sin(PI * air);
+      float turn = -360.0F * smooth(air);
+      float[] right = blend(RIGHT_ARM_REST, new float[]{-3.0F * (1.0F - tuck) - 1.0F * tuck, 0.0F, 0.15F}, swing);
+      float[] left = blend(LEFT_ARM_REST, new float[]{-3.0F * (1.0F - tuck) - 1.0F * tuck, 0.0F, -0.15F}, swing);
+      float[] rightLeg = blend(LEG_REST, new float[]{-0.6F * crouch - 1.5F * tuck, 0.0F, 0.04F}, 1.0F);
+      float[] leftLeg = blend(LEG_REST, new float[]{-0.6F * crouch - 1.5F * tuck, 0.0F, -0.04F}, 1.0F);
+      return new EmotePose(null, right, left, rightLeg, leftLeg).withBody(0.0F, -0.3F * crouch + height).withFlip(turn, 0.0F);
+   }
+
+   /** Arms straight up, a quick hop, then the whole body wheels over sideways, legs spread, and lands on its feet again. */
+   private static EmotePose cartwheel(float t, float k) {
+      float p = (t % FLIP_SECONDS) / FLIP_SECONDS;
+      float air = Math.max(0.0F, Math.min(1.0F, (p - 0.15F) / 0.7F));
+      float crouch = p < 0.15F ? smooth(p / 0.15F) * 0.6F : p > 0.85F ? 0.6F * sin(PI * (p - 0.85F) / 0.15F) : 0.0F;
+      float open = air <= 0.0F || air >= 1.0F ? 0.0F : (float)Math.pow(sin(PI * air), 0.5);
+      float height = 0.45F * sin(PI * air);
+      float roll = 360.0F * smooth(air);
+      float armsUp = p < 0.15F ? smooth(p / 0.15F) : p > 0.85F ? 1.0F - smooth((p - 0.85F) / 0.15F) : 1.0F;
+      float[] right = blend(RIGHT_ARM_REST, new float[]{-3.1F, 0.0F, 0.1F}, armsUp);
+      float[] left = blend(LEFT_ARM_REST, new float[]{-3.1F, 0.0F, -0.1F}, armsUp);
+      float[] rightLeg = blend(LEG_REST, new float[]{0.0F, 0.0F, 0.1F + 0.75F * open}, 1.0F);
+      float[] leftLeg = blend(LEG_REST, new float[]{0.0F, 0.0F, -0.1F - 0.75F * open}, 1.0F);
+      return new EmotePose(null, right, left, rightLeg, leftLeg).withBody(0.0F, -0.2F * crouch + height).withFlip(0.0F, roll);
    }
 
    /** Hands out to the sides and the waist swinging round in circles, the head staying facing front. */

@@ -14,6 +14,7 @@ class SuiteHttpTest {
       assertTrue(SuiteHttp.isAllowedPath("/v1/presence/update"));
       assertTrue(SuiteHttp.isAllowedPath("/v1/emote/play"));
       assertTrue(SuiteHttp.isAllowedPath("/v1/verify/start"));
+      assertTrue(SuiteHttp.isAllowedPath("/v1/lb/top"));
       for (String path : new String[]{"/v1/donations", "/v1/dungeons/runs/start", "/v1/relay/cooldowns", "/v1/manifest", "/v1/mod/info", "/v1/mapart/get", "/", "", null}) {
          assertFalse(SuiteHttp.isAllowedPath(path), String.valueOf(path));
       }

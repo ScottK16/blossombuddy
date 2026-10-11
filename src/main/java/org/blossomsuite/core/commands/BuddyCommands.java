@@ -1,6 +1,7 @@
 package org.blossomsuite.core.commands;
 
 import net.minecraft.client.Minecraft;
+import org.blossomsuite.core.board.LeaderboardClient;
 import org.blossomsuite.core.presence.PresenceClient;
 import org.blossomsuite.core.stats.StatsClient;
 import org.blossomsuite.core.emote.Emote;
@@ -9,6 +10,7 @@ import org.blossomsuite.core.ui.BuddyKeysScreen;
 import org.blossomsuite.core.ui.ChatSearchScreen;
 import org.blossomsuite.core.ui.EmoteWheelScreen;
 import org.blossomsuite.core.ui.MapArtScreen;
+import org.blossomsuite.core.ui.LeaderboardScreen;
 import org.blossomsuite.core.ui.PlayerListScreen;
 import org.blossomsuite.core.xchat.XChatClient;
 import org.blossomsuite.core.xchat.XChatMode;
@@ -56,7 +58,7 @@ public final class BuddyCommands {
    }
 
    public static List<LiteralArgumentBuilder<FabricClientCommandSource>> subcommands() {
-      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players());
+      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"));
    }
 
    public static final String DISCORD_INVITE = "https://discord.gg/EA4WwSdGTj";
@@ -103,6 +105,11 @@ public final class BuddyCommands {
          Component.literal("Cross-realm chat, the player list and vote-party sharing are ").withStyle(ChatFormatting.GRAY)
             .append(Component.literal("opt-in").withStyle(ChatFormatting.AQUA))
             .append(Component.literal(" (the player list is on by default with a notice first). The relay keeps them in memory only, but /xc messages are also posted to a BlossomBuddy Discord channel, where Discord keeps them.").withStyle(ChatFormatting.GRAY))
+      );
+      ChatOutput.info(
+         Component.literal("The leaderboard is ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal("opt-in").withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(": only if you turn it on (/buddy top) are your Minecraft name and job money / overflow XP totals per realm kept on the relay and shown to everyone. Turning it off deletes them.").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
          Component.literal("Usage stats are a random ID and the mod version by default; sharing your username is opt-in (").withStyle(ChatFormatting.GRAY)
@@ -306,6 +313,28 @@ public final class BuddyCommands {
          }))
          .then(ClientCommands.literal("off").executes(ctx -> {
             PresenceClient.INSTANCE.setEnabled(false);
+            return 1;
+         }));
+   }
+
+   /** {@code /buddy top} (also {@code /buddy leaderboard}): the leaderboard window; {@code share} / {@code off} put you on or take you off it. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> top(String name) {
+      return ClientCommands.literal(name)
+         .executes(ctx -> {
+            Minecraft mc = Minecraft.getInstance();
+            mc.schedule(() -> mc.setScreen(new LeaderboardScreen())); // a tick later, so the chat screen closing doesn't undo it
+            return 1;
+         })
+         .then(ClientCommands.literal("share").executes(ctx -> {
+            LeaderboardClient.INSTANCE.setEnabled(true);
+            return 1;
+         }))
+         .then(ClientCommands.literal("on").executes(ctx -> {
+            LeaderboardClient.INSTANCE.setEnabled(true);
+            return 1;
+         }))
+         .then(ClientCommands.literal("off").executes(ctx -> {
+            LeaderboardClient.INSTANCE.setEnabled(false);
             return 1;
          }));
    }

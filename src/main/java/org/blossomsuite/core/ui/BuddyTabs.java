@@ -6,6 +6,7 @@ import org.blossomsuite.core.config.VoteConfig;
 
 import org.blossomsuite.core.alts.AltGuard;
 import org.blossomsuite.core.emote.EmoteClient;
+import org.blossomsuite.core.board.LeaderboardClient;
 import org.blossomsuite.core.presence.PresenceClient;
 import org.blossomsuite.core.stats.StatsClient;
 import org.blossomsuite.core.xchat.XChatClient;
@@ -320,7 +321,7 @@ public final class BuddyTabs {
 
       @Override
       int height(SuiteSettingsScreen screen) {
-         return UiRows.ROW * 10 + 18 * 11 + 24;
+         return UiRows.ROW * 12 + 18 * 12 + 24;
       }
 
       @Override
@@ -353,6 +354,14 @@ public final class BuddyTabs {
          });
          y = UiRows.note(screen, x, w, y, "Open the list with /buddy who (or bind a key: Options > Controls > BlossomBuddy).");
          y = UiRows.note(screen, x, w, y, PresenceClient.INSTANCE.status());
+
+         FeatureConfig.Leaderboard lb = FeatureConfig.INSTANCE.leaderboard;
+         y = UiRows.toggle(screen, x, w, y, "Share my stats on the leaderboard", lb.share, "Shows your Minecraft name and your job money and overflow XP totals per realm on the BlossomBuddy leaderboard, in game and on the website. Off until you turn it on; turning it off deletes your entry.", () -> {
+            LeaderboardClient.INSTANCE.setEnabled(!lb.share);
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.button(screen, x, w, y, "   Open the leaderboard", "Open", "Top earners and top overflow XP, overall or per realm. Same as /buddy top.", () -> Minecraft.getInstance().setScreen(new LeaderboardScreen()));
+         y = UiRows.note(screen, x, w, y, LeaderboardClient.INSTANCE.status());
 
          FeatureConfig.Emotes em = FeatureConfig.INSTANCE.emotes;
          y = UiRows.toggle(screen, x, w, y, "Emotes", em.enabled, "Dances and waves. Open the wheel with /buddy emote or a key (Options > Controls > BlossomBuddy).", () -> {

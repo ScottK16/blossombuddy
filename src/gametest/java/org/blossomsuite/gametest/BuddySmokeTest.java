@@ -58,6 +58,27 @@ public class BuddySmokeTest implements FabricClientGameTest {
          context.waitTicks(20);
          context.takeScreenshot("10-world");
 
+         // the flip emotes, seen from the front at several moments of the move (gui hidden so the pictures are clean)
+         context.runOnClient(mc -> {
+            mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT);
+            mc.options.hideGui = true;
+         });
+         for (org.blossomsuite.core.emote.Emote emote : java.util.List.of(org.blossomsuite.core.emote.Emote.BACKFLIP, org.blossomsuite.core.emote.Emote.CARTWHEEL)) {
+            for (int i = 0; i < 8; i++) {
+               final long offsetMs = 100L + i * 270L;
+               context.runOnClient(mc -> org.blossomsuite.core.emote.EmoteState.INSTANCE.startLooping(mc.player.getUUID(), emote, System.currentTimeMillis() - offsetMs));
+               context.waitTicks(1);
+               context.takeScreenshot("emote-" + emote.id() + "-" + i);
+            }
+
+            context.runOnClient(mc -> org.blossomsuite.core.emote.EmoteState.INSTANCE.stop(mc.player.getUUID()));
+         }
+
+         context.runOnClient(mc -> {
+            mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
+            mc.options.hideGui = false;
+         });
+
          // the lightmap mixin: an enclosed dark room, without and with full bright
          world.getServer().runCommand("fill ~-3 ~-1 ~-3 ~3 ~4 ~3 stone hollow");
          world.getServer().runCommand("time set midnight");
@@ -145,6 +166,18 @@ public class BuddySmokeTest implements FabricClientGameTest {
          context.waitTicks(10);
          context.takeScreenshot("48-secondary-back");
 
+         // the leaderboard window, reading from a throwaway local relay seeded with made-up players (started by the dev script)
+         if (System.getenv("BLOSSOMBUDDY_SEEDED_RELAY") != null) {
+            context.runOnClient(mc -> org.blossomsuite.core.state.SuiteState.INSTANCE.http.setBaseUrl("http://127.0.0.1:8799"));
+            context.setScreen(org.blossomsuite.core.ui.LeaderboardScreen::new);
+            context.waitTicks(40);
+            context.takeScreenshot("60-leaderboard-money-all");
+            context.runOnClient(mc -> choose(mc.screen, new org.blossomsuite.core.board.LeaderboardModels.Choice("overflow", "cherry", "week")));
+            context.waitTicks(40);
+            context.takeScreenshot("61-leaderboard-overflow-cherry-week");
+            context.setScreen(() -> null);
+         }
+
          // the screens that need a world
          screen(context, "50-playerlist", PlayerListScreen::new);
          screen(context, "50-emotewheel", EmoteWheelScreen::new);
@@ -154,6 +187,16 @@ public class BuddySmokeTest implements FabricClientGameTest {
 
       context.waitForScreen(TitleScreen.class);
       System.out.println("[SMOKE] done");
+   }
+
+   private static void choose(Object screen, org.blossomsuite.core.board.LeaderboardModels.Choice choice) {
+      try {
+         java.lang.reflect.Method m = org.blossomsuite.core.ui.LeaderboardScreen.class.getDeclaredMethod("choose", org.blossomsuite.core.board.LeaderboardModels.Choice.class);
+         m.setAccessible(true);
+         m.invoke(screen, choice);
+      } catch (ReflectiveOperationException e) {
+         throw new IllegalStateException(e);
+      }
    }
 
    private static void screen(ClientGameTestContext context, String name, Supplier<Screen> screen) {

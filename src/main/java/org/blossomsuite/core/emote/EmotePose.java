@@ -7,6 +7,8 @@ package org.blossomsuite.core.emote;
  *
  * <p>{@code bodyYawDegrees} turns the whole character around (added to the way they are facing), {@code yOffset} lifts or lowers them in
  * blocks (negative = lower), and {@code prone} (0 to 1) lays them face down on the ground, the way the game does for a swimming player.
+ * {@code flipPitchDegrees} somersaults the whole character forwards or backwards about their middle and {@code flipRollDegrees} rolls them
+ * sideways (a cartwheel).
  */
 public final class EmotePose {
    public final float[] head;
@@ -19,12 +21,14 @@ public final class EmotePose {
    /** Extra turn of the torso on its own, added to the game's (the arms and legs do not follow it). Null for none. */
    public final float[] torso;
    public final float prone;
+   public final float flipPitchDegrees;
+   public final float flipRollDegrees;
 
    public EmotePose(float[] head, float[] rightArm, float[] leftArm, float[] rightLeg, float[] leftLeg) {
-      this(head, rightArm, leftArm, rightLeg, leftLeg, 0.0F, 0.0F, null, 0.0F);
+      this(head, rightArm, leftArm, rightLeg, leftLeg, 0.0F, 0.0F, null, 0.0F, 0.0F, 0.0F);
    }
 
-   private EmotePose(float[] head, float[] rightArm, float[] leftArm, float[] rightLeg, float[] leftLeg, float bodyYawDegrees, float yOffset, float[] torso, float prone) {
+   private EmotePose(float[] head, float[] rightArm, float[] leftArm, float[] rightLeg, float[] leftLeg, float bodyYawDegrees, float yOffset, float[] torso, float prone, float flipPitchDegrees, float flipRollDegrees) {
       this.head = head;
       this.rightArm = rightArm;
       this.leftArm = leftArm;
@@ -34,20 +38,32 @@ public final class EmotePose {
       this.yOffset = yOffset;
       this.torso = torso;
       this.prone = prone;
+      this.flipPitchDegrees = flipPitchDegrees;
+      this.flipRollDegrees = flipRollDegrees;
    }
 
    /** The same pose, also turning the whole character and lifting or lowering them. */
    public EmotePose withBody(float bodyYawDegrees, float yOffset) {
-      return new EmotePose(this.head, this.rightArm, this.leftArm, this.rightLeg, this.leftLeg, bodyYawDegrees, yOffset, this.torso, this.prone);
+      return new EmotePose(this.head, this.rightArm, this.leftArm, this.rightLeg, this.leftLeg, bodyYawDegrees, yOffset, this.torso, this.prone, this.flipPitchDegrees, this.flipRollDegrees);
    }
 
    /** The same pose, also turning the torso by itself. */
    public EmotePose withTorso(float[] torso) {
-      return new EmotePose(this.head, this.rightArm, this.leftArm, this.rightLeg, this.leftLeg, this.bodyYawDegrees, this.yOffset, torso, this.prone);
+      return new EmotePose(this.head, this.rightArm, this.leftArm, this.rightLeg, this.leftLeg, this.bodyYawDegrees, this.yOffset, torso, this.prone, this.flipPitchDegrees, this.flipRollDegrees);
    }
 
    /** The same pose, also laying the character down face first (0 = standing, 1 = lying flat). */
    public EmotePose withProne(float prone) {
-      return new EmotePose(this.head, this.rightArm, this.leftArm, this.rightLeg, this.leftLeg, this.bodyYawDegrees, this.yOffset, this.torso, prone);
+      return new EmotePose(this.head, this.rightArm, this.leftArm, this.rightLeg, this.leftLeg, this.bodyYawDegrees, this.yOffset, this.torso, prone, this.flipPitchDegrees, this.flipRollDegrees);
+   }
+
+   /** The same pose, also turning the whole character head over heels ({@code pitch}, a backflip when negative) and/or sideways ({@code roll}, a cartwheel). */
+   public EmotePose withFlip(float pitchDegrees, float rollDegrees) {
+      return new EmotePose(this.head, this.rightArm, this.leftArm, this.rightLeg, this.leftLeg, this.bodyYawDegrees, this.yOffset, this.torso, this.prone, pitchDegrees, rollDegrees);
+   }
+
+   /** True when the whole body is tipped over, so the renderer has to rotate it. */
+   public boolean flips() {
+      return this.flipPitchDegrees != 0.0F || this.flipRollDegrees != 0.0F;
    }
 }

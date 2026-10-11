@@ -186,6 +186,7 @@ public final class SuiteClientBootstrap {
       XChatClient.INSTANCE.init();
       StatsClient.INSTANCE.init();
       PresenceClient.INSTANCE.init();
+      org.blossomsuite.core.board.LeaderboardClient.INSTANCE.init();
       EmoteClient.INSTANCE.init();
       ConfigIO.load();
       CooldownJingle.configure(() -> SuiteConfig.INSTANCE.CooldownsConfig.completeSoundVolume, SoundSource.MASTER);

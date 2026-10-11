@@ -35,5 +35,19 @@ public class PlayerEntityRendererMixin {
       if (pose != null && pose.prone > 0.0F) {
          matrices.translate(0.0F, -1.0F * pose.prone, 0.3F * pose.prone);
       }
+
+      if (pose != null && pose.flips()) {
+         // somersaults and cartwheels turn the whole body about its middle
+         matrices.translate(0.0F, 0.9F, 0.0F);
+         if (pose.flipPitchDegrees != 0.0F) {
+            matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(pose.flipPitchDegrees));
+         }
+
+         if (pose.flipRollDegrees != 0.0F) {
+            matrices.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(pose.flipRollDegrees));
+         }
+
+         matrices.translate(0.0F, -0.9F, 0.0F);
+      }
    }
 }

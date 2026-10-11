@@ -28,12 +28,14 @@ public record Emote(String id, String label, float durationSeconds) {
    public static final Emote KICKBACK = new Emote("kickback", "Kickback", 8.0F);
    public static final Emote WIGGLE = new Emote("wiggle", "Wiggle", 6.0F);
    public static final Emote MONEY = new Emote("money", "Money", 8.0F);
+   public static final Emote BACKFLIP = new Emote("backflip", "Backflip", 4.4F);
+   public static final Emote CARTWHEEL = new Emote("cartwheel", "Cartwheel", 4.4F);
 
    /**
     * Every emote, in the order they appear on the wheel. The relay has to accept the same ids (DEFAULT_EMOTES in relay/emotes.js, or the
     * EMOTE_IDS setting); a test keeps the two lists from drifting apart.
     */
-   public static final List<Emote> ALL = List.of(WAVE, DANCE, CHEER, CLAP, FLOSS, ROBOT, SPIN, HEADBANG, CHICKEN, JACKS, DISCO, SALUTE, SHRUG, FEETUP, TWERK, DAB, TPOSE, ZOMBIE, SPRINKLER, MARCH, KICKBACK, WIGGLE, MONEY);
+   public static final List<Emote> ALL = List.of(WAVE, DANCE, CHEER, CLAP, FLOSS, ROBOT, SPIN, HEADBANG, CHICKEN, JACKS, DISCO, SALUTE, SHRUG, FEETUP, TWERK, DAB, TPOSE, ZOMBIE, SPRINKLER, MARCH, KICKBACK, WIGGLE, MONEY, BACKFLIP, CARTWHEEL);
 
    /**
     * Sitting or lying down can't carry on while you walk around, so these two still end when you start moving; every other emote keeps

@@ -36,6 +36,7 @@ public final class FeatureConfig {
    public XChat xchat = new XChat();
    public Stats stats = new Stats();
    public Presence presence = new Presence();
+   public Leaderboard leaderboard = new Leaderboard();
    public Emotes emotes = new Emotes();
    public Chat chat = new Chat();
    public MapArt mapart = new MapArt();
@@ -165,6 +166,14 @@ public final class FeatureConfig {
       public boolean noticeShown = false;
       /** A small symbol after the name of players in the tab list who use the mod (only while the list is on). */
       public boolean tabSymbol = true;
+   }
+
+   /**
+    * The leaderboard: your job money and overflow XP totals, per realm, shown on the BlossomBuddy leaderboard (in game and on the
+    * website) next to your Minecraft name. Off until the player turns it on, and turning it off deletes what the relay holds.
+    */
+   public static final class Leaderboard {
+      public boolean share = false;
    }
 
    /** Emotes (dances and waves) that other BlossomBuddy players on the same realm can see. */
