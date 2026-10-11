@@ -1,6 +1,7 @@
 package org.blossomsuite.core.chat;
 
 import org.blossomsuite.core.SuiteRuntime;
+import org.blossomsuite.core.ui.Theme;
 import org.blossomsuite.core.util.TextUtil;
 import java.util.Locale;
 import net.minecraft.client.Minecraft;
@@ -29,7 +30,7 @@ public final class ChatOutput {
 
    private static Component createPrefix() {
       MutableComponent prefix = Component.literal("[").withStyle(ChatFormatting.DARK_GRAY);
-      prefix.append(TextUtil.gradient(SuiteRuntime.profile().displayName().toUpperCase(Locale.ROOT), -11672879, -6591489, true));
+      prefix.append(TextUtil.gradient(SuiteRuntime.profile().displayName().toUpperCase(Locale.ROOT), Theme.halloween() ? 0xFFFF9A2E : -11672879, Theme.halloween() ? 0xFFB07CE8 : -6591489, true));
       prefix.append(Component.literal("] ").withStyle(ChatFormatting.DARK_GRAY));
       return prefix;
    }

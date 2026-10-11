@@ -107,6 +107,8 @@ public final class FeatureConfig {
       public boolean fullBright = false;
       /** Hide other players on your screen while a vote party is going on in your realm. */
       public boolean hidePlayersDuringVoteParty = false;
+      /** Look of the menus: AUTO (Halloween colours through October), HALLOWEEN or CLASSIC. */
+      public String theme = "AUTO";
    }
 
    /** Settings for alt accounts. Off unless the player turns them on. */

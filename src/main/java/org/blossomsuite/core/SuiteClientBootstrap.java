@@ -448,6 +448,7 @@ public final class SuiteClientBootstrap {
       }
 
       HudCallbacks.init();
+      net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> org.blossomsuite.core.ui.Theme.refresh());
       WorldOverlays.init();
    }
 

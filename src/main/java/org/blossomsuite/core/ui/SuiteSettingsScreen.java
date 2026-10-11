@@ -685,6 +685,7 @@ public class SuiteSettingsScreen extends Screen {
       context.text(tr, title, this.contentLeft + 16, panelY1 + 10, Theme.TEXT);
       context.horizontalLine(this.contentLeft + 16, this.contentLeft + this.contentWidth - 16, this.dividerY(), Theme.PANEL_EDGE);
       context.fill(this.contentLeft + 16, this.dividerY(), this.contentLeft + 16 + 36, this.dividerY() + 1, Theme.ACCENT);
+      Theme.cobweb(context, this.contentLeft + this.contentWidth - 2, HEADER_H + 1, 26, true, false);
 
       String hint = this.searching() ? "Esc  clear search" : "Ctrl+F  search settings";
       context.text(tr, Component.literal(hint), this.contentLeft + 2, this.height - 24, Theme.TEXT_MUTED);
@@ -724,6 +725,7 @@ public class SuiteSettingsScreen extends Screen {
          context.text(tr, Component.literal(second).withStyle(ChatFormatting.BOLD), x + tr.width(a), 7, Theme.LAVENDER);
       }
 
+      Theme.pumpkin(context, x + tr.width(a) + (second.isEmpty() ? 0 : tr.width(Component.literal(second).withStyle(ChatFormatting.BOLD))) + 5, 4);
       context.text(tr, Component.literal("v" + SuiteModInfo.getVersion()), x, 19, Theme.TEXT_MUTED);
       context.text(tr, Component.literal("Developed by " + BuddyCommands.DEVELOPER), x, 31, Theme.ACCENT_DIM);
    }

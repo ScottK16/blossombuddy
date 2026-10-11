@@ -2,6 +2,7 @@ package org.blossomsuite.core.hud;
 
 import java.util.List;
 import net.minecraft.client.Minecraft;
+import org.blossomsuite.core.ui.Theme;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
@@ -101,10 +102,10 @@ public final class ChatWindowHud extends PanelHud {
          float opacity = this.panel().opacity * f;
          c.fill(0, 0, WIDTH, HEADER_H, HudStyleUtil.panelHeader(opacity));
          c.fill(0, HEADER_H, WIDTH, HEADER_H + 1, HudStyleUtil.panelDivider(opacity));
-         c.text(tr, filter, 6, 4, ChatFade.tint(0xFFF48FB1, f));
+         c.text(tr, filter, 6, 4, ChatFade.tint(Theme.ACCENT, f));
          if (newer > 0) {
             String hint = newer + " newer";
-            c.text(tr, hint, WIDTH - 6 - tr.width(hint), 4, ChatFade.tint(0xFFF48FB1, f));
+            c.text(tr, hint, WIDTH - 6 - tr.width(hint), 4, ChatFade.tint(Theme.ACCENT, f));
          }
 
          int y = HEADER_H + 5;

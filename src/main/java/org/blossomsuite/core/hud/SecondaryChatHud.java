@@ -3,6 +3,7 @@ package org.blossomsuite.core.hud;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.Minecraft;
+import org.blossomsuite.core.ui.Theme;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
@@ -97,7 +98,7 @@ public final class SecondaryChatHud extends PanelHud {
 
          if (newer > 0) {
             String hint = newer + " newer";
-            c.text(tr, hint, WIDTH - 6 - tr.width(hint), 4, ChatFade.tint(0xFFF48FB1, f));
+            c.text(tr, hint, WIDTH - 6 - tr.width(hint), 4, ChatFade.tint(Theme.ACCENT, f));
          }
 
          int y = HEADER_H + 5;
@@ -178,7 +179,7 @@ public final class SecondaryChatHud extends PanelHud {
    }
 
    private static int tab(GuiGraphicsExtractor c, Font tr, int x, String name, boolean on, float fade) {
-      c.text(tr, name, x, 4, ChatFade.tint(on ? 0xFFF48FB1 : 0xFFA79BB8, fade));
+      c.text(tr, name, x, 4, ChatFade.tint(on ? Theme.ACCENT : 0xFFA79BB8, fade));
       return x + tr.width(name) + 9;
    }
 }

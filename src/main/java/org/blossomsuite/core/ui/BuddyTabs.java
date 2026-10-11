@@ -134,7 +134,7 @@ public final class BuddyTabs {
 
       @Override
       int height(SuiteSettingsScreen screen) {
-         return UiRows.ROW * 5 + UiRows.SLIDER_ROW + 18 * 2 + 12;
+         return UiRows.ROW * 6 + UiRows.SLIDER_ROW + 18 * 3 + 12;
       }
 
       @Override
@@ -164,6 +164,13 @@ public final class BuddyTabs {
          });
 
          FeatureConfig.Render render = FeatureConfig.INSTANCE.render;
+         y = UiRows.button(screen, x, w, y, "Menu theme", Theme.modeLabel(render.theme), "Auto switches the menus to Halloween colours through October. Halloween and Classic force one look.", () -> {
+            render.theme = Theme.nextMode(render.theme);
+            FeatureConfig.markDirty();
+            Theme.refresh();
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.note(screen, x, w, y, "Auto: Halloween colours from 1 October to 2 November, the usual pink the rest of the year.");
          y = UiRows.toggle(screen, x, w, y, "Full bright", render.fullBright, "Everything renders fully lit - dark caves, lava and water all become clearer to see.", () -> {
             render.fullBright = !render.fullBright;
             FeatureConfig.markDirty();
