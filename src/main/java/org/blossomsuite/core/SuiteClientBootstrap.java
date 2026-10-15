@@ -379,6 +379,7 @@ public final class SuiteClientBootstrap {
             VoteRuntime.onConnectionSessionChanged("disconnect");
             WorldGate.reset();
             DungeonState.resetForDisconnect();
+            org.blossomsuite.core.tps.TpsTracker.INSTANCE.reset();
             PartyChatState.resetForJoin();
             StaffChatState.resetForJoin();
             ChatModeProbe.resetForJoin();

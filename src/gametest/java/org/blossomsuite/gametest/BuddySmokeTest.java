@@ -199,6 +199,18 @@ public class BuddySmokeTest implements FabricClientGameTest {
 
          context.runOnClient(mc -> FeatureConfig.INSTANCE.chatNotify.enabled = false);
 
+         // the server TPS panel: the time packets from the integrated server should give a reading near 20
+         context.runOnClient(mc -> FeatureConfig.INSTANCE.tps.show = true);
+         context.waitTicks(140);
+         double tpsReading = context.computeOnClient(mc -> org.blossomsuite.core.tps.TpsTracker.INSTANCE.tps(System.currentTimeMillis()));
+         System.out.println("[SMOKE] tps reading " + tpsReading);
+         if (tpsReading < 5.0 || tpsReading > 20.0) {
+            throw new AssertionError("expected a TPS reading near 20, got " + tpsReading);
+         }
+
+         context.takeScreenshot("72-tps");
+         context.runOnClient(mc -> FeatureConfig.INSTANCE.tps.show = false);
+
          // the leaderboard window, reading from a throwaway local relay seeded with made-up players (started by the dev script)
          if (System.getenv("BLOSSOMBUDDY_SEEDED_RELAY") != null) {
             context.runOnClient(mc -> org.blossomsuite.core.state.SuiteState.INSTANCE.http.setBaseUrl("http://127.0.0.1:8799"));

@@ -60,7 +60,7 @@ public final class BuddyCommands {
    }
 
    public static List<LiteralArgumentBuilder<FabricClientCommandSource>> subcommands() {
-      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"), dungeon(), chatNotify());
+      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"), dungeon(), chatNotify(), tps());
    }
 
    public static final String DISCORD_INVITE = "https://discord.gg/EA4WwSdGTj";
@@ -414,6 +414,17 @@ public final class BuddyCommands {
       List<String> words = cfg.words();
       ChatOutput.info("Chat notify is " + (cfg.enabled ? "ON" : "OFF") + ". Your name " + (cfg.mentionName ? "dings too" : "does not ding") + ".");
       ChatOutput.info(words.isEmpty() ? "No keywords yet. /buddy notify add <word>" : "Keywords: " + String.join(", ", words));
+   }
+
+   /** {@code /buddy tps}: the server's estimated ticks per second right now. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> tps() {
+      return ClientCommands.literal("tps").executes(ctx -> {
+         double tps = org.blossomsuite.core.tps.TpsTracker.INSTANCE.tps(System.currentTimeMillis());
+         ChatOutput.info(tps < 0.0
+            ? "No TPS reading yet - the server sends its clock about once a second, so give it a few seconds."
+            : "Server TPS: " + org.blossomsuite.core.tps.TpsTracker.format(tps) + " (20.0 is a healthy server)");
+         return 1;
+      });
    }
 
    /** {@code /buddy dungeon}: your dungeon timer and cooldown; {@code attempts} lists recent runs, {@code reset} clears the cooldown, {@code start} begins one by hand. */

@@ -23,7 +23,9 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.world.BossEvent.BossBarColor;
 import net.minecraft.world.BossEvent.BossBarOverlay;
 import net.minecraft.network.protocol.game.ClientboundBossEventPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import org.blossomsuite.core.tps.TpsTracker;
 import net.minecraft.network.protocol.game.ClientboundBossEventPacket.Handler;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.sounds.SoundEvents;
@@ -72,6 +74,12 @@ public class ClientPlayNetworkHandlerMixin {
             }
          }
       }
+   }
+
+   /** The server sends the world's tick count about once a second; how fast that climbs is the server's TPS. At the tail, so it only counts on the game thread. */
+   @Inject(method = "handleSetTime", at = @At("TAIL"))
+   private void suitecore$trackTps(ClientboundSetTimePacket packet, CallbackInfo ci) {
+      TpsTracker.INSTANCE.onTimeUpdate(packet.gameTime(), System.currentTimeMillis());
    }
 
    @Inject(method = "handleBossUpdate", at = @At("HEAD"))

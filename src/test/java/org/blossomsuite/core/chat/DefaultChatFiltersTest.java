@@ -101,6 +101,40 @@ class DefaultChatFiltersTest {
    }
 
    @Test
+   void anticheatAlertsAreCaughtButPlayersTalkingAboutThemAreNot() {
+      java.util.regex.Pattern p = java.util.regex.Pattern.compile(named(defaults(), "Anticheat").pattern);
+      assertTrue(p.matcher("[Vulcan] Steve failed Speed (A) [VL: 4]").find());
+      assertTrue(p.matcher("[22:59:03] [Vulcan] Steve failed Fly (B)").find());
+      assertTrue(p.matcher("Vulcan » Steve failed Reach (A) (VL 12)").find());
+      assertTrue(p.matcher("Steve failed Killaura (C) VL: 7").find());
+      assertFalse(p.matcher("Ranger : Steve > vulcan flagged me, I failed and my VL is 3").find(), "public chat is never an alert");
+      for (String line : ORDINARY) {
+         assertFalse(p.matcher(line).find(), line);
+      }
+   }
+
+   @Test
+   void theAnticheatFilterIsOffByDefaultAndMovesItsLinesOutOfMainChat() {
+      FeatureConfig.Filter f = named(defaults(), "Anticheat");
+      assertFalse(f.enabled);
+      assertTrue(f.hideFromMain);
+      assertTrue(f.regex);
+   }
+
+   @Test
+   void theAnticheatFilterIsAddedToAnOlderSavedListOnceBeforeRealms() {
+      List<FeatureConfig.Filter> saved = new ArrayList<>();
+      saved.add(new FeatureConfig.Filter("Marry", "marry"));
+      FeatureConfig.Filter realms = new FeatureConfig.Filter("Realms", "");
+      realms.external = true;
+      saved.add(realms);
+
+      assertTrue(FeatureConfig.Chat.ensureAnticheatFilter(saved));
+      assertEquals(List.of("Marry", "Anticheat", "Realms"), saved.stream().map(f -> f.name).toList());
+      assertFalse(FeatureConfig.Chat.ensureAnticheatFilter(saved), "not added twice");
+   }
+
+   @Test
    void everyDefaultFilterMovesItsLinesOutOfTheMainChat() {
       for (FeatureConfig.Filter f : defaults()) {
          if (!f.external) {

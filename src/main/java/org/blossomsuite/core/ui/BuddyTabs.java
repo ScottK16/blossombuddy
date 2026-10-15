@@ -521,6 +521,33 @@ public final class BuddyTabs {
       }
    }
 
+   // ------------------------------------------------------------------ tps
+
+   public static final class TpsPage extends Page {
+      @Override
+      public String titleKey() {
+         return "suitecore.tab.tps";
+      }
+
+      @Override
+      int height(SuiteSettingsScreen screen) {
+         return UiRows.ROW + 18 * 3 + 24;
+      }
+
+      @Override
+      void rows(SuiteSettingsScreen screen, int x, int w, int y) {
+         FeatureConfig.Tps tps = FeatureConfig.INSTANCE.tps;
+         y = UiRows.toggle(screen, x, w, y, "Show server TPS", tps.show, "A small panel with the server's ticks per second. 20 is a healthy server. Move it in /buddy editmode.", () -> {
+            tps.show = !tps.show;
+            FeatureConfig.markDirty();
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.note(screen, x, w, y, "Worked out from how fast the server's clock moves, so it needs a few seconds after joining.");
+         y = UiRows.note(screen, x, w, y, "It is an estimate: a bad connection on your side can nudge it. Green is 18+, yellow 15+, red below.");
+         UiRows.note(screen, x, w, y, "Also: /buddy tps");
+      }
+   }
+
    // ------------------------------------------------------------------ xp tracker
 
    public static final class XpTracker extends Page {

@@ -43,6 +43,7 @@ public final class FeatureConfig {
    public Render render = new Render();
    public AltAccount altAccount = new AltAccount();
    public ChatNotify chatNotify = new ChatNotify();
+   public Tps tps = new Tps();
    /** Cooldown rules the player has switched off, by item id (or item name when a rule has no id). */
    public List<String> disabledCooldownItems = new ArrayList<>();
 
@@ -116,6 +117,12 @@ public final class FeatureConfig {
       /** Disconnect when the server's player count reaches {@link #playerLimit} (alts aren't allowed to stay on a crowded server). */
       public boolean leaveWhenCrowded = false;
       public int playerLimit = 60;
+   }
+
+   /** The server's estimated ticks per second in a small movable panel. Off until the player turns it on. */
+   public static final class Tps {
+      public boolean show = false;
+      public Panel panel = new Panel();
    }
 
    /** A ding when chosen words show up in chat (your name, a friend, a rare item). Off until the player turns it on; nothing leaves the game. */
@@ -303,6 +310,15 @@ public final class FeatureConfig {
       public List<ChatWindow> windows = defaultWindows();
       /** The Staff filter has been offered once, so a player who deletes it doesn't get it back. */
       public boolean staffFilterAdded = false;
+      /** The Anticheat filter has been offered once, so a player who deletes it doesn't get it back. */
+      public boolean anticheatFilterAdded = false;
+      /**
+       * Anti-cheat alerts for staff (Vulcan). They start with the plugin's name, "[Vulcan] Name failed Speed (A) ...", sometimes with a
+       * time such as "[22:59:03]" in front from another mod, or are any "... failed ... VL ..." line. A line in the public chat format
+       * ("Rank : Name > message") is never matched, so a player typing "vulcan" or "failed" cannot fake an alert. Off by default;
+       * staff turn it on in the Secondary Chat filters, and can edit the words if the server words its alerts differently.
+       */
+      public static final String ANTICHEAT_PATTERN = "(?i)^(?!.*\\s:\\s\\S+\\s>\\s)(?:\\s*(?:\\[\\d{1,2}:\\d{2}(?::\\d{2})?\\]\\s*)?[\\[(<]?\\s*vulcan\\b|.*\\bfailed\\b.*\\b(?:vl|violations?)\\b)";
       /**
        * BlossomCraft staff chat looks like "[Staff] Name > message", sometimes with a time such as "[22:59:03]" in front from another
        * mod. Only a line that STARTS with the [Staff] tag counts, so a player typing "[Staff]" in the middle of public chat can't
@@ -349,10 +365,19 @@ public final class FeatureConfig {
          staff.enabled = false;
          staff.hideFromMain = true;
          list.add(staff);
+         list.add(newAnticheatFilter());
          Filter realms = new Filter("Realms", "");
          realms.external = true;
          list.add(realms);
          return list;
+      }
+
+      private static Filter newAnticheatFilter() {
+         Filter anticheat = new Filter("Anticheat", ANTICHEAT_PATTERN);
+         anticheat.regex = true;
+         anticheat.enabled = false;
+         anticheat.hideFromMain = true;
+         return anticheat;
       }
 
       private static List<ChatWindow> defaultWindows() {
@@ -431,6 +456,30 @@ public final class FeatureConfig {
          }
 
          filters.add(realms, staff);
+         return true;
+      }
+
+      /**
+       * Adds the (disabled) Anticheat filter to a saved list that doesn't have one yet, before the Realms tab.
+       *
+       * @return true if it had to be added
+       */
+      public static boolean ensureAnticheatFilter(List<Filter> filters) {
+         for (Filter f : filters) {
+            if (f != null && "anticheat".equalsIgnoreCase(f.name)) {
+               return false;
+            }
+         }
+
+         int realms = filters.size();
+         for (int i = 0; i < filters.size(); i++) {
+            if (filters.get(i) != null && filters.get(i).external) {
+               realms = i;
+               break;
+            }
+         }
+
+         filters.add(realms, newAnticheatFilter());
          return true;
       }
 
@@ -538,11 +587,20 @@ public final class FeatureConfig {
          markDirty();
       }
 
+      if (!this.chat.anticheatFilterAdded) {
+         Chat.ensureAnticheatFilter(this.chat.filters);
+         this.chat.anticheatFilterAdded = true;
+         markDirty();
+      }
+
       if (this.chat.windows == null) this.chat.windows = new ArrayList<>();
       if (Chat.normalizeWindows(this.chat.windows)) {
          markDirty();
       }
 
+      if (this.tps == null) this.tps = new Tps();
+      if (this.tps.panel == null) this.tps.panel = new Panel();
+      if (this.chatNotify == null) this.chatNotify = new ChatNotify();
       if (this.presence == null) this.presence = new Presence();
       if (this.emotes == null) this.emotes = new Emotes();
       if (this.stats == null) this.stats = new Stats();

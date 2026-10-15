@@ -34,6 +34,7 @@ public final class HudEditScreen extends Screen {
       JobsHud.DRAGGABLE,
       CooldownsHud.DRAGGABLE,
       DungeonHud.DRAGGABLE,
+      TpsHud.INSTANCE,
       CoordsHud.DRAGGABLE,
       BiomeHud.DRAGGABLE,
       AutoSwapperHud.DRAGGABLE,
@@ -70,6 +71,7 @@ public final class HudEditScreen extends Screen {
       CooldownsHud.renderPanel(ctx, Minecraft.getInstance());
       CooldownsHud.renderHotbar(ctx, Minecraft.getInstance());
       DungeonHud.render(ctx, Minecraft.getInstance());
+      TpsHud.INSTANCE.render(ctx, Minecraft.getInstance());
       CoordsHud.render(ctx, Minecraft.getInstance());
       BiomeHud.render(ctx, Minecraft.getInstance());
       AutoSwapperHud.render(ctx, Minecraft.getInstance());

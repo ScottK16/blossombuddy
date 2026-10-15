@@ -21,6 +21,7 @@ public final class HudCallbacks {
                      CooldownsHud.renderPanel(ctx, client);
                      CooldownsHud.renderHotbar(ctx, client);
                      DungeonHud.render(ctx, client);
+                     TpsHud.INSTANCE.render(ctx, client);
                      ToolLockHotbarOverlay.render(ctx, client);
                      CoordsHud.render(ctx, client);
                      BiomeHud.render(ctx, client);
