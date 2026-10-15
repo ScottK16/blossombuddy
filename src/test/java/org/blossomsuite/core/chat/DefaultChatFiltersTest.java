@@ -103,14 +103,35 @@ class DefaultChatFiltersTest {
    @Test
    void anticheatAlertsAreCaughtButPlayersTalkingAboutThemAreNot() {
       java.util.regex.Pattern p = java.util.regex.Pattern.compile(named(defaults(), "Anticheat").pattern);
+      // as BlossomCraft shows them
+      assertTrue(p.matcher("Anti-Cheat sweetchili_ Joined using Fabric!").find());
+      assertTrue(p.matcher("Anti-Cheat alkhest joined using Fabric!").find());
+      assertTrue(p.matcher("Anti-Cheat : alkhest failed Speed (A)").find());
+      assertTrue(p.matcher("[22:59:03] Anti-Cheat Steve failed Fly (B)").find());
+      assertTrue(p.matcher("» [Anti-Cheat] Steve failed Reach").find());
+      // Vulcan's own label, and the generic wording
       assertTrue(p.matcher("[Vulcan] Steve failed Speed (A) [VL: 4]").find());
-      assertTrue(p.matcher("[22:59:03] [Vulcan] Steve failed Fly (B)").find());
-      assertTrue(p.matcher("Vulcan » Steve failed Reach (A) (VL 12)").find());
       assertTrue(p.matcher("Steve failed Killaura (C) VL: 7").find());
-      assertFalse(p.matcher("Ranger : Steve > vulcan flagged me, I failed and my VL is 3").find(), "public chat is never an alert");
+      // players talking, in the public chat format, are never alerts
+      assertFalse(p.matcher("EMPEROR : ~WOOD > wb leo").find());
+      assertFalse(p.matcher("Ranger : Steve > the anti-cheat said I failed and my VL is 3").find());
+      assertFalse(p.matcher("Ranger : Steve > anti-cheat is annoying").find());
       for (String line : ORDINARY) {
          assertFalse(p.matcher(line).find(), line);
       }
+   }
+
+   @Test
+   void anAnticheatFilterLeftAtTheFirstVersionIsUpgraded() {
+      List<FeatureConfig.Filter> saved = new ArrayList<>();
+      FeatureConfig.Filter old = new FeatureConfig.Filter("Anticheat", FeatureConfig.Chat.OLD_ANTICHEAT_PATTERN);
+      saved.add(old);
+      assertTrue(FeatureConfig.Chat.upgradeOldDefaults(saved));
+      assertEquals(FeatureConfig.Chat.ANTICHEAT_PATTERN, old.pattern);
+
+      FeatureConfig.Filter mine = new FeatureConfig.Filter("Anticheat", "my own words");
+      assertFalse(FeatureConfig.Chat.upgradeOldDefaults(new ArrayList<>(List.of(mine))));
+      assertEquals("my own words", mine.pattern);
    }
 
    @Test

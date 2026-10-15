@@ -313,12 +313,15 @@ public final class FeatureConfig {
       /** The Anticheat filter has been offered once, so a player who deletes it doesn't get it back. */
       public boolean anticheatFilterAdded = false;
       /**
-       * Anti-cheat alerts for staff (Vulcan). They start with the plugin's name, "[Vulcan] Name failed Speed (A) ...", sometimes with a
-       * time such as "[22:59:03]" in front from another mod, or are any "... failed ... VL ..." line. A line in the public chat format
-       * ("Rank : Name > message") is never matched, so a player typing "vulcan" or "failed" cannot fake an alert. Off by default;
-       * staff turn it on in the Secondary Chat filters, and can edit the words if the server words its alerts differently.
+       * Anti-cheat alerts for staff. BlossomCraft's start with the label "Anti-Cheat" ("Anti-Cheat Name Joined using Fabric!",
+       * "Anti-Cheat Name failed ..."), and Vulcan's own default label is "Vulcan"; a time such as "[22:59:03]" from another mod may
+       * come first. Only a line that STARTS with the label counts, plus any "... failed ... VL ..." line that is not in the public chat
+       * format ("Rank : Name > message"), so a player typing "anti-cheat" in public chat cannot fake an alert. Off by default; staff
+       * turn it on in the Secondary Chat filters and can edit the words.
        */
-      public static final String ANTICHEAT_PATTERN = "(?i)^(?!.*\\s:\\s\\S+\\s>\\s)(?:\\s*(?:\\[\\d{1,2}:\\d{2}(?::\\d{2})?\\]\\s*)?[\\[(<]?\\s*vulcan\\b|.*\\bfailed\\b.*\\b(?:vl|violations?)\\b)";
+      public static final String ANTICHEAT_PATTERN = "(?i)^\\s*(?:\\[\\d{1,2}:\\d{2}(?::\\d{2})?\\]\\s*)?[^\\p{L}\\p{N}]*(?:anti[\\s-]?cheat|vulcan)\\b|^(?!.*\\s:\\s\\S+\\s>\\s).*\\bfailed\\b.*\\b(?:vl|violations?)\\b";
+      /** What the first build of the Anticheat filter shipped (it only knew the word Vulcan). */
+      public static final String OLD_ANTICHEAT_PATTERN = "(?i)^(?!.*\\s:\\s\\S+\\s>\\s)(?:\\s*(?:\\[\\d{1,2}:\\d{2}(?::\\d{2})?\\]\\s*)?[\\[(<]?\\s*vulcan\\b|.*\\bfailed\\b.*\\b(?:vl|violations?)\\b)";
       /**
        * BlossomCraft staff chat looks like "[Staff] Name > message", sometimes with a time such as "[22:59:03]" in front from another
        * mod. Only a line that STARTS with the [Staff] tag counts, so a player typing "[Staff]" in the middle of public chat can't
@@ -525,6 +528,10 @@ public final class FeatureConfig {
                changed = true;
             } else if ("Staff".equals(f.name) && OLD_STAFF_PATTERN.equals(f.pattern)) {
                f.pattern = STAFF_PATTERN;
+               f.regex = true;
+               changed = true;
+            } else if ("Anticheat".equals(f.name) && OLD_ANTICHEAT_PATTERN.equals(f.pattern)) {
+               f.pattern = ANTICHEAT_PATTERN;
                f.regex = true;
                changed = true;
             } else if ("Messages".equals(f.name) && (OLD_MESSAGES_PATTERN.equals(f.pattern) || OLD_MESSAGES_PATTERN_2.equals(f.pattern))) {
