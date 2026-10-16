@@ -33,9 +33,9 @@ public final class DiscordHook {
    private DiscordHook() {
    }
 
+   /** Always BlossomBuddy's own Discord application: it is what puts the name next to "Playing", so it is not something to change. */
    public static String effectiveAppId() {
-      String configured = FeatureConfig.INSTANCE.discord.appId == null ? "" : FeatureConfig.INSTANCE.discord.appId.trim();
-      return configured.isEmpty() ? BUILT_IN_APP_ID : configured;
+      return BUILT_IN_APP_ID;
    }
 
    public boolean enabled() {
