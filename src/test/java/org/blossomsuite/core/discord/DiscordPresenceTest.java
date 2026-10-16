@@ -163,7 +163,7 @@ class DiscordPresenceTest {
    void withoutDiscordRunningItKeepsLookingButNotEveryTick() {
       this.discord.running = false;
       this.presence.tick("12345", on("Cherry"));
-      assertTrue(this.presence.status().startsWith("Discord is not running"));
+      assertTrue(this.presence.status().startsWith("Discord is not running"), this.presence.status());
       this.now += 1_000L;
       this.presence.tick("12345", on("Cherry"));
       assertEquals(1, this.discord.opens, "waits before looking again");
@@ -187,7 +187,7 @@ class DiscordPresenceTest {
    void anApplicationDiscordRefusesIsReportedAndRetriedLater() {
       this.discord.acceptApp = false;
       this.presence.tick("bad", on("Cherry"));
-      assertTrue(this.presence.status().startsWith("Discord is not running"), this.presence.status());
+      assertTrue(this.presence.status().startsWith("Discord refused the application id"), this.presence.status());
       assertEquals(1, this.discord.opens);
    }
 

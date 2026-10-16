@@ -43,7 +43,15 @@ public final class DiscordHook {
    }
 
    public String status() {
-      return this.enabled() ? this.presence.status() : "Off";
+      if (!this.enabled()) {
+         return "Off";
+      }
+
+      if (effectiveAppId().isEmpty()) {
+         return this.presence.status();
+      }
+
+      return this.desired() == null ? "Waiting: it shows once you are on BlossomCraft (" + this.presence.status() + ")" : this.presence.status();
    }
 
    public void setEnabled(boolean on) {
@@ -78,15 +86,16 @@ public final class DiscordHook {
    private DiscordPresence.Activity desired() {
       Minecraft mc = Minecraft.getInstance();
       String server = WorldGate.Server;
-      if (mc == null || mc.player == null || !SuiteConfig.INSTANCE.isEnabledForCurrentWorld() || server == null || server.isBlank()) {
+      if (mc == null || mc.player == null || !SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
          return null;
       }
 
       SessionRecord live = SessionTracker.INSTANCE.live();
       long start = (live != null ? live.startMs() : System.currentTimeMillis()) / 1000L;
-      String realm = SuiteRuntime.profile().serverDisplayName(server);
+      // on a realm: "On Cherry Realm"; on BlossomCraft but not (yet) on a realm, such as the lobby: "On BlossomCraft"
+      String where = server == null || server.isBlank() ? "On BlossomCraft" : "On " + SuiteRuntime.profile().serverDisplayName(server) + " Realm";
       return new DiscordPresence.Activity(
-         "On " + realm + " Realm",
+         where,
          DungeonState.inRun() ? "In a dungeon" : "",
          start,
          IMAGE_KEY,

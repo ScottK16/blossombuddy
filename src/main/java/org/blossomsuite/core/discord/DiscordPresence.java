@@ -185,7 +185,7 @@ public final class DiscordPresence {
          opened.write(encode(OP_HANDSHAKE, JsonUtil.GSON.toJson(hello)));
          Frame reply = opened.readFrame();
          if (reply.opcode() == OP_CLOSE || !reply.json().contains("READY")) {
-            throw new IOException("Discord did not accept that application: " + reply.json());
+            throw new Refused(reply.json());
          }
 
          synchronized (this) {
@@ -207,9 +207,18 @@ public final class DiscordPresence {
 
          synchronized (this) {
             this.conn = null;
-            this.status = "Discord is not running (will keep looking)";
+            this.status = e instanceof Refused
+               ? "Discord refused the application id (" + clip(e.getMessage(), 80) + ")"
+               : "Discord is not running, or can't be reached (will keep looking)";
             this.busy = false;
          }
+      }
+   }
+
+   /** Discord answered, but said no (for example an application id it does not know). */
+   private static final class Refused extends IOException {
+      Refused(String reply) {
+         super(reply);
       }
    }
 
