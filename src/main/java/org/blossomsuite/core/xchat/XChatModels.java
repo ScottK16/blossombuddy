@@ -62,6 +62,8 @@ public final class XChatModels {
       public String text;
       /** 2-5 "#rrggbb" stops for the sender's name, only present when an admin has granted one (see relay/cosmetics.js). */
       public String[] gradient;
+      /** A symbol shown after the sender's name, only present when the sender chose one (see relay/progress.js). */
+      public String glyph;
    }
 
    public static final class Poll {

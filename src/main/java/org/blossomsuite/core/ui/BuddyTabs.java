@@ -329,7 +329,7 @@ public final class BuddyTabs {
 
       @Override
       int height(SuiteSettingsScreen screen) {
-         return UiRows.ROW * 12 + 18 * 12 + 24;
+         return UiRows.ROW * 13 + 18 * 12 + 24;
       }
 
       @Override
@@ -368,6 +368,7 @@ public final class BuddyTabs {
             LeaderboardClient.INSTANCE.setEnabled(!lb.share);
             screen.rebuildPreserveScroll();
          });
+         y = UiRows.button(screen, x, w, y, "   My profile: level, gradient and symbol", "Open", "Your level and the gradients and symbols you have unlocked, to wear beside your name. Same as /buddy profile.", () -> Minecraft.getInstance().setScreen(new org.blossomsuite.core.ui.ProfileScreen()));
          y = UiRows.button(screen, x, w, y, "   Open the leaderboard", "Open", "Top earners and top overflow XP, overall or per realm. Same as /buddy top.", () -> Minecraft.getInstance().setScreen(new LeaderboardScreen()));
          y = UiRows.note(screen, x, w, y, LeaderboardClient.INSTANCE.status());
 

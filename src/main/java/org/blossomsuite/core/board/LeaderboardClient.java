@@ -66,6 +66,11 @@ public final class LeaderboardClient {
 
       default void setNoticeShown(boolean shown) {
       }
+
+      /** What counts toward the level, sent with the totals ({minutes, done, failed, firsts}); null sends nothing. */
+      default Map<String, Object> progress() {
+         return null;
+      }
    }
 
    public interface Sink {
@@ -240,7 +245,15 @@ public final class LeaderboardClient {
          realms.put(e.getKey(), one);
       }
 
-      XChatClient.Reply reply = this.relay.post("/v1/lb/report", JsonUtil.GSON.toJson(Map.of("token", this.token, "realms", realms)));
+      Map<String, Object> body = new LinkedHashMap<>();
+      body.put("token", this.token);
+      body.put("realms", realms);
+      Map<String, Object> progress = this.env.progress();
+      if (progress != null) {
+         body.put("progress", progress);
+      }
+
+      XChatClient.Reply reply = this.relay.post("/v1/lb/report", JsonUtil.GSON.toJson(body));
       if (reply.status() == 401) {
          this.token = null; // expired on the relay's side: sign in again on the next round
          throw new XChatClient.ChatException("Signing in again...", 1_000L);
@@ -294,6 +307,82 @@ public final class LeaderboardClient {
       }
    }
 
+   // ------------------------------------------------------------------ your level and look
+
+   /** Your own profile (level, XP, what you have unlocked). Fails with a readable message when you are not on the leaderboard. */
+   public CompletableFuture<ProfileModels.Profile> loadProfile() {
+      return CompletableFuture.supplyAsync(() -> this.profileCall("/v1/lb/profile", Map.of(), ProfileModels.Profile.class), this.async);
+   }
+
+   /** Equips a gradient (by id; colours only for your own custom one) and a symbol (by id); "none" clears either. */
+   public CompletableFuture<Void> applyStyle(String gradient, java.util.List<String> colors, String symbol) {
+      return CompletableFuture.runAsync(() -> {
+         Map<String, Object> body = new LinkedHashMap<>();
+         body.put("gradient", gradient == null ? "none" : gradient);
+         if (colors != null) {
+            body.put("colors", colors);
+         }
+
+         body.put("symbol", symbol == null ? "none" : symbol);
+         this.profileCall("/v1/lb/cosmetic", body, Void.class);
+      }, this.async);
+   }
+
+   private <T> T profileCall(String path, Map<String, Object> extra, Class<T> type) {
+      if (!this.env.enabled()) {
+         throw new IllegalStateException("You are not on the leaderboard, so there is no profile yet. Turn it on with /buddy top on.");
+      }
+
+      try {
+         for (int attempt = 0; attempt < 2; attempt++) {
+            Map<String, Object> body = new LinkedHashMap<>(extra);
+            body.put("token", this.tokenFor(this.clock.getAsLong()));
+            XChatClient.Reply reply = this.relay.post(path, JsonUtil.GSON.toJson(body));
+            if (reply.status() == 401) {
+               this.token = null; // expired on the relay's side: sign in again and retry once
+               continue;
+            }
+
+            if (reply.status() != 200) {
+               throw new IllegalStateException(relayError(reply));
+            }
+
+            return type == Void.class ? null : JsonUtil.GSON.fromJson(reply.body(), type);
+         }
+
+         throw new IllegalStateException("Couldn't sign in to the relay.");
+      } catch (XChatClient.ChatException e) {
+         throw new IllegalStateException(e.getMessage());
+      } catch (JsonParseException e) {
+         throw new IllegalStateException("The relay sent something unexpected.");
+      }
+   }
+
+   /** A relay session, signing in first if there is none (so the profile works even before the first totals have gone out). */
+   private synchronized String tokenFor(long now) throws XChatClient.ChatException {
+      if (this.token == null || now >= this.tokenExpiresAt - RENEW_BEFORE_EXPIRY_MS) {
+         State before = this.state;
+         this.join(now);
+         this.state = before == State.OFF ? State.READY : before;
+      }
+
+      return this.token;
+   }
+
+   /** The relay's own words ("unlocks at level 50") when it gave a reason. */
+   static String relayError(XChatClient.Reply reply) {
+      try {
+         com.google.gson.JsonObject o = JsonUtil.GSON.fromJson(reply.body(), com.google.gson.JsonObject.class);
+         if (o != null && o.has("error")) {
+            return o.get("error").getAsString();
+         }
+      } catch (RuntimeException ignored) {
+         // fall through to the plain status
+      }
+
+      return "The relay said " + reply.status() + ".";
+   }
+
    static LeaderboardModels.Board parseBoard(String json) {
       try {
          LeaderboardModels.Board board = JsonUtil.GSON.fromJson(json, LeaderboardModels.Board.class);
@@ -342,6 +431,11 @@ public final class LeaderboardClient {
          FeatureConfig.INSTANCE.leaderboard.share = on;
          FeatureConfig.INSTANCE.leaderboard.chosen = true;
          FeatureConfig.markDirty();
+      }
+
+      @Override
+      public Map<String, Object> progress() {
+         return org.blossomsuite.core.progress.Progress.snapshot();
       }
 
       @Override

@@ -8,6 +8,7 @@ A Fabric client mod for the BlossomCraft server, continuing on from the still ex
 - A player list of who else is using the mod, and where
 - Vote-party alerts shared across realms
 - Emotes (dances, a backflip, a cartwheel and more) other BlossomBuddy players can see
+- Levels and profiles: earn BlossomBuddy XP from play, unlock name gradients and symbols, and wear them in chat, the player list and over your head (`/buddy profile`), with a profile page on the website
 - Leaderboards: top earners and top overflow XP, overall or per realm, in game (`/buddy top`) and on the website - on by default after a notice, `/buddy top off` leaves and deletes your entry
 - A dungeon timer: your own run clock and the 8 hour cooldown, kept per player (a teammate dying never resets it) - `/buddy dungeon`
 - Chat Notify: a ding when words you pick (or your name) show up in chat - `/buddy notify`, off by default

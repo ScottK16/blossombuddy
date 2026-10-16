@@ -208,6 +208,7 @@ public final class ChatNotify {
 
       @Override
       public void ding() {
+         org.blossomsuite.core.progress.Progress.first("notify");
          Minecraft mc = Minecraft.getInstance();
          mc.execute(ChatNotify::playNow);
       }

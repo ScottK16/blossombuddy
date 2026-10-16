@@ -17,6 +17,15 @@ public class PlayerEntityRendererMixin {
    /** Works out whether this player is in the middle of an emote, and how their body is turned right now. */
    @Inject(method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At("TAIL"))
    private void suitecore$emotePose(Avatar player, AvatarRenderState state, float tickDelta, CallbackInfo ci) {
+      // the symbol another BlossomBuddy player chose goes beside their name
+      net.minecraft.client.Minecraft look = net.minecraft.client.Minecraft.getInstance();
+      if (org.blossomsuite.core.config.FeatureConfig.INSTANCE.progress.showOthersLook && state.nameTag != null && look.player != null && !player.getUUID().equals(look.player.getUUID())) {
+         org.blossomsuite.core.presence.PresenceClient.Player listed = org.blossomsuite.core.presence.PresenceClient.INSTANCE.lookup(player.getUUID(), player.getName().getString());
+         if (listed != null && !listed.glyph().isEmpty()) {
+            state.nameTag = state.nameTag.copy().append(" ").append(org.blossomsuite.core.xchat.NameStyle.symbol(listed.glyph(), org.blossomsuite.core.xchat.NameStyle.colorsOf(listed.gradient()), 0xFFFFFF));
+         }
+      }
+
       // the song another BlossomBuddy player is sharing goes under their name
       net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
       if (org.blossomsuite.core.config.FeatureConfig.INSTANCE.music.showOthers && mc.player != null && !player.getUUID().equals(mc.player.getUUID())) {

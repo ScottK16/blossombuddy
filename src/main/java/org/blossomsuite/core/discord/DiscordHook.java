@@ -86,6 +86,7 @@ public final class DiscordHook {
       cfg.enabled = on;
       FeatureConfig.markDirty();
       if (on) {
+         org.blossomsuite.core.progress.Progress.first("presence");
          ChatOutput.info("Discord presence is ON: people who can see your Discord activity will see \"Playing BlossomBuddy\" and which realm you are on. "
             + "It is shown through your own Discord app; nothing is sent to BlossomBuddy. Turn it off any time with /buddy presence off.");
       } else {

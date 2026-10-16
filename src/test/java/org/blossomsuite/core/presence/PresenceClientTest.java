@@ -351,4 +351,21 @@ class PresenceClientTest {
       this.client.step(T + PresenceClient.SONG_CHANGE_GAP_MS + 3_000L);
       assertTrue(this.relay.calls.isEmpty(), "and then back to the regular pace");
    }
+
+   @Test
+   void otherPlayersLevelAndLookAreReadAndAnythingOddIsDropped() {
+      this.relay.players = "{\"players\":["
+         + "{\"name\":\"Alice\",\"uuid\":\"" + ALICE + "\",\"realm\":\"cherry\",\"level\":42,\"glyph\":\"\u265B\",\"gradient\":[\"#ff0000\",\"#0000ff\"]},"
+         + "{\"name\":\"Bob\",\"uuid\":\"" + BOB + "\",\"realm\":\"tulip\",\"level\":-5,\"glyph\":\"\ud83d\udca9\",\"gradient\":[\"red\"]}]}";
+      this.client.step(T);
+      PresenceClient.Player alice = this.client.players().get(0);
+      assertEquals(42, alice.level());
+      assertEquals("\u265B", alice.glyph());
+      assertEquals(List.of("#ff0000", "#0000ff"), alice.gradient());
+      PresenceClient.Player bob = this.client.players().get(1);
+      assertEquals(0, bob.level(), "a negative level is not believed");
+      assertEquals("", bob.glyph(), "an emoji the game can't draw is dropped");
+      assertEquals(List.of(), bob.gradient());
+      assertEquals("\u265B", this.client.lookup(ALICE_ID, "whoever").glyph());
+   }
 }

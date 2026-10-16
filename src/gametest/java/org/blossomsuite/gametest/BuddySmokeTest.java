@@ -272,6 +272,20 @@ public class BuddySmokeTest implements FabricClientGameTest {
          });
          context.waitTicks(25);
 
+         // the profile screen with a level 55 profile exactly as the relay sends it (a dev script writes the file)
+         String profileJson = System.getenv("BLOSSOMBUDDY_PROFILE_JSON");
+         if (profileJson != null) {
+            org.blossomsuite.core.board.ProfileModels.Profile preset = org.blossomsuite.core.util.JsonUtil.GSON.fromJson(
+               readFile(profileJson), org.blossomsuite.core.board.ProfileModels.Profile.class);
+            context.setScreen(() -> new org.blossomsuite.core.ui.ProfileScreen(preset));
+            context.waitTicks(10);
+            context.takeScreenshot("76-profile");
+            context.getInput().setCursorPos(640.0, 420.0);
+            context.waitTicks(3);
+            context.takeScreenshot("77-profile-hover");
+            context.setScreen(() -> null);
+         }
+
          // the leaderboard window, reading from a throwaway local relay seeded with made-up players (started by the dev script)
          if (System.getenv("BLOSSOMBUDDY_SEEDED_RELAY") != null) {
             context.runOnClient(mc -> org.blossomsuite.core.state.SuiteState.INSTANCE.http.setBaseUrl("http://127.0.0.1:8799"));
@@ -293,6 +307,14 @@ public class BuddySmokeTest implements FabricClientGameTest {
 
       context.waitForScreen(TitleScreen.class);
       System.out.println("[SMOKE] done");
+   }
+
+   private static String readFile(String path) {
+      try {
+         return java.nio.file.Files.readString(java.nio.file.Path.of(path));
+      } catch (java.io.IOException e) {
+         throw new java.io.UncheckedIOException(e);
+      }
    }
 
    private static void choose(Object screen, org.blossomsuite.core.board.LeaderboardModels.Choice choice) {

@@ -39,6 +39,7 @@ public final class LeaderboardScreen extends Screen {
 
    @Override
    protected void init() {
+      org.blossomsuite.core.progress.Progress.first("leaderboard");
       int w = this.panelW();
       int x = (this.width - w) / 2;
       int third = (w - 8) / 3;

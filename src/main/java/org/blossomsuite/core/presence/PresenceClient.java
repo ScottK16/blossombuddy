@@ -58,9 +58,13 @@ public final class PresenceClient {
    }
 
    /** One player who chose to appear. {@code realm} is a lower-case key such as "cherry". */
-   public record Player(String name, UUID uuid, String realm, String playing) {
+   public record Player(String name, UUID uuid, String realm, String playing, int level, String glyph, java.util.List<String> gradient) {
       public Player(String name, UUID uuid, String realm) {
-         this(name, uuid, realm, "");
+         this(name, uuid, realm, "", 0, "", java.util.List.of());
+      }
+
+      public Player(String name, UUID uuid, String realm, String playing) {
+         this(name, uuid, realm, playing, 0, "", java.util.List.of());
       }
    }
 
@@ -209,22 +213,24 @@ public final class PresenceClient {
     * the realm we are on, like {@link #marks}. Only while we are in the list ourselves, since that is the only time we are sent it.
     */
    public String playingOf(UUID id, String name) {
+      Player p = this.lookup(id, name);
+      return p == null ? "" : p.playing();
+   }
+
+   /** The listed player this is (by UUID, or by name on our own realm), or null. Only while we are in the list ourselves. */
+   public Player lookup(UUID id, String name) {
       if (!this.env.enabled() || this.state != State.READY) {
-         return "";
+         return null;
       }
 
       String realm = normalizeRealm(this.env.realm());
       for (Player p : this.players) {
-         if (p.playing().isEmpty()) {
-            continue;
-         }
-
          if ((id != null && id.equals(p.uuid())) || (name != null && p.realm().equals(realm) && p.name().equalsIgnoreCase(name))) {
-            return p.playing();
+            return p;
          }
       }
 
-      return "";
+      return null;
    }
 
    // ------------------------------------------------------------------ switches
@@ -413,6 +419,9 @@ public final class PresenceClient {
       String uuid;
       String realm;
       String playing;
+      Integer level;
+      String glyph;
+      String[] gradient;
    }
 
    /** Keeps only well-formed entries: the mod never trusts what the relay sends more than it has to. */
@@ -427,7 +436,14 @@ public final class PresenceClient {
             continue;
          }
 
-         out.add(new Player(w.name, id, realm, org.blossomsuite.core.music.NowPlaying.clean(w.playing, org.blossomsuite.core.music.NowPlaying.MAX_SHARED)));
+         int level = w.level == null ? 0 : Math.max(0, Math.min(10_000, w.level));
+         String[] colors = org.blossomsuite.core.xchat.GradientText.isValid(w.gradient) ? w.gradient : null;
+         out.add(new Player(
+            w.name, id, realm,
+            org.blossomsuite.core.music.NowPlaying.clean(w.playing, org.blossomsuite.core.music.NowPlaying.MAX_SHARED),
+            level,
+            org.blossomsuite.core.xchat.NameStyle.cleanGlyph(w.glyph),
+            colors == null ? java.util.List.of() : java.util.List.of(colors)));
          idSet.add(id);
          byRealm.computeIfAbsent(realm, k -> new HashSet<>()).add(w.name.toLowerCase(Locale.ROOT));
       }

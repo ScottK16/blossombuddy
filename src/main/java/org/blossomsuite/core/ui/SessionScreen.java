@@ -31,6 +31,7 @@ public final class SessionScreen extends Screen {
 
    @Override
    protected void init() {
+      org.blossomsuite.core.progress.Progress.first("session");
       this.history = SessionTracker.INSTANCE.history();
       int footY = this.height - 26;
       this.addRenderableWidget(StyledButton.of(Component.literal("Clear history"), b -> {

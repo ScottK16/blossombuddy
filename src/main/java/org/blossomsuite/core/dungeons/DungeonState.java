@@ -321,6 +321,11 @@ public final class DungeonState {
          .append(Component.literal(attempt.names()).withStyle(ChatFormatting.GRAY))
          .append(Component.literal(" took " + TextUtil.fmtStopwatch(duration)).withStyle(ChatFormatting.YELLOW));
       DungeonStore.saveAttempt(attempt);
+      org.blossomsuite.core.progress.Progress.dungeon(completed);
+      if (completed) {
+         org.blossomsuite.core.progress.Progress.first("dungeon");
+      }
+
       applyDungeonCooldown(now);
       resetRun();
       if (cfg.reportRunsInChat) {

@@ -158,6 +158,7 @@ public final class ContainerFinder {
    /** {@code /buddy find <words>}: lists where it is and lights up the nearest few for a minute. */
    public void report(String query) {
       Minecraft mc = Minecraft.getInstance();
+      org.blossomsuite.core.progress.Progress.first("find");
       List<ContainerIndex.Hit> hits = this.index.search(query, null);
       if (hits.isEmpty()) {
          ChatOutput.info(this.index.size() == 0

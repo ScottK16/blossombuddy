@@ -74,25 +74,10 @@ public final class XChatText {
 
       String name = clean(m.name, MAX_NAME_LENGTH);
       String shown = name.isEmpty() ? "?" : name;
-      line.append(GradientText.isValid(m.gradient) ? gradientName(shown, m.gradient) : Component.literal(shown).withStyle(ChatFormatting.WHITE))
+      line.append(NameStyle.styled(shown, Component.literal(shown).withStyle(ChatFormatting.WHITE), GradientText.isValid(m.gradient) ? m.gradient : null, m.glyph))
          .append(Component.literal(": ").withStyle(ChatFormatting.DARK_GRAY))
          .append(Component.literal(clean(m.text, MAX_LENGTH)).withStyle(ChatFormatting.WHITE));
       return line;
-   }
-
-   /** The name with one colour per character, blended across {@code colors} left to right. */
-   private static Component gradientName(String name, String[] colors) {
-      MutableComponent result = Component.empty();
-      int length = name.codePointCount(0, name.length());
-      int i = 0;
-      for (int idx = 0; idx < name.length(); ) {
-         int cp = name.codePointAt(idx);
-         int rgb = GradientText.colorAt(colors, i, length);
-         result.append(Component.literal(new String(Character.toChars(cp))).withStyle(style -> style.withColor(TextColor.fromRgb(rgb))));
-         idx += Character.charCount(cp);
-         i++;
-      }
-      return result;
    }
 
    /** Muted by name (any case) or by UUID (with or without dashes). */

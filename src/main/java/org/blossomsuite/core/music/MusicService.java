@@ -112,6 +112,10 @@ public final class MusicService {
          }
 
          NowPlaying now = command == null ? b.poll() : b.command(command);
+         if (now.hasTrack()) {
+            org.blossomsuite.core.progress.Progress.first("music");
+         }
+
          synchronized (this) {
             this.current = now;
             this.status = now.hasTrack() ? (now.playing() ? "Playing: " + now.display() : "Paused: " + now.display()) : "Nothing is playing";

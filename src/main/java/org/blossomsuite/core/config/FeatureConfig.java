@@ -47,6 +47,7 @@ public final class FeatureConfig {
    public Finder finder = new Finder();
    public Discord discord = new Discord();
    public Music music = new Music();
+   public Progress progress = new Progress();
    /** Cooldown rules the player has switched off, by item id (or item name when a rule has no id). */
    public List<String> disabledCooldownItems = new ArrayList<>();
 
@@ -134,6 +135,18 @@ public final class FeatureConfig {
       /** Show the song other players are sharing under their name in the world (and in the player list). */
       public boolean showOthers = true;
       public Panel panel = new Panel();
+   }
+
+   /**
+    * What counts toward the BlossomBuddy level (kept on this computer, sent with the leaderboard totals if the player is on it), and
+    * whether to show other players' chosen symbol beside their name over their heads.
+    */
+   public static final class Progress {
+      public long playMs = 0L;
+      public int dungeonsDone = 0;
+      public int dungeonsFailed = 0;
+      public List<String> firsts = new ArrayList<>();
+      public boolean showOthersLook = true;
    }
 
    /** Discord Rich Presence: "Playing BlossomBuddy - On Cherry Realm" on your Discord profile. Off until the player turns it on. */
@@ -651,6 +664,8 @@ public final class FeatureConfig {
       }
       if (this.discord == null) this.discord = new Discord();
       if (this.music == null) this.music = new Music();
+      if (this.progress == null) this.progress = new Progress();
+      if (this.progress.firsts == null) this.progress.firsts = new ArrayList<>();
       if (this.music.panel == null) this.music.panel = new Panel();
       if (this.discord.appId == null) this.discord.appId = "";
       if (this.discord.pidMode == null) this.discord.pidMode = "own";

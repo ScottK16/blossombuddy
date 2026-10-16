@@ -43,6 +43,10 @@ public final class SessionTracker {
 
       List<SessionRecord> history();
 
+      /** Time spent on a realm just now (milliseconds): counts toward the level. */
+      default void addPlayMs(long ms) {
+      }
+
       void clearHistory();
    }
 
@@ -92,6 +96,7 @@ public final class SessionTracker {
          this.sawActive = true;
          if (gap > 0L && gap <= MAX_TICK_GAP_MS) {
             this.realmMs.merge(realm, gap, Long::sum);
+            this.env.addPlayMs(gap);
          }
       }
    }
@@ -208,6 +213,11 @@ public final class SessionTracker {
          }
 
          return new int[]{runs, done};
+      }
+
+      @Override
+      public void addPlayMs(long ms) {
+         org.blossomsuite.core.progress.Progress.addPlayMs(ms);
       }
 
       @Override

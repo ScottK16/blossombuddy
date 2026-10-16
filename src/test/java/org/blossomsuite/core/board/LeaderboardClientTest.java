@@ -24,11 +24,13 @@ class LeaderboardClientTest {
       boolean canRun = true;
       Map<String, double[]> totals = new TreeMap<>(Map.of("cherry", new double[]{1500.0, 40.0}, "tulip", new double[]{200.0, 0.0}));
       boolean noticeShown = true;
+      Map<String, Object> progress = null;
 
       @Override public boolean enabled() { return this.enabled; }
       @Override public void setEnabled(boolean on) { this.enabled = on; }
       @Override public boolean canRun() { return this.canRun; }
       @Override public Map<String, double[]> totals() { return this.totals; }
+      @Override public Map<String, Object> progress() { return this.progress; }
       @Override public boolean noticeShown() { return this.noticeShown; }
       @Override public void setNoticeShown(boolean shown) { this.noticeShown = shown; }
    }
@@ -36,6 +38,10 @@ class LeaderboardClientTest {
    static final class FakeRelay implements XChatClient.Relay {
       final List<String[]> calls = new ArrayList<>();
       int reportStatus = 200;
+      int profileStatus = 200;
+      String profileBody = "{\"name\":\"Alice\",\"level\":12,\"title\":\"Bud\",\"xp\":7000,\"xpIntoLevel\":525,\"xpForNext\":1050,\"minutes\":90,\"style\":{\"gradientId\":\"sunset\",\"colors\":[\"#ff9a2e\",\"#ff4f81\"],\"symbolId\":\"flower\",\"glyph\":\"\u273F\"},\"catalog\":{\"gradients\":[{\"id\":\"sunset\",\"label\":\"Sunset\",\"level\":10,\"colors\":[\"#ff9a2e\",\"#ff4f81\"],\"unlocked\":true}],\"symbols\":[{\"id\":\"flower\",\"label\":\"Flower\",\"glyph\":\"\u273F\",\"level\":1,\"unlocked\":true}]}}";
+      int cosmeticStatus = 200;
+      String cosmeticBody = "{\"ok\":true}";
       int joinStatus = 200;
       boolean down = false;
 
@@ -50,6 +56,8 @@ class LeaderboardClientTest {
             case "/v1/chat/challenge" -> new XChatClient.Reply(200, "{\"challengeId\":\"c1\",\"serverId\":\"s1\"}");
             case "/v1/lb/join" -> new XChatClient.Reply(this.joinStatus, "{\"token\":\"T1\",\"name\":\"Alice\",\"expiresInSeconds\":21600}");
             case "/v1/lb/report" -> new XChatClient.Reply(this.reportStatus, "{\"ok\":true}");
+            case "/v1/lb/profile" -> new XChatClient.Reply(this.profileStatus, this.profileBody);
+            case "/v1/lb/cosmetic" -> new XChatClient.Reply(this.cosmeticStatus, this.cosmeticBody);
             case "/v1/lb/me" -> new XChatClient.Reply(200, "{\"rank\":3,\"value\":1500,\"total\":12}");
             default -> new XChatClient.Reply(200, "{\"ok\":true}");
          };
@@ -230,5 +238,73 @@ class LeaderboardClientTest {
       assertTrue(this.env.noticeShown);
       this.client.step(T);
       assertEquals(List.of("/v1/chat/challenge", "/v1/lb/join", "/v1/lb/report"), this.relay.paths());
+   }
+
+   @Test
+   void theLevelCountersGoWithTheTotalsWhenThereAreSome() {
+      this.env.progress = new java.util.LinkedHashMap<>(Map.of("minutes", 90L, "done", 2, "failed", 1, "firsts", List.of("emote")));
+      this.client.step(T);
+      JsonObject report = this.relay.bodyOf("/v1/lb/report");
+      assertEquals(3, report.size(), "token, totals and progress: " + report);
+      JsonObject progress = report.getAsJsonObject("progress");
+      assertEquals(90L, progress.get("minutes").getAsLong());
+      assertEquals("emote", progress.getAsJsonArray("firsts").get(0).getAsString());
+   }
+
+   @Test
+   void yourProfileIsLoadedEvenBeforeTheFirstTotalsHaveGoneOut() throws Exception {
+      this.env.totals = new TreeMap<>(); // nothing earned yet, so nothing has been reported
+      ProfileModels.Profile p = this.client.loadProfile().get();
+      assertEquals(12, p.level);
+      assertEquals("Bud", p.title);
+      assertEquals(0.5, p.progress(), 0.001);
+      assertEquals("sunset", p.style.gradientId);
+      assertEquals(1, p.gradients().size());
+      assertTrue(p.symbols().get(0).unlocked);
+      assertEquals(List.of("/v1/chat/challenge", "/v1/lb/join", "/v1/lb/profile"), this.relay.paths(), "it signs in on its own first");
+   }
+
+   @Test
+   void anExpiredSessionSignsInAgainOnceForTheProfile() {
+      this.client.step(T);
+      this.relay.calls.clear();
+      this.relay.profileStatus = 401;
+      org.junit.jupiter.api.Assertions.assertThrows(java.util.concurrent.ExecutionException.class, () -> this.client.loadProfile().get());
+      assertEquals(2, this.relay.paths().stream().filter(p -> p.equals("/v1/lb/profile")).count(), "it retried once after signing in again");
+   }
+
+   @Test
+   void youHaveNoProfileWhileTheLeaderboardIsOff() {
+      this.env.enabled = false;
+      java.util.concurrent.ExecutionException e = org.junit.jupiter.api.Assertions.assertThrows(java.util.concurrent.ExecutionException.class, () -> this.client.loadProfile().get());
+      assertTrue(e.getCause().getMessage().contains("not on the leaderboard"));
+      assertTrue(this.relay.calls.isEmpty());
+   }
+
+   @Test
+   void wearingSomethingSendsOnlyTheChoiceAndShowsTheRelaysReasonWhenRefused() throws Exception {
+      this.client.step(T);
+      this.relay.calls.clear();
+      this.client.applyStyle("sunset", null, "flower").get();
+      JsonObject sent = this.relay.bodyOf("/v1/lb/cosmetic");
+      assertEquals("sunset", sent.get("gradient").getAsString());
+      assertEquals("flower", sent.get("symbol").getAsString());
+      assertEquals("T1", sent.get("token").getAsString());
+      assertEquals(3, sent.size(), "no colours unless it is a custom gradient: " + sent);
+
+      this.relay.cosmeticStatus = 403;
+      this.relay.cosmeticBody = "{\"error\":\"unlocks at level 50\"}";
+      java.util.concurrent.ExecutionException e = org.junit.jupiter.api.Assertions.assertThrows(java.util.concurrent.ExecutionException.class, () -> this.client.applyStyle("gold", null, null).get());
+      assertEquals("unlocks at level 50", e.getCause().getMessage());
+   }
+
+   @Test
+   void aCustomGradientSendsItsColours() throws Exception {
+      this.client.step(T);
+      this.relay.calls.clear();
+      this.client.applyStyle("custom", List.of("#ff8800", "#00ccff"), null).get();
+      JsonObject sent = this.relay.bodyOf("/v1/lb/cosmetic");
+      assertEquals("#ff8800", sent.getAsJsonArray("colors").get(0).getAsString());
+      assertEquals("none", sent.get("symbol").getAsString());
    }
 }

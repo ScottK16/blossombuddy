@@ -129,6 +129,7 @@ public final class EmoteClient {
       }
 
       this.state.startLooping(me, emote, this.clock.getAsLong());
+      org.blossomsuite.core.progress.Progress.first("emote");
       if (this.env.share()) {
          this.send(emote.id(), me);
       }

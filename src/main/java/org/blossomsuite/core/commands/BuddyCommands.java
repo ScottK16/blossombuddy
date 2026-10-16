@@ -61,7 +61,7 @@ public final class BuddyCommands {
    }
 
    public static List<LiteralArgumentBuilder<FabricClientCommandSource>> subcommands() {
-      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"), dungeon(), chatNotify(), tps(), session(), find(), presence(), music());
+      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"), dungeon(), chatNotify(), tps(), session(), find(), presence(), music(), profile(), level());
    }
 
    public static final String DISCORD_INVITE = "https://discord.gg/EA4WwSdGTj";
@@ -112,7 +112,7 @@ public final class BuddyCommands {
       ChatOutput.info(
          Component.literal("The leaderboard is ").withStyle(ChatFormatting.GRAY)
             .append(Component.literal("on by default").withStyle(ChatFormatting.AQUA))
-            .append(Component.literal(" (after a notice in chat, and you can switch it off first): your Minecraft name and job money / overflow XP totals per realm are kept on the relay and shown to everyone. /buddy top off deletes them and keeps it off.").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(" (after a notice in chat, and you can switch it off first): your Minecraft name and job money / overflow XP totals per realm are kept on the relay and shown to everyone. It also drives your BlossomBuddy level and a public profile page (time on realms, dungeon counts, your chosen look). /buddy top off deletes it all and keeps it off.").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
          Component.literal("Music controls (/buddy music) read what your own computer is playing and are ").withStyle(ChatFormatting.GRAY)
@@ -539,6 +539,31 @@ public final class BuddyCommands {
             org.blossomsuite.core.finder.ContainerFinder.INSTANCE.report(StringArgumentType.getString(ctx, "words"));
             return 1;
          }));
+   }
+
+   /** {@code /buddy profile}: your level, and the picker for the gradients and symbols you have unlocked. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> profile() {
+      return ClientCommands.literal("profile").executes(ctx -> {
+         Minecraft mc = Minecraft.getInstance();
+         mc.schedule(() -> mc.setScreen(new org.blossomsuite.core.ui.ProfileScreen())); // a tick later, so the chat screen closing doesn't undo it
+         return 1;
+      });
+   }
+
+   /** {@code /buddy level}: your level and XP in chat. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> level() {
+      return ClientCommands.literal("level").executes(ctx -> {
+         LeaderboardClient.INSTANCE.loadProfile().whenComplete((p, failure) -> Minecraft.getInstance().execute(() -> {
+            if (failure != null) {
+               String m = failure.getMessage() == null ? "Couldn't load your profile." : failure.getMessage();
+               ChatOutput.info(m.replace("java.lang.IllegalStateException: ", ""));
+            } else {
+               ChatOutput.info("Level " + p.level + " (" + p.title + ") - " + org.blossomsuite.core.board.BoardFormat.xp(p.xpIntoLevel) + " / "
+                  + org.blossomsuite.core.board.BoardFormat.xp(p.xpForNext) + " XP to level " + (p.level + 1) + ". /buddy profile to choose your gradient and symbol.");
+            }
+         }));
+         return 1;
+      });
    }
 
    /** {@code /buddy session}: this session, today and this week on a screen; {@code chat} prints the same in chat. */

@@ -39,6 +39,7 @@ public final class BuddyKeys {
    private static KeyMapping closeStaffChat;
    private static KeyMapping hidePlayers;
    private static KeyMapping searchChat;
+   private static KeyMapping profileKey;
    private static KeyMapping musicNext;
    private static KeyMapping musicPrevious;
    private static KeyMapping musicPause;
@@ -50,7 +51,7 @@ public final class BuddyKeys {
    public static java.util.List<KeyMapping> all() {
       return java.util.List.of(
          emoteWheel, emoteStop, closeStaffChat, hidePlayers, searchChat, xchatMode, playerList, chatFilter,
-         toggleScoreboard, hotbarUp, hotbarDown, hotbarSwap1, hotbarSwap2, musicNext, musicPrevious, musicPause
+         toggleScoreboard, hotbarUp, hotbarDown, hotbarSwap1, hotbarSwap2, musicNext, musicPrevious, musicPause, profileKey
       );
    }
 
@@ -68,6 +69,7 @@ public final class BuddyKeys {
       closeStaffChat = register("close_staff_chat");
       hidePlayers = register("hide_players");
       searchChat = register("search_chat");
+      profileKey = register("open_profile");
       musicNext = register("music_next");
       musicPrevious = register("music_previous");
       musicPause = register("music_pause");
@@ -141,6 +143,10 @@ public final class BuddyKeys {
 
       while (hotbarSwap2.consumeClick()) {
          HotbarCycler.swapWithRow(client, 2);
+      }
+
+      while (profileKey.consumeClick()) {
+         client.setScreen(new org.blossomsuite.core.ui.ProfileScreen());
       }
 
       musicKey(musicNext, org.blossomsuite.core.music.MediaCommand.NEXT);
