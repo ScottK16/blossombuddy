@@ -28,6 +28,7 @@ class PresenceClientTest {
       String realm = "cherry";
       boolean noticeShown = true;
       boolean vanished = false;
+      String playing = "";
 
       @Override public boolean enabled() { return this.enabled; }
       @Override public void setEnabled(boolean on) { this.enabled = on; }
@@ -38,6 +39,7 @@ class PresenceClientTest {
       @Override public boolean noticeShown() { return this.noticeShown; }
       @Override public void setNoticeShown(boolean shown) { this.noticeShown = shown; }
       @Override public boolean vanished() { return this.vanished; }
+      @Override public String nowPlaying() { return this.playing; }
    }
 
    static final class FakeRelay implements XChatClient.Relay {
@@ -316,5 +318,22 @@ class PresenceClientTest {
       this.client.step(T);
       assertEquals(1, this.notices.size(), "only the message about switching it on");
       assertEquals(3, this.relay.calls.size(), "and it joins straight away");
+   }
+
+   @Test
+   void theSongIsOnlySentWhenThereIsOneToShare() {
+      this.env.playing = "I Love You - Fontaines D.C.";
+      this.client.step(T);
+      JsonObject update = this.relay.bodyOf("/v1/presence/update");
+      assertEquals("I Love You - Fontaines D.C.", update.get("playing").getAsString());
+      assertEquals(3, update.size());
+   }
+
+   @Test
+   void otherPlayersSongsAreReadAndCleaned() {
+      this.relay.players = "{\"players\":[{\"name\":\"Alice\",\"uuid\":\"" + ALICE + "\",\"realm\":\"cherry\",\"playing\":\"  Some   Song \"},{\"name\":\"Bob\",\"uuid\":\"" + BOB + "\",\"realm\":\"tulip\"}]}";
+      this.client.step(T);
+      assertEquals("Some Song", this.client.players().get(0).playing());
+      assertEquals("", this.client.players().get(1).playing());
    }
 }

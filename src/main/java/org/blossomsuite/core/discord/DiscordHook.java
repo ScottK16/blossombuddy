@@ -19,7 +19,7 @@ import org.blossomsuite.core.util.WorldGate;
 public final class DiscordHook {
    public static final DiscordHook INSTANCE = new DiscordHook();
    /** The Discord application id of BlossomBuddy (it is public, not a secret). Empty until the application exists. */
-   public static final String BUILT_IN_APP_ID = "";
+   public static final String BUILT_IN_APP_ID = "1550998827996160100";
    static final String IMAGE_KEY = "logo";
    static final String SITE = "https://blossombuddy.site";
 

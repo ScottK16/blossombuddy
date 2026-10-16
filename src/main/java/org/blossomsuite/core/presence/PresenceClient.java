@@ -56,7 +56,10 @@ public final class PresenceClient {
    }
 
    /** One player who chose to appear. {@code realm} is a lower-case key such as "cherry". */
-   public record Player(String name, UUID uuid, String realm) {
+   public record Player(String name, UUID uuid, String realm, String playing) {
+      public Player(String name, UUID uuid, String realm) {
+         this(name, uuid, realm, "");
+      }
    }
 
    public interface Env {
@@ -82,6 +85,11 @@ public final class PresenceClient {
 
       /** True while the local player is /vanish-ed, so they drop off the list without switching it off. */
       boolean vanished();
+
+      /** The song to show other players ("Title - Artist"), or "" when the player is not sharing one. */
+      default String nowPlaying() {
+         return "";
+      }
    }
 
    public interface Sink {
@@ -329,7 +337,15 @@ public final class PresenceClient {
    }
 
    private void update(long now) throws XChatClient.ChatException {
-      XChatClient.Reply reply = this.relay.post("/v1/presence/update", JsonUtil.GSON.toJson(Map.of("token", this.token, "realm", normalizeRealm(this.env.realm()))));
+      Map<String, String> beat = new java.util.LinkedHashMap<>();
+      beat.put("token", this.token);
+      beat.put("realm", normalizeRealm(this.env.realm()));
+      String playing = this.env.nowPlaying();
+      if (playing != null && !playing.isBlank()) {
+         beat.put("playing", playing);
+      }
+
+      XChatClient.Reply reply = this.relay.post("/v1/presence/update", JsonUtil.GSON.toJson(beat));
       if (reply.status() == 401) {
          this.token = null; // the relay forgot us: join again on the next round
          this.nextUpdateAt = 0L;
@@ -361,6 +377,7 @@ public final class PresenceClient {
       String name;
       String uuid;
       String realm;
+      String playing;
    }
 
    /** Keeps only well-formed entries: the mod never trusts what the relay sends more than it has to. */
@@ -375,7 +392,7 @@ public final class PresenceClient {
             continue;
          }
 
-         out.add(new Player(w.name, id, realm));
+         out.add(new Player(w.name, id, realm, org.blossomsuite.core.music.NowPlaying.clean(w.playing, org.blossomsuite.core.music.NowPlaying.MAX_SHARED)));
          idSet.add(id);
          byRealm.computeIfAbsent(realm, k -> new HashSet<>()).add(w.name.toLowerCase(Locale.ROOT));
       }
@@ -473,6 +490,11 @@ public final class PresenceClient {
       public String realm() {
          String realm = WorldGate.Server;
          return realm == null ? "" : realm;
+      }
+
+      @Override
+      public String nowPlaying() {
+         return org.blossomsuite.core.music.MusicService.INSTANCE.sharedText();
       }
 
       @Override

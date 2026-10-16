@@ -256,6 +256,22 @@ public class BuddySmokeTest implements FabricClientGameTest {
          System.out.println("[SMOKE] discord status: " + discordStatus);
          context.runOnClient(mc -> FeatureConfig.INSTANCE.discord.enabled = false);
 
+         // music controls: read whatever this computer is playing (only reads, never presses a button)
+         context.runOnClient(mc -> {
+            FeatureConfig.INSTANCE.music.enabled = true;
+            FeatureConfig.INSTANCE.music.share = true;
+         });
+         context.waitTicks(200);
+         String musicStatus = context.computeOnClient(mc -> org.blossomsuite.core.music.MusicService.INSTANCE.status());
+         String musicShared = context.computeOnClient(mc -> org.blossomsuite.core.music.MusicService.INSTANCE.sharedText());
+         System.out.println("[SMOKE] music status: " + musicStatus + " | would share: " + musicShared);
+         context.takeScreenshot("75-music");
+         context.runOnClient(mc -> {
+            FeatureConfig.INSTANCE.music.enabled = false;
+            FeatureConfig.INSTANCE.music.share = false;
+         });
+         context.waitTicks(25);
+
          // the leaderboard window, reading from a throwaway local relay seeded with made-up players (started by the dev script)
          if (System.getenv("BLOSSOMBUDDY_SEEDED_RELAY") != null) {
             context.runOnClient(mc -> org.blossomsuite.core.state.SuiteState.INSTANCE.http.setBaseUrl("http://127.0.0.1:8799"));

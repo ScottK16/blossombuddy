@@ -460,6 +460,7 @@ public final class SuiteClientBootstrap {
             sessionTicks[0] = 0;
             org.blossomsuite.core.session.SessionTracker.INSTANCE.tick();
             org.blossomsuite.core.discord.DiscordHook.INSTANCE.tick();
+            org.blossomsuite.core.music.MusicService.INSTANCE.tick();
          }
       });
       WorldOverlays.init();

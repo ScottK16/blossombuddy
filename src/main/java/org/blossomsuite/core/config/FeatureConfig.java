@@ -46,6 +46,7 @@ public final class FeatureConfig {
    public Tps tps = new Tps();
    public Finder finder = new Finder();
    public Discord discord = new Discord();
+   public Music music = new Music();
    /** Cooldown rules the player has switched off, by item id (or item name when a rule has no id). */
    public List<String> disabledCooldownItems = new ArrayList<>();
 
@@ -119,6 +120,18 @@ public final class FeatureConfig {
       /** Disconnect when the server's player count reaches {@link #playerLimit} (alts aren't allowed to stay on a crowded server). */
       public boolean leaveWhenCrowded = false;
       public int playerLimit = 60;
+   }
+
+   /**
+    * Music controls: what your computer is playing on a HUD, skip keys, and (a separate choice) showing it to other players in the player
+    * list. Both off until the player turns them on.
+    */
+   public static final class Music {
+      public boolean enabled = false;
+      /** Show the track you are playing to other players in the player list. Needs {@link #enabled} and the player list. */
+      public boolean share = false;
+      public boolean showHud = true;
+      public Panel panel = new Panel();
    }
 
    /** Discord Rich Presence: "Playing BlossomBuddy - On Cherry Realm" on your Discord profile. Off until the player turns it on. */
@@ -622,6 +635,8 @@ public final class FeatureConfig {
       if (this.tps == null) this.tps = new Tps();
       if (this.finder == null) this.finder = new Finder();
       if (this.discord == null) this.discord = new Discord();
+      if (this.music == null) this.music = new Music();
+      if (this.music.panel == null) this.music.panel = new Panel();
       if (this.discord.appId == null) this.discord.appId = "";
       if (this.tps.panel == null) this.tps.panel = new Panel();
       if (this.chatNotify == null) this.chatNotify = new ChatNotify();

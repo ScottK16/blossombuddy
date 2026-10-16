@@ -16,6 +16,7 @@ A Fabric client mod for the BlossomCraft server, continuing on from the still ex
 - Session stats: `/buddy session` shows time played, earnings and overflow XP for this session, today and this week
 - Chest finder: `/buddy find diamond` says where items were the last time you opened a container, and lights those chests up
 - Discord Rich Presence ("Playing BlossomBuddy - On Cherry Realm"), opt-in - `/buddy presence`
+- Music controls: what your computer is playing on a HUD, skip keys, and optional sharing in the player list (Windows and macOS, opt-in) - `/buddy music`
 - A map art tool: turn a picture into a real in-game build, including a Litematica-compatible schematic export
 - Item cooldown tracking, Jobs Overflow XP, inventory slot locks, and the rest of the original BlossomSuite toolkit
 - A searchable options screen, and a draggable HUD editor for every panel

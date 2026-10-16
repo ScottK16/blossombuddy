@@ -61,7 +61,7 @@ public final class BuddyCommands {
    }
 
    public static List<LiteralArgumentBuilder<FabricClientCommandSource>> subcommands() {
-      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"), dungeon(), chatNotify(), tps(), session(), find(), presence());
+      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"), dungeon(), chatNotify(), tps(), session(), find(), presence(), music());
    }
 
    public static final String DISCORD_INVITE = "https://discord.gg/EA4WwSdGTj";
@@ -113,6 +113,11 @@ public final class BuddyCommands {
          Component.literal("The leaderboard is ").withStyle(ChatFormatting.GRAY)
             .append(Component.literal("opt-in").withStyle(ChatFormatting.AQUA))
             .append(Component.literal(": only if you turn it on (/buddy top) are your Minecraft name and job money / overflow XP totals per realm kept on the relay and shown to everyone. Turning it off deletes them.").withStyle(ChatFormatting.GRAY))
+      );
+      ChatOutput.info(
+         Component.literal("Music controls (/buddy music) read what your own computer is playing and are ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal("opt-in").withStyle(ChatFormatting.AQUA))
+            .append(Component.literal("; that stays on your computer unless you also turn on sharing (/buddy music share on), which shows the song and artist next to your name to other players in the player list (relay memory only, gone within 90 seconds of stopping).").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
          Component.literal("Your session history, the chest finder, Chat Notify and the dungeon timer stay on your computer. ").withStyle(ChatFormatting.GRAY)
@@ -420,6 +425,72 @@ public final class BuddyCommands {
       List<String> words = cfg.words();
       ChatOutput.info("Chat notify is " + (cfg.enabled ? "ON" : "OFF") + ". Your name " + (cfg.mentionName ? "dings too" : "does not ding") + ".");
       ChatOutput.info(words.isEmpty() ? "No keywords yet. /buddy notify add <word>" : "Keywords: " + String.join(", ", words));
+   }
+
+   /** {@code /buddy music}: what is playing, skip keys, and sharing it with other players (both off until you turn them on). */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> music() {
+      return ClientCommands.literal("music")
+         .executes(ctx -> {
+            org.blossomsuite.core.music.MusicService m = org.blossomsuite.core.music.MusicService.INSTANCE;
+            ChatOutput.info("Music controls are " + (FeatureConfig.INSTANCE.music.enabled ? "ON" : "OFF") + " (" + m.status() + "). Sharing is "
+               + (FeatureConfig.INSTANCE.music.share ? "ON" : "OFF") + ". /buddy music on|off|next|prev|pause|share on|share off");
+            return 1;
+         })
+         .then(ClientCommands.literal("on").executes(ctx -> {
+            if (!org.blossomsuite.core.music.MusicService.supported()) {
+               ChatOutput.info("Music controls work on Windows and macOS only.");
+               return 1;
+            }
+
+            FeatureConfig.INSTANCE.music.enabled = true;
+            FeatureConfig.markDirty();
+            ChatOutput.info("Music controls are ON: BlossomBuddy asks your computer what is playing (Spotify and so on) and shows it on a HUD; you can skip with keys (Options > Controls). "
+               + "Nothing is shared unless you also run /buddy music share on. On a Mac, say yes if it asks whether Minecraft may control Spotify or Music.");
+            return 1;
+         }))
+         .then(ClientCommands.literal("off").executes(ctx -> {
+            FeatureConfig.INSTANCE.music.enabled = false;
+            FeatureConfig.markDirty();
+            org.blossomsuite.core.music.MusicService.INSTANCE.tick();
+            ChatOutput.info("Music controls are OFF.");
+            return 1;
+         }))
+         .then(ClientCommands.literal("next").executes(ctx -> {
+            musicCommand(org.blossomsuite.core.music.MediaCommand.NEXT);
+            return 1;
+         }))
+         .then(ClientCommands.literal("prev").executes(ctx -> {
+            musicCommand(org.blossomsuite.core.music.MediaCommand.PREVIOUS);
+            return 1;
+         }))
+         .then(ClientCommands.literal("pause").executes(ctx -> {
+            musicCommand(org.blossomsuite.core.music.MediaCommand.PLAY_PAUSE);
+            return 1;
+         }))
+         .then(ClientCommands.literal("share")
+            .then(ClientCommands.literal("on").executes(ctx -> {
+               FeatureConfig.INSTANCE.music.share = true;
+               FeatureConfig.markDirty();
+               ChatOutput.info("Sharing is ON: while music controls are on and something is playing, other players in the BlossomBuddy player list can see the song title and artist next to your name. "
+                  + (FeatureConfig.INSTANCE.music.enabled ? "" : "Music controls are still off - /buddy music on. ")
+                  + (PresenceClient.INSTANCE.enabled() ? "" : "You are not in the player list - /buddy who on - so nobody sees it yet. ")
+                  + "Turn it off any time with /buddy music share off.");
+               return 1;
+            }))
+            .then(ClientCommands.literal("off").executes(ctx -> {
+               FeatureConfig.INSTANCE.music.share = false;
+               FeatureConfig.markDirty();
+               ChatOutput.info("Sharing is OFF.");
+               return 1;
+            })));
+   }
+
+   private static void musicCommand(org.blossomsuite.core.music.MediaCommand command) {
+      if (!FeatureConfig.INSTANCE.music.enabled) {
+         ChatOutput.info("Music controls are off. Turn them on with /buddy music on.");
+      } else {
+         org.blossomsuite.core.music.MusicService.INSTANCE.command(command);
+      }
    }
 
    /** {@code /buddy presence [on|off]}: show "Playing BlossomBuddy - On Cherry Realm" on your Discord profile. */

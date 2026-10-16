@@ -132,6 +132,7 @@ public final class PlayerListScreen extends Screen {
          ctx.fill(x + 2, TOP + 11, x + this.colW() - 2, TOP + 12, 0x55FFFFFF);
       }
 
+      PresenceClient.Player listening = null;
       for (Cell c : this.cells()) {
          boolean hovered = c.hit(mouseX, mouseY);
          if (c.player() == null) {
@@ -148,6 +149,21 @@ public final class PlayerListScreen extends Screen {
          boolean mine = p.name().equalsIgnoreCase(me);
          Component name = mine ? Component.literal(p.name()).withStyle(ChatFormatting.LIGHT_PURPLE) : Component.literal(p.name());
          ctx.text(tr, name, c.x() + 3 + HEAD + 4, c.y() + 1, -1);
+         if (!p.playing().isEmpty()) {
+            ctx.text(tr, Component.literal("♪").withStyle(ChatFormatting.GREEN), c.x() + 3 + HEAD + 4 + tr.width(name) + 3, c.y() + 1, -1);
+            if (hovered) {
+               listening = p;
+            }
+         }
+      }
+
+      if (listening != null) {
+         String line = "♪ " + listening.playing();
+         int w = tr.width(line) + 8;
+         int tx = Math.max(2, Math.min(this.width - w - 2, mouseX + 10));
+         int ty = Math.min(this.height - 16, mouseY + 12);
+         ctx.fill(tx, ty, tx + w, ty + 14, 0xEE101010);
+         ctx.text(tr, Component.literal(line).withStyle(ChatFormatting.GREEN), tx + 4, ty + 3, -1);
       }
    }
 

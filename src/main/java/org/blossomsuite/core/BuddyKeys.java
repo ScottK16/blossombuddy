@@ -39,6 +39,9 @@ public final class BuddyKeys {
    private static KeyMapping closeStaffChat;
    private static KeyMapping hidePlayers;
    private static KeyMapping searchChat;
+   private static KeyMapping musicNext;
+   private static KeyMapping musicPrevious;
+   private static KeyMapping musicPause;
 
    private BuddyKeys() {
    }
@@ -47,7 +50,7 @@ public final class BuddyKeys {
    public static java.util.List<KeyMapping> all() {
       return java.util.List.of(
          emoteWheel, emoteStop, closeStaffChat, hidePlayers, searchChat, xchatMode, playerList, chatFilter,
-         toggleScoreboard, hotbarUp, hotbarDown, hotbarSwap1, hotbarSwap2
+         toggleScoreboard, hotbarUp, hotbarDown, hotbarSwap1, hotbarSwap2, musicNext, musicPrevious, musicPause
       );
    }
 
@@ -65,6 +68,9 @@ public final class BuddyKeys {
       closeStaffChat = register("close_staff_chat");
       hidePlayers = register("hide_players");
       searchChat = register("search_chat");
+      musicNext = register("music_next");
+      musicPrevious = register("music_previous");
+      musicPause = register("music_pause");
       ClientTickEvents.END_CLIENT_TICK.register(BuddyKeys::tick);
       ClientTickEvents.END_CLIENT_TICK.register(org.blossomsuite.core.alts.AltGuard::tick);
    }
@@ -75,6 +81,16 @@ public final class BuddyKeys {
 
    private static KeyMapping register(String id, int defaultKey) {
       return KeyMappingHelper.registerKeyMapping(new KeyMapping("key.suitecore." + id, InputConstants.Type.KEYSYM, defaultKey, CATEGORY));
+   }
+
+   private static void musicKey(KeyMapping key, org.blossomsuite.core.music.MediaCommand command) {
+      while (key.consumeClick()) {
+         if (FeatureConfig.INSTANCE.music.enabled) {
+            org.blossomsuite.core.music.MusicService.INSTANCE.command(command);
+         } else {
+            ChatOutput.info("Music controls are off. Turn them on with /buddy music on.");
+         }
+      }
    }
 
    /** Switches staff chat off if it is on. Unlike the toggle key, pressing it again never turns it back on. */
@@ -127,6 +143,9 @@ public final class BuddyKeys {
          HotbarCycler.swapWithRow(client, 2);
       }
 
+      musicKey(musicNext, org.blossomsuite.core.music.MediaCommand.NEXT);
+      musicKey(musicPrevious, org.blossomsuite.core.music.MediaCommand.PREVIOUS);
+      musicKey(musicPause, org.blossomsuite.core.music.MediaCommand.PLAY_PAUSE);
       EmoteClient.INSTANCE.clientTick(); // moving only ends the sitting/lying emotes
 
       while (emoteWheel.consumeClick()) {

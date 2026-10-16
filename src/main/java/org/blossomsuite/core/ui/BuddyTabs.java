@@ -521,6 +521,49 @@ public final class BuddyTabs {
       }
    }
 
+   // ------------------------------------------------------------------ music
+
+   public static final class MusicPage extends Page {
+      @Override
+      public String titleKey() {
+         return "suitecore.tab.music";
+      }
+
+      @Override
+      int height(SuiteSettingsScreen screen) {
+         return UiRows.ROW * 5 + 18 * 5 + 24;
+      }
+
+      @Override
+      void rows(SuiteSettingsScreen screen, int x, int w, int y) {
+         org.blossomsuite.core.music.MusicService music = org.blossomsuite.core.music.MusicService.INSTANCE;
+         FeatureConfig.Music cfg = FeatureConfig.INSTANCE.music;
+         y = UiRows.toggle(screen, x, w, y, "Music controls", cfg.enabled, "Shows what your computer is playing on a HUD and lets you skip with keys. Windows and macOS. Off by default.", () -> {
+            cfg.enabled = !cfg.enabled;
+            FeatureConfig.markDirty();
+            music.tick();
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.note(screen, x, w, y, org.blossomsuite.core.music.MusicService.supported() ? "Status: " + music.status() : "Music controls work on Windows and macOS only.");
+         y = UiRows.toggle(screen, x, w, y, "Show the HUD", cfg.showHud, "A small panel with the song and artist. Move it in /buddy editmode.", () -> {
+            cfg.showHud = !cfg.showHud;
+            FeatureConfig.markDirty();
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.pair(screen, x, w, y, "Previous", () -> music.command(org.blossomsuite.core.music.MediaCommand.PREVIOUS), "Next", () -> music.command(org.blossomsuite.core.music.MediaCommand.NEXT));
+         y = UiRows.button(screen, x, w, y, "Play / pause", "Toggle", "Pauses or resumes whatever is playing.", () -> music.command(org.blossomsuite.core.music.MediaCommand.PLAY_PAUSE));
+         y = UiRows.toggle(screen, x, w, y, "Share what I'm listening to", cfg.share, "Other players in the BlossomBuddy player list can see your song and artist next to your name. Needs music controls and the player list. Off by default.", () -> {
+            cfg.share = !cfg.share;
+            FeatureConfig.markDirty();
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.note(screen, x, w, y, "Keys for next, previous and play/pause: Options > Controls > BlossomBuddy (or /buddy keys).");
+         y = UiRows.note(screen, x, w, y, "Reading what is playing happens on your computer. Nothing leaves it unless you turn sharing on.");
+         y = UiRows.note(screen, x, w, y, "Sharing shows your Minecraft name and the song to other players in the list. Off any time.");
+         UiRows.note(screen, x, w, y, "Mac: say yes if macOS asks whether Minecraft may control Spotify or Music.");
+      }
+   }
+
    // ------------------------------------------------------------------ discord presence
 
    public static final class DiscordPage extends Page {
