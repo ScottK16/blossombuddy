@@ -139,6 +139,8 @@ public final class FeatureConfig {
    /** Discord Rich Presence: "Playing BlossomBuddy - On Cherry Realm" on your Discord profile. Off until the player turns it on. */
    public static final class Discord {
       public boolean enabled = false;
+      /** Which process the status is tied to: "own" (the game) or "parent" (the program that started it). */
+      public String pidMode = "own";
       /** The Discord application id; empty means "use the one built into the mod". */
       public String appId = "";
    }
@@ -651,6 +653,7 @@ public final class FeatureConfig {
       if (this.music == null) this.music = new Music();
       if (this.music.panel == null) this.music.panel = new Panel();
       if (this.discord.appId == null) this.discord.appId = "";
+      if (this.discord.pidMode == null) this.discord.pidMode = "own";
       if (this.tps.panel == null) this.tps.panel = new Panel();
       if (this.chatNotify == null) this.chatNotify = new ChatNotify();
       if (this.presence == null) this.presence = new Presence();

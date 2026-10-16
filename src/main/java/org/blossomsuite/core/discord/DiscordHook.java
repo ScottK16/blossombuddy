@@ -28,7 +28,7 @@ public final class DiscordHook {
       t.setDaemon(true);
       return t;
    });
-   private final DiscordPresence presence = new DiscordPresence(DiscordTransports.system(), this.io, System::currentTimeMillis, ProcessHandle.current().pid());
+   private final DiscordPresence presence = new DiscordPresence(DiscordTransports.system(), this.io, System::currentTimeMillis, DiscordHook::pidToReport);
 
    private DiscordHook() {
    }
@@ -36,6 +36,33 @@ public final class DiscordHook {
    /** Always BlossomBuddy's own Discord application: it is what puts the name next to "Playing", so it is not something to change. */
    public static String effectiveAppId() {
       return BUILT_IN_APP_ID;
+   }
+
+   /**
+    * The process id Discord is told this status belongs to: the game's own, or (when the player asks for it) the program that started the
+    * game. Another app that also shows a status for Minecraft may use the game's id, and Discord keeps one status per process.
+    */
+   static long pidToReport() {
+      ProcessHandle self = ProcessHandle.current();
+      if ("parent".equalsIgnoreCase(FeatureConfig.INSTANCE.discord.pidMode)) {
+         java.util.Optional<ProcessHandle> parent = self.parent();
+         if (parent.isPresent() && parent.get().isAlive()) {
+            return parent.get().pid();
+         }
+      }
+
+      return self.pid();
+   }
+
+   public String pidModeLabel() {
+      return "parent".equalsIgnoreCase(FeatureConfig.INSTANCE.discord.pidMode) ? "launcher" : "game";
+   }
+
+   /** Which process the status is tied to: "game" (default) or "launcher". The connection is redone so it takes effect now. */
+   public void setPidMode(boolean parent) {
+      FeatureConfig.INSTANCE.discord.pidMode = parent ? "parent" : "own";
+      FeatureConfig.markDirty();
+      this.presence.stop();
    }
 
    public boolean enabled() {

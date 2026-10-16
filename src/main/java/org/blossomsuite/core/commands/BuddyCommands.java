@@ -498,7 +498,7 @@ public final class BuddyCommands {
       return ClientCommands.literal("presence")
          .executes(ctx -> {
             org.blossomsuite.core.discord.DiscordHook hook = org.blossomsuite.core.discord.DiscordHook.INSTANCE;
-            ChatOutput.info("Discord presence is " + (hook.enabled() ? "ON" : "OFF") + " (" + hook.status() + "). /buddy presence on or off.");
+            ChatOutput.info("Discord presence is " + (hook.enabled() ? "ON" : "OFF") + " (" + hook.status() + "), tied to the " + hook.pidModeLabel() + ". /buddy presence on or off.");
             return 1;
          })
          .then(ClientCommands.literal("on").executes(ctx -> {
@@ -508,7 +508,18 @@ public final class BuddyCommands {
          .then(ClientCommands.literal("off").executes(ctx -> {
             org.blossomsuite.core.discord.DiscordHook.INSTANCE.setEnabled(false);
             return 1;
-         }));
+         }))
+         .then(ClientCommands.literal("pid")
+            .then(ClientCommands.literal("game").executes(ctx -> {
+               org.blossomsuite.core.discord.DiscordHook.INSTANCE.setPidMode(false);
+               ChatOutput.info("Discord presence is now tied to the game itself (the default).");
+               return 1;
+            }))
+            .then(ClientCommands.literal("launcher").executes(ctx -> {
+               org.blossomsuite.core.discord.DiscordHook.INSTANCE.setPidMode(true);
+               ChatOutput.info("Discord presence is now tied to the program that started the game. Use this if another app (such as Medal) is hiding it; /buddy presence pid game undoes it.");
+               return 1;
+            })));
    }
 
    /** {@code /buddy find <words>}: where the items you are looking for were the last time you opened a container. */

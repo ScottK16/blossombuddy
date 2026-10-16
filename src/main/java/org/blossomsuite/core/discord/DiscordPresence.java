@@ -89,7 +89,7 @@ public final class DiscordPresence {
    private final Transport transport;
    private final Executor io;
    private final LongSupplier clock;
-   private final long pid;
+   private final LongSupplier pid;
    private Conn conn;
    private String connClientId = "";
    private boolean busy = false;
@@ -99,6 +99,11 @@ public final class DiscordPresence {
    private String status = "Off";
 
    public DiscordPresence(Transport transport, Executor io, LongSupplier clock, long pid) {
+      this(transport, io, clock, () -> pid);
+   }
+
+   /** {@code pid} is asked each time an update goes out: Discord ties a status to the process it says it belongs to. */
+   public DiscordPresence(Transport transport, Executor io, LongSupplier clock, LongSupplier pid) {
       this.transport = transport;
       this.io = io;
       this.clock = clock;
@@ -262,7 +267,7 @@ public final class DiscordPresence {
 
    private void writeActivity(Conn c, Activity activity) throws IOException {
       JsonObject args = new JsonObject();
-      args.addProperty("pid", this.pid);
+      args.addProperty("pid", this.pid.getAsLong());
       if (activity != null) {
          args.add("activity", activity.toJson());
       }
