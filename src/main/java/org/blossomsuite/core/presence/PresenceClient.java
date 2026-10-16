@@ -37,6 +37,8 @@ public final class PresenceClient {
    public static final PresenceClient INSTANCE = new PresenceClient(new XChatClient.HttpRelay(), new XChatClient.MojangJoiner(), new GameEnv(), new GameSink(), SuiteScheduler.IO, System::currentTimeMillis);
 
    static final long UPDATE_EVERY_MS = 25_000L;
+   /** The relay accepts a heartbeat every 5 seconds at most. */
+   static final long SONG_CHANGE_GAP_MS = 6_000L;
    private static final long RENEW_BEFORE_EXPIRY_MS = 60_000L;
    private static final Pattern NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
 
@@ -107,6 +109,9 @@ public final class PresenceClient {
    private volatile String detail = "";
    private volatile long retryAt = 0L;
    private volatile long nextUpdateAt = 0L;
+   /** The song the last heartbeat carried, and when it went out: a changed song is sent without waiting for the next regular one. */
+   private volatile String lastBeatPlaying = "";
+   private volatile long lastBeatAt = 0L;
    /** After the first-run notice, nothing is sent until this time, so the player can switch it off first. */
    private volatile long graceUntil = 0L;
    private volatile String token;
@@ -199,6 +204,29 @@ public final class PresenceClient {
       return name != null && here != null && here.contains(name.toLowerCase(Locale.ROOT));
    }
 
+   /**
+    * The song another player has chosen to show ("Title - Artist"), or "" if they are not sharing one. By UUID, or by name for players on
+    * the realm we are on, like {@link #marks}. Only while we are in the list ourselves, since that is the only time we are sent it.
+    */
+   public String playingOf(UUID id, String name) {
+      if (!this.env.enabled() || this.state != State.READY) {
+         return "";
+      }
+
+      String realm = normalizeRealm(this.env.realm());
+      for (Player p : this.players) {
+         if (p.playing().isEmpty()) {
+            continue;
+         }
+
+         if ((id != null && id.equals(p.uuid())) || (name != null && p.realm().equals(realm) && p.name().equalsIgnoreCase(name))) {
+            return p.playing();
+         }
+      }
+
+      return "";
+   }
+
    // ------------------------------------------------------------------ switches
 
    /** Appear in the list (and see it), or stop. Turning it off removes the player from the relay's list at once. */
@@ -282,6 +310,11 @@ public final class PresenceClient {
          return;
       }
 
+      String playingNow = this.env.nowPlaying() == null ? "" : this.env.nowPlaying();
+      if (this.token != null && !playingNow.equals(this.lastBeatPlaying) && now - this.lastBeatAt >= SONG_CHANGE_GAP_MS) {
+         this.nextUpdateAt = 0L; // a new song (or none) is worth telling everyone about now, not in up to 25 seconds
+      }
+
       if (!this.env.canRun() || now < this.retryAt || now < this.nextUpdateAt || now < this.graceUntil) {
          return;
       }
@@ -346,6 +379,8 @@ public final class PresenceClient {
       }
 
       XChatClient.Reply reply = this.relay.post("/v1/presence/update", JsonUtil.GSON.toJson(beat));
+      this.lastBeatPlaying = playing == null ? "" : playing;
+      this.lastBeatAt = now;
       if (reply.status() == 401) {
          this.token = null; // the relay forgot us: join again on the next round
          this.nextUpdateAt = 0L;

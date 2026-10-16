@@ -51,10 +51,15 @@ public final class PlayerListScreen extends Screen {
    // ------------------------------------------------------------------ layout
 
    /** One thing that can be pointed at: a player, or the "+N more" line at the bottom of a crowded column. */
-   private record Cell(int x, int y, int w, PresenceClient.Player player, int more) {
+   private record Cell(int x, int y, int w, int h, PresenceClient.Player player, int more) {
       boolean hit(double mx, double my) {
-         return mx >= this.x && mx < this.x + this.w && my >= this.y - 1 && my < this.y + ROW_H - 2;
+         return mx >= this.x && mx < this.x + this.w && my >= this.y - 1 && my < this.y + this.h - 2;
       }
+   }
+
+   /** A player sharing a song gets a second line for it. */
+   private static int rowHeight(PresenceClient.Player p) {
+      return p.playing().isEmpty() || !FeatureConfig.INSTANCE.music.showOthers ? ROW_H : ROW_H + 10;
    }
 
    private int colW() {
@@ -83,18 +88,29 @@ public final class PlayerListScreen extends Screen {
 
    private List<Cell> cells() {
       List<Cell> cells = new ArrayList<>();
-      int rows = this.maxRows();
+      int budget = this.height - BOTTOM_MARGIN - (TOP + 16);
       for (int i = 0; i < REALMS.length; i++) {
          int x = this.startX() + i * (this.colW() + 6);
          List<PresenceClient.Player> here = this.playersOn(REALMS[i]);
-         boolean crowded = here.size() > rows;
-         int shown = crowded ? rows - 1 : here.size();
-         for (int r = 0; r < shown; r++) {
-            cells.add(new Cell(x, TOP + 16 + r * ROW_H, this.colW(), here.get(r), 0));
+         int y = TOP + 16;
+         int used = 0;
+         int shown = 0;
+         for (PresenceClient.Player p : here) {
+            int h = rowHeight(p);
+            // keep room for a "+N more" line when this one would not be the last that fits
+            boolean last = shown == here.size() - 1;
+            if (used + h + (last ? 0 : ROW_H) > budget) {
+               break;
+            }
+
+            cells.add(new Cell(x, y, this.colW(), h, p, 0));
+            y += h;
+            used += h;
+            shown++;
          }
 
-         if (crowded) {
-            cells.add(new Cell(x, TOP + 16 + shown * ROW_H, this.colW(), null, here.size() - shown));
+         if (shown < here.size()) {
+            cells.add(new Cell(x, y, this.colW(), ROW_H, null, here.size() - shown));
          }
       }
 
@@ -141,7 +157,7 @@ public final class PlayerListScreen extends Screen {
          }
 
          if (hovered) {
-            ctx.fill(c.x() + 1, c.y() - 1, c.x() + c.w() - 1, c.y() + ROW_H - 2, 0x33FFFFFF);
+            ctx.fill(c.x() + 1, c.y() - 1, c.x() + c.w() - 1, c.y() + c.h() - 2, 0x33FFFFFF);
          }
 
          PresenceClient.Player p = c.player();
@@ -149,10 +165,11 @@ public final class PlayerListScreen extends Screen {
          boolean mine = p.name().equalsIgnoreCase(me);
          Component name = mine ? Component.literal(p.name()).withStyle(ChatFormatting.LIGHT_PURPLE) : Component.literal(p.name());
          ctx.text(tr, name, c.x() + 3 + HEAD + 4, c.y() + 1, -1);
-         if (!p.playing().isEmpty()) {
-            ctx.text(tr, Component.literal("♪").withStyle(ChatFormatting.GREEN), c.x() + 3 + HEAD + 4 + tr.width(name) + 3, c.y() + 1, -1);
+         if (c.h() > ROW_H) {
+            String song = tr.plainSubstrByWidth("\u266A " + p.playing(), c.w() - 3 - HEAD - 4 - 2);
+            ctx.text(tr, Component.literal(song).withStyle(ChatFormatting.GREEN), c.x() + 3 + HEAD + 4, c.y() + 12, -1);
             if (hovered) {
-               listening = p;
+               listening = p; // the full text, in case the line above was cut short
             }
          }
       }

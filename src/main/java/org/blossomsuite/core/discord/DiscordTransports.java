@@ -28,7 +28,7 @@ final class DiscordTransports {
       IOException last = new IOException("Discord is not running");
       for (int i = 0; i < 10; i++) {
          try {
-            RandomAccessFile pipe = new RandomAccessFile("\\\\?\\pipe\\discord-ipc-" + i, "rw");
+            RandomAccessFile pipe = new RandomAccessFile("\\\\.\\pipe\\discord-ipc-" + i, "rw");
             return new PipeConn(pipe);
          } catch (IOException e) {
             last = e;

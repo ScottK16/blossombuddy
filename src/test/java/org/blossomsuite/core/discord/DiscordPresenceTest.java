@@ -214,4 +214,13 @@ class DiscordPresenceTest {
       assertFalse(o.has("buttons"));
       assertFalse(o.has("timestamps"));
    }
+
+   @Test
+   void anErrorAnswerToAnUpdateIsReportedWithDiscordsReason() {
+      DiscordPresence.Frame error = new DiscordPresence.Frame(DiscordPresence.OP_FRAME, "{\"cmd\":\"SET_ACTIVITY\",\"data\":{\"code\":4000,\"message\":\"Invalid activity\"},\"evt\":\"ERROR\",\"nonce\":\"x\"}");
+      assertEquals("Invalid activity", DiscordPresence.errorIn(error));
+      assertEquals(null, DiscordPresence.errorIn(new DiscordPresence.Frame(DiscordPresence.OP_FRAME, "{\"cmd\":\"SET_ACTIVITY\",\"data\":{},\"evt\":null,\"nonce\":\"x\"}")));
+      assertTrue(DiscordPresence.errorIn(new DiscordPresence.Frame(DiscordPresence.OP_CLOSE, "{\"code\":4000}")).startsWith("Discord closed"));
+      assertEquals(null, DiscordPresence.errorIn(new DiscordPresence.Frame(DiscordPresence.OP_FRAME, "garbage")));
+   }
 }

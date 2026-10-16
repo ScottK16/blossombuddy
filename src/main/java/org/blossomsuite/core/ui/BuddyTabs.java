@@ -531,7 +531,7 @@ public final class BuddyTabs {
 
       @Override
       int height(SuiteSettingsScreen screen) {
-         return UiRows.ROW * 5 + 18 * 5 + 24;
+         return UiRows.ROW * 6 + 18 * 5 + 24;
       }
 
       @Override
@@ -554,6 +554,11 @@ public final class BuddyTabs {
          y = UiRows.button(screen, x, w, y, "Play / pause", "Toggle", "Pauses or resumes whatever is playing.", () -> music.command(org.blossomsuite.core.music.MediaCommand.PLAY_PAUSE));
          y = UiRows.toggle(screen, x, w, y, "Share what I'm listening to", cfg.share, "Other players in the BlossomBuddy player list can see your song and artist next to your name. Needs music controls and the player list. Off by default.", () -> {
             cfg.share = !cfg.share;
+            FeatureConfig.markDirty();
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.toggle(screen, x, w, y, "Show others' songs", cfg.showOthers, "Shows the song other BlossomBuddy players are sharing under their name in the world, and in /buddy who. You only see them while you are in the player list.", () -> {
+            cfg.showOthers = !cfg.showOthers;
             FeatureConfig.markDirty();
             screen.rebuildPreserveScroll();
          });

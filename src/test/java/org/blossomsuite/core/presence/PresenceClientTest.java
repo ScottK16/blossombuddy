@@ -336,4 +336,19 @@ class PresenceClientTest {
       assertEquals("Some Song", this.client.players().get(0).playing());
       assertEquals("", this.client.players().get(1).playing());
    }
+
+   @Test
+   void aNewSongIsSentAtOnceNotAtTheNextRegularHeartbeat() {
+      this.client.step(T);
+      this.relay.calls.clear();
+      this.env.playing = "New Song - Band";
+      this.client.step(T + 2_000L);
+      assertTrue(this.relay.calls.isEmpty(), "too soon after the last one for the relay");
+      this.client.step(T + PresenceClient.SONG_CHANGE_GAP_MS + 1_000L);
+      assertEquals(List.of("/v1/presence/update"), this.relay.paths());
+      assertEquals("New Song - Band", this.relay.bodyOf("/v1/presence/update").get("playing").getAsString());
+      this.relay.calls.clear();
+      this.client.step(T + PresenceClient.SONG_CHANGE_GAP_MS + 3_000L);
+      assertTrue(this.relay.calls.isEmpty(), "and then back to the regular pace");
+   }
 }

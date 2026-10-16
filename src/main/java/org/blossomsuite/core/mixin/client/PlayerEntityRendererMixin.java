@@ -17,6 +17,16 @@ public class PlayerEntityRendererMixin {
    /** Works out whether this player is in the middle of an emote, and how their body is turned right now. */
    @Inject(method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At("TAIL"))
    private void suitecore$emotePose(Avatar player, AvatarRenderState state, float tickDelta, CallbackInfo ci) {
+      // the song another BlossomBuddy player is sharing goes under their name
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (org.blossomsuite.core.config.FeatureConfig.INSTANCE.music.showOthers && mc.player != null && !player.getUUID().equals(mc.player.getUUID())) {
+         String song = org.blossomsuite.core.presence.PresenceClient.INSTANCE.playingOf(player.getUUID(), player.getName().getString());
+         if (!song.isEmpty()) {
+            net.minecraft.network.chat.Component line = net.minecraft.network.chat.Component.literal("\u266A " + song).withStyle(net.minecraft.ChatFormatting.GREEN);
+            state.scoreText = state.scoreText == null ? line : state.scoreText.copy().append(" ").append(line);
+         }
+      }
+
       EmotePose pose = EmoteState.INSTANCE.poseFor(player.getUUID(), System.currentTimeMillis());
       ((EmoteRenderData)(Object)state).suitecore$setEmotePose(pose);
       if (pose != null) {

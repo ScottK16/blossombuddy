@@ -131,6 +131,8 @@ public final class FeatureConfig {
       /** Show the track you are playing to other players in the player list. Needs {@link #enabled} and the player list. */
       public boolean share = false;
       public boolean showHud = true;
+      /** Show the song other players are sharing under their name in the world (and in the player list). */
+      public boolean showOthers = true;
       public Panel panel = new Panel();
    }
 

@@ -209,7 +209,7 @@ public final class DiscordPresence {
             this.conn = null;
             this.status = e instanceof Refused
                ? "Discord refused the application id (" + clip(e.getMessage(), 80) + ")"
-               : "Discord is not running, or can't be reached (will keep looking)";
+               : "Discord is not running, or can't be reached (will keep looking): " + clip(String.valueOf(e.getMessage()), 80);
             this.busy = false;
          }
       }
@@ -244,6 +244,13 @@ public final class DiscordPresence {
             this.status = activity == null ? "Connected to Discord" : "Showing on Discord";
             this.busy = false;
          }
+      } catch (Rejected e) {
+         synchronized (this) {
+            this.lastSent = activity; // do not hammer Discord with the same thing; it is tried again when something changes
+            this.lastSentAtMs = this.clock.getAsLong();
+            this.status = "Discord rejected the update (" + e.getMessage() + ")";
+            this.busy = false;
+         }
       } catch (IOException e) {
          synchronized (this) {
             this.closeQuietly();
@@ -265,7 +272,43 @@ public final class DiscordPresence {
       cmd.add("args", args);
       cmd.addProperty("nonce", UUID.randomUUID().toString());
       c.write(encode(OP_FRAME, JsonUtil.GSON.toJson(cmd)));
-      c.readFrame(); // Discord answers every command; reading it keeps the line clear
+      Frame answer = c.readFrame(); // Discord answers every command; reading it keeps the line clear
+      String problem = errorIn(answer);
+      if (problem != null) {
+         throw new Rejected(problem);
+      }
+   }
+
+   /** Discord says "ERROR" (with a message) when it does not like what it was sent; null when the answer is fine. */
+   static String errorIn(Frame answer) {
+      if (answer == null) {
+         return null;
+      }
+
+      if (answer.opcode() == OP_CLOSE) {
+         return "Discord closed the connection: " + clip(answer.json(), 100);
+      }
+
+      try {
+         JsonObject o = JsonUtil.GSON.fromJson(answer.json(), JsonObject.class);
+         if (o != null && o.has("evt") && !o.get("evt").isJsonNull() && "ERROR".equalsIgnoreCase(o.get("evt").getAsString())) {
+            String message = o.has("data") && o.get("data").isJsonObject() && o.getAsJsonObject("data").has("message")
+               ? o.getAsJsonObject("data").get("message").getAsString()
+               : answer.json();
+            return clip(message, 120);
+         }
+      } catch (RuntimeException notJson) {
+         // not something we understand: assume it was fine
+      }
+
+      return null;
+   }
+
+   /** Discord understood the update but refused it (for example a badly formed field). The line itself is fine. */
+   private static final class Rejected extends IOException {
+      Rejected(String message) {
+         super(message);
+      }
    }
 
    private void closeQuietly() {
