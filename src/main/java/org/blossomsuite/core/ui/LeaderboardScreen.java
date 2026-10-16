@@ -163,7 +163,7 @@ public final class LeaderboardScreen extends Screen {
          ctx.centeredText(tr, Component.literal(text).withStyle(ChatFormatting.GRAY), this.width / 2, top + 20, -1);
       } else if (b.rows().isEmpty()) {
          ctx.centeredText(tr, Component.literal("Nobody is on this board yet.").withStyle(ChatFormatting.GRAY), this.width / 2, top + 20, -1);
-         ctx.centeredText(tr, Component.literal("Turn on \"Share my stats\" below to be the first.").withStyle(ChatFormatting.DARK_GRAY), this.width / 2, top + 34, -1);
+         ctx.centeredText(tr, Component.literal(LeaderboardClient.INSTANCE.enabled() ? "Your totals appear a few minutes after you earn something." : "Turn on \"Share my stats\" below to be the first.").withStyle(ChatFormatting.DARK_GRAY), this.width / 2, top + 34, -1);
       } else {
          String mineName = this.minecraft == null || this.minecraft.getUser() == null ? "" : this.minecraft.getUser().getName();
          int rows = Math.max(1, Math.min(MAX_ROWS, (bottom - top) / ROW_H));

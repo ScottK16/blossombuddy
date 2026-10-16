@@ -111,8 +111,8 @@ public final class BuddyCommands {
       );
       ChatOutput.info(
          Component.literal("The leaderboard is ").withStyle(ChatFormatting.GRAY)
-            .append(Component.literal("opt-in").withStyle(ChatFormatting.AQUA))
-            .append(Component.literal(": only if you turn it on (/buddy top) are your Minecraft name and job money / overflow XP totals per realm kept on the relay and shown to everyone. Turning it off deletes them.").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("on by default").withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(" (after a notice in chat, and you can switch it off first): your Minecraft name and job money / overflow XP totals per realm are kept on the relay and shown to everyone. /buddy top off deletes them and keeps it off.").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
          Component.literal("Music controls (/buddy music) read what your own computer is playing and are ").withStyle(ChatFormatting.GRAY)

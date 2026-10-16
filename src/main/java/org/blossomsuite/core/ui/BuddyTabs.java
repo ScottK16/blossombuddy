@@ -364,7 +364,7 @@ public final class BuddyTabs {
          y = UiRows.note(screen, x, w, y, PresenceClient.INSTANCE.status());
 
          FeatureConfig.Leaderboard lb = FeatureConfig.INSTANCE.leaderboard;
-         y = UiRows.toggle(screen, x, w, y, "Share my stats on the leaderboard", lb.share, "Shows your Minecraft name and your job money and overflow XP totals per realm on the BlossomBuddy leaderboard, in game and on the website. Off until you turn it on; turning it off deletes your entry.", () -> {
+         y = UiRows.toggle(screen, x, w, y, "Share my stats on the leaderboard", lb.share, "Shows your Minecraft name and your job money and overflow XP totals per realm on the BlossomBuddy leaderboard, in game and on the website. On by default (after a notice in chat); turning it off deletes your entry.", () -> {
             LeaderboardClient.INSTANCE.setEnabled(!lb.share);
             screen.rebuildPreserveScroll();
          });

@@ -22,7 +22,8 @@ import org.blossomsuite.core.xchat.XChatClient;
 import org.blossomsuite.core.xchat.XChatModels;
 
 /**
- * The leaderboard. Reading it needs nothing from the player. Being on it is opt-in (off until the player turns it on): the mod
+ * The leaderboard. Reading it needs nothing from the player. Being on it is on by default, after a one-time notice and a short wait so
+ * the player can switch it off first (and it stays off once they have): the mod
  * proves the account with Mojang's login check (like cross-realm chat, so the access token only ever goes to Mojang), then every
  * few minutes tells the relay the player's running totals per realm - job money and overflow XP - which the relay shows next to
  * the Minecraft name. Turning it off tells the relay to delete the record.
@@ -34,6 +35,10 @@ public final class LeaderboardClient {
    private static final long RENEW_BEFORE_EXPIRY_MS = 60_000L;
 
    public static final String ON_NOTICE = "You are now on the BlossomBuddy leaderboard: your Minecraft name and your job money and overflow XP totals per realm are shown to everyone (in game and on blossombuddy.site). Turn it off any time with /buddy top off - that deletes what the relay holds.";
+   /** Shown once, before anything is sent, to players who did not choose it themselves. */
+   public static final String DEFAULT_NOTICE = "You are on the BlossomBuddy leaderboard (on by default): your Minecraft name and your job money and overflow XP totals per realm are shown to everyone, in game and on blossombuddy.site. Nothing is sent for a minute, so you can switch it off first with /buddy top off (that also deletes your entry).";
+   /** After that notice, wait this long before the first report. */
+   static final long NOTICE_GRACE_MS = 60_000L;
    public static final String OFF_NOTICE = "You are no longer on the BlossomBuddy leaderboard, and your entry has been removed.";
 
    public enum State {
@@ -53,6 +58,14 @@ public final class LeaderboardClient {
 
       /** The running totals per realm key (lower case): {money, overflow xp}. Realms with nothing yet may be left out. */
       Map<String, double[]> totals();
+
+      /** The one-time "you are on the leaderboard" notice has been shown (or the player chose it themselves). */
+      default boolean noticeShown() {
+         return true;
+      }
+
+      default void setNoticeShown(boolean shown) {
+      }
    }
 
    public interface Sink {
@@ -70,6 +83,7 @@ public final class LeaderboardClient {
    private volatile String detail = "";
    private volatile long retryAt = 0L;
    private volatile long nextReportAt = 0L;
+   private volatile long graceUntil = 0L;
    private volatile String token;
    private long tokenExpiresAt;
 
@@ -114,9 +128,11 @@ public final class LeaderboardClient {
    /** Go on the leaderboard (a first report goes out at once), or come off it (the relay deletes the entry). */
    public void setEnabled(boolean on) {
       this.env.setEnabled(on);
+      this.env.setNoticeShown(true); // they just chose, so they know
       if (on) {
          this.retryAt = 0L;
          this.nextReportAt = 0L;
+         this.graceUntil = 0L;
          this.sink.notice(ON_NOTICE);
          return;
       }
@@ -154,6 +170,18 @@ public final class LeaderboardClient {
       }
 
       if (!this.env.canRun() || now < this.retryAt || now < this.nextReportAt) {
+         return;
+      }
+
+      if (!this.env.noticeShown()) {
+         // on by default, so say so before anything is sent, and leave time to switch it off
+         this.env.setNoticeShown(true);
+         this.sink.notice(DEFAULT_NOTICE);
+         this.graceUntil = now + NOTICE_GRACE_MS;
+         return;
+      }
+
+      if (now < this.graceUntil) {
          return;
       }
 
@@ -312,6 +340,18 @@ public final class LeaderboardClient {
       @Override
       public void setEnabled(boolean on) {
          FeatureConfig.INSTANCE.leaderboard.share = on;
+         FeatureConfig.INSTANCE.leaderboard.chosen = true;
+         FeatureConfig.markDirty();
+      }
+
+      @Override
+      public boolean noticeShown() {
+         return FeatureConfig.INSTANCE.leaderboard.noticeShown;
+      }
+
+      @Override
+      public void setNoticeShown(boolean shown) {
+         FeatureConfig.INSTANCE.leaderboard.noticeShown = shown;
          FeatureConfig.markDirty();
       }
 

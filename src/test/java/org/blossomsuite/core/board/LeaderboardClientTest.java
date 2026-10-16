@@ -23,11 +23,14 @@ class LeaderboardClientTest {
       boolean enabled = true;
       boolean canRun = true;
       Map<String, double[]> totals = new TreeMap<>(Map.of("cherry", new double[]{1500.0, 40.0}, "tulip", new double[]{200.0, 0.0}));
+      boolean noticeShown = true;
 
       @Override public boolean enabled() { return this.enabled; }
       @Override public void setEnabled(boolean on) { this.enabled = on; }
       @Override public boolean canRun() { return this.canRun; }
       @Override public Map<String, double[]> totals() { return this.totals; }
+      @Override public boolean noticeShown() { return this.noticeShown; }
+      @Override public void setNoticeShown(boolean shown) { this.noticeShown = shown; }
    }
 
    static final class FakeRelay implements XChatClient.Relay {
@@ -191,5 +194,41 @@ class LeaderboardClientTest {
       } catch (IllegalStateException expected) {
          assertEquals("The relay sent something unexpected.", expected.getMessage());
       }
+   }
+
+   @Test
+   void onByDefaultItSaysSoFirstAndSendsNothingUntilTheWaitIsOver() {
+      this.env.noticeShown = false;
+      this.client.step(T);
+      assertEquals(List.of(LeaderboardClient.DEFAULT_NOTICE), this.notices);
+      assertTrue(this.relay.calls.isEmpty(), "nothing is sent with the notice");
+      assertTrue(this.env.noticeShown);
+
+      this.client.step(T + 30_000L);
+      assertTrue(this.relay.calls.isEmpty(), "still waiting, so there is time to switch it off");
+
+      this.client.step(T + LeaderboardClient.NOTICE_GRACE_MS + 1_000L);
+      assertEquals(List.of("/v1/chat/challenge", "/v1/lb/join", "/v1/lb/report"), this.relay.paths());
+      assertEquals(1, this.notices.size(), "the notice is only ever shown once");
+   }
+
+   @Test
+   void switchingItOffDuringTheWaitMeansNothingIsEverSent() {
+      this.env.noticeShown = false;
+      this.client.step(T);
+      this.client.setEnabled(false);
+      this.client.step(T + LeaderboardClient.NOTICE_GRACE_MS + 5_000L);
+      assertFalse(this.env.enabled);
+      assertTrue(this.relay.calls.stream().noneMatch(c -> c[0].equals("/v1/lb/join") || c[0].equals("/v1/lb/report")));
+   }
+
+   @Test
+   void choosingItYourselfSkipsTheNoticeAndTheWait() {
+      this.env.noticeShown = false;
+      this.env.enabled = false;
+      this.client.setEnabled(true);
+      assertTrue(this.env.noticeShown);
+      this.client.step(T);
+      assertEquals(List.of("/v1/chat/challenge", "/v1/lb/join", "/v1/lb/report"), this.relay.paths());
    }
 }

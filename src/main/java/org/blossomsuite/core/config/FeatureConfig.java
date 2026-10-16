@@ -244,10 +244,15 @@ public final class FeatureConfig {
 
    /**
     * The leaderboard: your job money and overflow XP totals, per realm, shown on the BlossomBuddy leaderboard (in game and on the
-    * website) next to your Minecraft name. Off until the player turns it on, and turning it off deletes what the relay holds.
+    * website) next to your Minecraft name. On by default, after a one-time chat notice and a short wait so it can be switched off first;
+    * turning it off deletes what the relay holds.
     */
    public static final class Leaderboard {
-      public boolean share = false;
+      public boolean share = true;
+      /** The "you are on the leaderboard, here is how to leave" notice has been shown. */
+      public boolean noticeShown = false;
+      /** The player has switched it on or off themselves, so their setting is never reset to the default. */
+      public boolean chosen = false;
    }
 
    /** Emotes (dances and waves) that other BlossomBuddy players on the same realm can see. */
@@ -575,7 +580,7 @@ public final class FeatureConfig {
       }
    }
 
-   private FeatureConfig() {
+   FeatureConfig() {
    }
 
    // ------------------------------------------------------------------ persistence
@@ -599,7 +604,7 @@ public final class FeatureConfig {
    }
 
    /** Fills anything an old or hand-edited file left null. */
-   private void repair() {
+   void repair() {
       if (this.scoreboard == null) this.scoreboard = new Scoreboard();
       if (this.scoreboard.panel == null) this.scoreboard.panel = new Panel();
       if (this.hands == null) this.hands = new Hands();
@@ -636,6 +641,12 @@ public final class FeatureConfig {
 
       if (this.tps == null) this.tps = new Tps();
       if (this.finder == null) this.finder = new Finder();
+      if (this.leaderboard == null) this.leaderboard = new Leaderboard();
+      // earlier builds saved "off" for everyone who never touched it; that was only the old default, not a choice
+      if (!this.leaderboard.chosen && !this.leaderboard.share) {
+         this.leaderboard.share = true;
+         markDirty();
+      }
       if (this.discord == null) this.discord = new Discord();
       if (this.music == null) this.music = new Music();
       if (this.music.panel == null) this.music.panel = new Panel();
