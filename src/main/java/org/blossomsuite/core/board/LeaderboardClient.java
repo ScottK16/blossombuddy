@@ -324,19 +324,32 @@ public final class LeaderboardClient {
 
       @Override
       public Map<String, double[]> totals() {
+         return readGameTotals();
+      }
+
+      static void add(Map<String, double[]> out, String realm, int slot, Double value) {
+         if (realm != null && value != null && value > 0.0) {
+            out.computeIfAbsent(realm.trim().toLowerCase(Locale.ROOT), k -> new double[2])[slot] += value;
+         }
+      }
+   }
+
+   /** Your running totals per realm, {money, overflow XP}, as the mod has them now (also used by the session tracker). */
+   public static Map<String, double[]> readGameTotals() {
+      for (int attempt = 0; attempt < 3; attempt++) {
          Map<String, double[]> out = new TreeMap<>();
          try {
             for (Map.Entry<String, Double> e : SuiteConfig.INSTANCE.JobsConfig.lifetimeByServer().entrySet()) {
-               add(out, e.getKey(), 0, e.getValue());
+               GameEnv.add(out, e.getKey(), 0, e.getValue());
             }
 
             for (Map.Entry<String, Map<String, Double>> realm : OverflowTracker.INSTANCE.snapshotAll().entrySet()) {
                for (double xp : realm.getValue().values()) {
-                  add(out, realm.getKey(), 1, xp);
+                  GameEnv.add(out, realm.getKey(), 1, xp);
                }
             }
          } catch (java.util.ConcurrentModificationException busy) {
-            return Map.of(); // the totals were being updated just then; the next round will do
+            continue; // the totals were being updated just then; look again
          }
 
          out.keySet().removeIf(k -> k.isEmpty() || k.equals(OverflowTracker.UNKNOWN_REALM));
@@ -344,11 +357,7 @@ public final class LeaderboardClient {
          return out;
       }
 
-      private static void add(Map<String, double[]> out, String realm, int slot, Double value) {
-         if (realm != null && value != null && value > 0.0) {
-            out.computeIfAbsent(realm.trim().toLowerCase(Locale.ROOT), k -> new double[2])[slot] += value;
-         }
-      }
+      return Map.of();
    }
 
    private static final class GameSink implements Sink {

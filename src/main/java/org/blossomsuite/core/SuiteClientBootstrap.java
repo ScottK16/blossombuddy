@@ -380,6 +380,8 @@ public final class SuiteClientBootstrap {
             WorldGate.reset();
             DungeonState.resetForDisconnect();
             org.blossomsuite.core.tps.TpsTracker.INSTANCE.reset();
+            org.blossomsuite.core.session.SessionTracker.INSTANCE.end();
+            org.blossomsuite.core.discord.DiscordHook.INSTANCE.onLeave();
             PartyChatState.resetForJoin();
             StaffChatState.resetForJoin();
             ChatModeProbe.resetForJoin();
@@ -411,6 +413,7 @@ public final class SuiteClientBootstrap {
                   StaffChatState.resetForJoin();
                   ChatModeProbe.resetForJoin();
                   VanishState.resetForJoin();
+                  org.blossomsuite.core.session.SessionTracker.INSTANCE.begin();
                   if (feature(SuiteFeature.JOBS)) {
                      JobsCaptureState.resetForJoin(System.currentTimeMillis());
                   }
@@ -450,6 +453,15 @@ public final class SuiteClientBootstrap {
 
       HudCallbacks.init();
       net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> org.blossomsuite.core.ui.Theme.refresh());
+      org.blossomsuite.core.finder.ContainerFinder.INSTANCE.init();
+      int[] sessionTicks = {0};
+      net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
+         if (++sessionTicks[0] >= 20) {
+            sessionTicks[0] = 0;
+            org.blossomsuite.core.session.SessionTracker.INSTANCE.tick();
+            org.blossomsuite.core.discord.DiscordHook.INSTANCE.tick();
+         }
+      });
       WorldOverlays.init();
    }
 

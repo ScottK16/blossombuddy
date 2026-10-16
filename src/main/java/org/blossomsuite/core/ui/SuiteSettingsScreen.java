@@ -150,6 +150,8 @@ public class SuiteSettingsScreen extends Screen {
       this.tabs.add(new SubTabSuiteTab(new BuddyTabs.SecondaryChatPage()));
       this.tabs.add(new SubTabSuiteTab(new BuddyTabs.ChatNotifyPage()));
       this.tabs.add(new SubTabSuiteTab(new BuddyTabs.TpsPage()));
+      this.tabs.add(new SubTabSuiteTab(new BuddyTabs.FinderPage()));
+      this.tabs.add(new SubTabSuiteTab(new BuddyTabs.DiscordPage()));
       this.tabs.add(new KeybindsTab());
       if (feature(SuiteFeature.MINING)) {
          this.tabs.add(new SubTabSuiteTab(new MiningSubTab()));

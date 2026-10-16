@@ -521,6 +521,77 @@ public final class BuddyTabs {
       }
    }
 
+   // ------------------------------------------------------------------ discord presence
+
+   public static final class DiscordPage extends Page {
+      @Override
+      public String titleKey() {
+         return "suitecore.tab.discord";
+      }
+
+      @Override
+      int height(SuiteSettingsScreen screen) {
+         return UiRows.ROW * 2 + 48 + 18 * 4 + 24;
+      }
+
+      @Override
+      void rows(SuiteSettingsScreen screen, int x, int w, int y) {
+         org.blossomsuite.core.discord.DiscordHook hook = org.blossomsuite.core.discord.DiscordHook.INSTANCE;
+         FeatureConfig.Discord cfg = FeatureConfig.INSTANCE.discord;
+         y = UiRows.toggle(screen, x, w, y, "Show on Discord", cfg.enabled, "Shows \"Playing BlossomBuddy - On <realm> Realm\" on your Discord profile while you are on a realm. Off by default.", () -> {
+            hook.setEnabled(!cfg.enabled);
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.note(screen, x, w, y, "Status: " + hook.status());
+         screen.addContentWidget(new HoverLabelWidget(x, y + 4, w, 12, Component.literal("Discord application id (advanced)"), Tooltip.create(Component.literal("Leave empty to use the built-in one. Only set this to use your own Discord application."))));
+         EditBox field = new EditBox(screen.getFont(), x, y + 20, w, 20, Component.literal("Application id"));
+         field.setMaxLength(32);
+         field.setValue(cfg.appId == null ? "" : cfg.appId);
+         field.setHint(Component.literal("empty = built-in"));
+         field.setResponder(s -> {
+            cfg.appId = s.trim();
+            FeatureConfig.markDirty();
+         });
+         screen.addContentWidget(field);
+         y += 48;
+         y = UiRows.note(screen, x, w, y, "People who can see your Discord activity will see which realm you are on, and \"In a dungeon\" during a run.");
+         y = UiRows.note(screen, x, w, y, "It goes through your own Discord app on this computer. Nothing is sent to BlossomBuddy.");
+         y = UiRows.note(screen, x, w, y, "Discord has to be running (the desktop app, not the website).");
+         UiRows.note(screen, x, w, y, "Also: /buddy presence on|off");
+      }
+   }
+
+   // ------------------------------------------------------------------ chest finder
+
+   public static final class FinderPage extends Page {
+      @Override
+      public String titleKey() {
+         return "suitecore.tab.finder";
+      }
+
+      @Override
+      int height(SuiteSettingsScreen screen) {
+         return UiRows.ROW * 2 + 18 * 3 + 24;
+      }
+
+      @Override
+      void rows(SuiteSettingsScreen screen, int x, int w, int y) {
+         FeatureConfig.Finder finder = FeatureConfig.INSTANCE.finder;
+         y = UiRows.toggle(screen, x, w, y, "Remember container contents", finder.enabled, "Remembers what was in each chest, barrel or other container you opened, so /buddy find can say where things are.", () -> {
+            finder.enabled = !finder.enabled;
+            FeatureConfig.markDirty();
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.button(screen, x, w, y, "Remembered containers: " + org.blossomsuite.core.finder.ContainerFinder.INSTANCE.index().size(), "Forget all", "Deletes everything the finder remembers.", () -> {
+            org.blossomsuite.core.finder.ContainerFinder.INSTANCE.forgetEverything();
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.note(screen, x, w, y, "Use it with /buddy find <item>, e.g. /buddy find diamond. Nearby matches light up for a minute.");
+         y = UiRows.note(screen, x, w, y, "It only knows what was in a container the last time you looked, not what is there now.");
+         UiRows.note(screen, x, w, y, "Saved on your computer only. Nothing is sent anywhere.");
+      }
+   }
+
    // ------------------------------------------------------------------ tps
 
    public static final class TpsPage extends Page {

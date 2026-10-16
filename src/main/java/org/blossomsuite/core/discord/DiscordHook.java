@@ -1,0 +1,98 @@
+package org.blossomsuite.core.discord;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import net.minecraft.client.Minecraft;
+import org.blossomsuite.core.SuiteRuntime;
+import org.blossomsuite.core.chat.ChatOutput;
+import org.blossomsuite.core.config.FeatureConfig;
+import org.blossomsuite.core.config.SuiteConfig;
+import org.blossomsuite.core.dungeons.DungeonState;
+import org.blossomsuite.core.session.SessionRecord;
+import org.blossomsuite.core.session.SessionTracker;
+import org.blossomsuite.core.util.WorldGate;
+
+/**
+ * Connects {@link DiscordPresence} to the game: shows "BlossomBuddy - On Cherry Realm" in Discord while you are on a realm, if you turned
+ * it on. The name next to "Playing" comes from the Discord application the id belongs to, so the application is called BlossomBuddy.
+ */
+public final class DiscordHook {
+   public static final DiscordHook INSTANCE = new DiscordHook();
+   /** The Discord application id of BlossomBuddy (it is public, not a secret). Empty until the application exists. */
+   public static final String BUILT_IN_APP_ID = "";
+   static final String IMAGE_KEY = "logo";
+   static final String SITE = "https://blossombuddy.site";
+
+   private final ExecutorService io = Executors.newSingleThreadExecutor(r -> {
+      Thread t = new Thread(r, "BlossomBuddy-Discord");
+      t.setDaemon(true);
+      return t;
+   });
+   private final DiscordPresence presence = new DiscordPresence(DiscordTransports.system(), this.io, System::currentTimeMillis, ProcessHandle.current().pid());
+
+   private DiscordHook() {
+   }
+
+   public static String effectiveAppId() {
+      String configured = FeatureConfig.INSTANCE.discord.appId == null ? "" : FeatureConfig.INSTANCE.discord.appId.trim();
+      return configured.isEmpty() ? BUILT_IN_APP_ID : configured;
+   }
+
+   public boolean enabled() {
+      return FeatureConfig.INSTANCE.discord.enabled;
+   }
+
+   public String status() {
+      return this.enabled() ? this.presence.status() : "Off";
+   }
+
+   public void setEnabled(boolean on) {
+      FeatureConfig.Discord cfg = FeatureConfig.INSTANCE.discord;
+      cfg.enabled = on;
+      FeatureConfig.markDirty();
+      if (on) {
+         ChatOutput.info("Discord presence is ON: people who can see your Discord activity will see \"Playing BlossomBuddy\" and which realm you are on. "
+            + "It is shown through your own Discord app; nothing is sent to BlossomBuddy. Turn it off any time with /buddy presence off.");
+      } else {
+         this.presence.stop();
+         ChatOutput.info("Discord presence is OFF.");
+      }
+   }
+
+   /** Call about once a second. */
+   public void tick() {
+      if (!this.enabled()) {
+         return;
+      }
+
+      this.presence.tick(effectiveAppId(), this.desired());
+   }
+
+   /** Leaving the game takes the status down. */
+   public void onLeave() {
+      if (this.enabled()) {
+         this.presence.stop();
+      }
+   }
+
+   private DiscordPresence.Activity desired() {
+      Minecraft mc = Minecraft.getInstance();
+      String server = WorldGate.Server;
+      if (mc == null || mc.player == null || !SuiteConfig.INSTANCE.isEnabledForCurrentWorld() || server == null || server.isBlank()) {
+         return null;
+      }
+
+      SessionRecord live = SessionTracker.INSTANCE.live();
+      long start = (live != null ? live.startMs() : System.currentTimeMillis()) / 1000L;
+      String realm = SuiteRuntime.profile().serverDisplayName(server);
+      return new DiscordPresence.Activity(
+         "On " + realm + " Realm",
+         DungeonState.inRun() ? "In a dungeon" : "",
+         start,
+         IMAGE_KEY,
+         SuiteRuntime.profile().displayName(),
+         "Get " + SuiteRuntime.profile().displayName(),
+         SITE
+      );
+   }
+}

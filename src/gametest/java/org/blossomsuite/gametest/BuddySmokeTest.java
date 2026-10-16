@@ -211,6 +211,51 @@ public class BuddySmokeTest implements FabricClientGameTest {
          context.takeScreenshot("72-tps");
          context.runOnClient(mc -> FeatureConfig.INSTANCE.tps.show = false);
 
+         // the chest finder: open a real chest with something in it, close it, then ask where the diamonds are
+         world.getServer().runCommand("setblock 0 -59 3 minecraft:chest");
+         world.getServer().runCommand("item replace block 0 -59 3 container.0 with minecraft:diamond 5");
+         world.getServer().runCommand("item replace block 0 -59 3 container.1 with minecraft:diamond 7");
+         context.waitTicks(10);
+         context.runOnClient(mc -> {
+            net.minecraft.core.BlockPos chest = new net.minecraft.core.BlockPos(0, -59, 3);
+            mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND,
+               new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(chest), net.minecraft.core.Direction.UP, chest, false));
+         });
+         context.waitTicks(20);
+         boolean chestOpen = context.computeOnClient(mc -> mc.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>);
+         if (!chestOpen) {
+            throw new AssertionError("the chest did not open");
+         }
+
+         context.setScreen(() -> null);
+         context.waitTicks(5);
+         int found = context.computeOnClient(mc -> org.blossomsuite.core.finder.ContainerFinder.INSTANCE.index().search("diamond", null).stream().mapToInt(h -> h.count()).sum());
+         if (found != 12) {
+            throw new AssertionError("the finder should remember 12 diamonds, remembered " + found);
+         }
+
+         context.getInput().lookAt(0.0F, 20.0F);
+         context.runOnClient(mc -> mc.gui.getChat().clearMessages(true));
+         context.runOnClient(mc -> mc.player.connection.sendCommand("buddy find diamond"));
+         context.waitTicks(15);
+         context.takeScreenshot("73-finder");
+
+         // the session screen, with a session running
+         context.setScreen(org.blossomsuite.core.ui.SessionScreen::new);
+         context.waitTicks(10);
+         context.takeScreenshot("74-session");
+         context.setScreen(() -> null);
+
+         // discord presence: with no Discord running it should say so and carry on
+         context.runOnClient(mc -> {
+            FeatureConfig.INSTANCE.discord.enabled = true;
+            FeatureConfig.INSTANCE.discord.appId = "123456789012345678";
+         });
+         context.waitTicks(60);
+         String discordStatus = context.computeOnClient(mc -> org.blossomsuite.core.discord.DiscordHook.INSTANCE.status());
+         System.out.println("[SMOKE] discord status: " + discordStatus);
+         context.runOnClient(mc -> FeatureConfig.INSTANCE.discord.enabled = false);
+
          // the leaderboard window, reading from a throwaway local relay seeded with made-up players (started by the dev script)
          if (System.getenv("BLOSSOMBUDDY_SEEDED_RELAY") != null) {
             context.runOnClient(mc -> org.blossomsuite.core.state.SuiteState.INSTANCE.http.setBaseUrl("http://127.0.0.1:8799"));

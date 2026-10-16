@@ -13,6 +13,9 @@ A Fabric client mod for the BlossomCraft server, continuing on from the still ex
 - Chat Notify: a ding when words you pick (or your name) show up in chat - `/buddy notify`, off by default
 - A server TPS panel (estimated from the server clock) - `/buddy tps`
 - An Anticheat chat filter for staff (Vulcan alerts) in the secondary chat
+- Session stats: `/buddy session` shows time played, earnings and overflow XP for this session, today and this week
+- Chest finder: `/buddy find diamond` says where items were the last time you opened a container, and lights those chests up
+- Discord Rich Presence ("Playing BlossomBuddy - On Cherry Realm"), opt-in - `/buddy presence`
 - A map art tool: turn a picture into a real in-game build, including a Litematica-compatible schematic export
 - Item cooldown tracking, Jobs Overflow XP, inventory slot locks, and the rest of the original BlossomSuite toolkit
 - A searchable options screen, and a draggable HUD editor for every panel

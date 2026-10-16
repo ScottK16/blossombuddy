@@ -12,6 +12,7 @@ import org.blossomsuite.core.ui.EmoteWheelScreen;
 import org.blossomsuite.core.ui.MapArtScreen;
 import org.blossomsuite.core.ui.LeaderboardScreen;
 import org.blossomsuite.core.ui.PlayerListScreen;
+import org.blossomsuite.core.ui.SessionScreen;
 import org.blossomsuite.core.xchat.XChatClient;
 import org.blossomsuite.core.xchat.XChatMode;
 
@@ -60,7 +61,7 @@ public final class BuddyCommands {
    }
 
    public static List<LiteralArgumentBuilder<FabricClientCommandSource>> subcommands() {
-      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"), dungeon(), chatNotify(), tps());
+      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"), dungeon(), chatNotify(), tps(), session(), find(), presence());
    }
 
    public static final String DISCORD_INVITE = "https://discord.gg/EA4WwSdGTj";
@@ -112,6 +113,11 @@ public final class BuddyCommands {
          Component.literal("The leaderboard is ").withStyle(ChatFormatting.GRAY)
             .append(Component.literal("opt-in").withStyle(ChatFormatting.AQUA))
             .append(Component.literal(": only if you turn it on (/buddy top) are your Minecraft name and job money / overflow XP totals per realm kept on the relay and shown to everyone. Turning it off deletes them.").withStyle(ChatFormatting.GRAY))
+      );
+      ChatOutput.info(
+         Component.literal("Your session history, the chest finder, Chat Notify and the dungeon timer stay on your computer. ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal("Discord presence is opt-in").withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(" (/buddy presence): it is shown through your own Discord app, so Discord and the people who see your activity learn which realm you are on - BlossomBuddy servers are not involved.").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
          Component.literal("Usage stats are a random ID and the mod version by default; sharing your username is opt-in (").withStyle(ChatFormatting.GRAY)
@@ -414,6 +420,66 @@ public final class BuddyCommands {
       List<String> words = cfg.words();
       ChatOutput.info("Chat notify is " + (cfg.enabled ? "ON" : "OFF") + ". Your name " + (cfg.mentionName ? "dings too" : "does not ding") + ".");
       ChatOutput.info(words.isEmpty() ? "No keywords yet. /buddy notify add <word>" : "Keywords: " + String.join(", ", words));
+   }
+
+   /** {@code /buddy presence [on|off]}: show "Playing BlossomBuddy - On Cherry Realm" on your Discord profile. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> presence() {
+      return ClientCommands.literal("presence")
+         .executes(ctx -> {
+            org.blossomsuite.core.discord.DiscordHook hook = org.blossomsuite.core.discord.DiscordHook.INSTANCE;
+            ChatOutput.info("Discord presence is " + (hook.enabled() ? "ON" : "OFF") + " (" + hook.status() + "). /buddy presence on or off.");
+            return 1;
+         })
+         .then(ClientCommands.literal("on").executes(ctx -> {
+            org.blossomsuite.core.discord.DiscordHook.INSTANCE.setEnabled(true);
+            return 1;
+         }))
+         .then(ClientCommands.literal("off").executes(ctx -> {
+            org.blossomsuite.core.discord.DiscordHook.INSTANCE.setEnabled(false);
+            return 1;
+         }));
+   }
+
+   /** {@code /buddy find <words>}: where the items you are looking for were the last time you opened a container. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> find() {
+      return ClientCommands.literal("find")
+         .executes(ctx -> {
+            ChatOutput.info("Chest finder: /buddy find <item>, e.g. /buddy find diamond. It remembers what was in the chests, barrels and other containers you opened ("
+               + org.blossomsuite.core.finder.ContainerFinder.INSTANCE.index().size() + " so far). /buddy find forget clears it.");
+            return 1;
+         })
+         .then(ClientCommands.literal("forget").executes(ctx -> {
+            org.blossomsuite.core.finder.ContainerFinder.INSTANCE.forgetEverything();
+            ChatOutput.info("Forgot every container.");
+            return 1;
+         }))
+         .then(ClientCommands.argument("words", StringArgumentType.greedyString()).executes(ctx -> {
+            org.blossomsuite.core.finder.ContainerFinder.INSTANCE.report(StringArgumentType.getString(ctx, "words"));
+            return 1;
+         }));
+   }
+
+   /** {@code /buddy session}: this session, today and this week on a screen; {@code chat} prints the same in chat. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> session() {
+      return ClientCommands.literal("session")
+         .executes(ctx -> {
+            Minecraft mc = Minecraft.getInstance();
+            mc.schedule(() -> mc.setScreen(new SessionScreen())); // a tick later, so the chat screen closing doesn't undo it
+            return 1;
+         })
+         .then(ClientCommands.literal("chat").executes(ctx -> {
+            org.blossomsuite.core.session.SessionRecord live = org.blossomsuite.core.session.SessionTracker.INSTANCE.live();
+            if (live == null) {
+               ChatOutput.info("No session is running.");
+            } else {
+               ChatOutput.info("Session: " + org.blossomsuite.core.session.SessionStats.duration(live.durationMs())
+                  + " online, earned " + org.blossomsuite.core.board.BoardFormat.money(live.money())
+                  + ", overflow XP " + org.blossomsuite.core.board.BoardFormat.xp(live.overflowXp())
+                  + (live.dungeonRuns() > 0 ? ", dungeons " + live.dungeonDone() + "/" + live.dungeonRuns() : "") + ".");
+            }
+
+            return 1;
+         }));
    }
 
    /** {@code /buddy tps}: the server's estimated ticks per second right now. */

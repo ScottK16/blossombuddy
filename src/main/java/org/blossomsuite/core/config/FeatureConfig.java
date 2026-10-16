@@ -44,6 +44,8 @@ public final class FeatureConfig {
    public AltAccount altAccount = new AltAccount();
    public ChatNotify chatNotify = new ChatNotify();
    public Tps tps = new Tps();
+   public Finder finder = new Finder();
+   public Discord discord = new Discord();
    /** Cooldown rules the player has switched off, by item id (or item name when a rule has no id). */
    public List<String> disabledCooldownItems = new ArrayList<>();
 
@@ -117,6 +119,18 @@ public final class FeatureConfig {
       /** Disconnect when the server's player count reaches {@link #playerLimit} (alts aren't allowed to stay on a crowded server). */
       public boolean leaveWhenCrowded = false;
       public int playerLimit = 60;
+   }
+
+   /** Discord Rich Presence: "Playing BlossomBuddy - On Cherry Realm" on your Discord profile. Off until the player turns it on. */
+   public static final class Discord {
+      public boolean enabled = false;
+      /** The Discord application id; empty means "use the one built into the mod". */
+      public String appId = "";
+   }
+
+   /** The chest finder: remembers what was in the containers you opened, on your computer only, so /buddy find can say where things are. */
+   public static final class Finder {
+      public boolean enabled = true;
    }
 
    /** The server's estimated ticks per second in a small movable panel. Off until the player turns it on. */
@@ -606,6 +620,9 @@ public final class FeatureConfig {
       }
 
       if (this.tps == null) this.tps = new Tps();
+      if (this.finder == null) this.finder = new Finder();
+      if (this.discord == null) this.discord = new Discord();
+      if (this.discord.appId == null) this.discord.appId = "";
       if (this.tps.panel == null) this.tps.panel = new Panel();
       if (this.chatNotify == null) this.chatNotify = new ChatNotify();
       if (this.presence == null) this.presence = new Presence();

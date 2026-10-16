@@ -40,6 +40,7 @@ public final class WorldOverlays {
                try (Gizmos.TemporaryCollection ignored = client.collectPerTickGizmos()) {
                   drawHolePuncherOverlays(client, cfg);
                   drawMiningTrackOverlay(client, cfg);
+                  org.blossomsuite.core.finder.ContainerFinder.INSTANCE.drawMarks(client);
                }
             }
          }
