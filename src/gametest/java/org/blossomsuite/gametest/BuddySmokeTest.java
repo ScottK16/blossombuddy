@@ -166,6 +166,17 @@ public class BuddySmokeTest implements FabricClientGameTest {
          context.waitTicks(10);
          context.takeScreenshot("48-secondary-back");
 
+         // secondary chat has to keep working for someone in spectator mode (staff use it a lot)
+         String modeBefore = context.computeOnClient(mc -> mc.gameMode.getPlayerMode().getName());
+         world.getServer().runCommand("tellraw @a \"Alice and Bob got married a third time (spectator line)\"");
+         world.getServer().runCommand("gamemode spectator @a");
+         context.waitTicks(15);
+         world.getServer().runCommand("tellraw @a \"Alice and Bob got married a fourth time (spectator line two)\"");
+         context.waitTicks(15);
+         context.takeScreenshot("49-secondary-spectator");
+         world.getServer().runCommand("gamemode " + modeBefore + " @a");
+         context.waitTicks(10);
+
          // the dungeon timer: chat lines from the server start it, a teammate dying changes nothing, finishing starts the cooldown
          context.runOnClient(mc -> {
             FeatureConfig.INSTANCE.chat.show = false;

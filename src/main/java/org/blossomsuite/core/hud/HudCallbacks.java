@@ -11,7 +11,9 @@ public final class HudCallbacks {
    }
 
    public static void init() {
-      HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.fromNamespaceAndPath(SuiteRuntime.profile().modId(), "hud"), (ctx, tickCounter) -> {
+      // after the mob effects icons, which the game draws in every game mode. (The hotbar is not: a spectator gets the spectator menu instead,
+      // so anything attached after the hotbar vanishes for them.)
+      HudElementRegistry.attachElementAfter(VanillaHudElements.MOB_EFFECTS, Identifier.fromNamespaceAndPath(SuiteRuntime.profile().modId(), "hud"), (ctx, tickCounter) -> {
          Minecraft client = Minecraft.getInstance();
          if (client.player != null) {
             if (SuiteConfig.INSTANCE.isEnabledForCurrentWorld()) {
