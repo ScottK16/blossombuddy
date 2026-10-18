@@ -265,6 +265,18 @@ public class BuddySmokeTest implements FabricClientGameTest {
          context.waitTicks(60);
          String discordStatus = context.computeOnClient(mc -> org.blossomsuite.core.discord.DiscordHook.INSTANCE.status());
          System.out.println("[SMOKE] discord status: " + discordStatus);
+         // staff in vanish must not show on Discord
+         String me = context.computeOnClient(mc -> mc.player.getName().getString());
+         world.getServer().runCommand("tellraw @a \"Vanish for " + me + ": ENABLED\"");
+         context.waitTicks(30);
+         String vanishedStatus = context.computeOnClient(mc -> org.blossomsuite.core.discord.DiscordHook.INSTANCE.status());
+         System.out.println("[SMOKE] discord status while vanished: " + vanishedStatus);
+         if (!vanishedStatus.startsWith("Hidden while you are vanished")) {
+            throw new AssertionError("discord presence should be hidden while vanished, status was: " + vanishedStatus);
+         }
+
+         world.getServer().runCommand("tellraw @a \"Vanish for " + me + ": DISABLED\"");
+         context.waitTicks(30);
          context.runOnClient(mc -> FeatureConfig.INSTANCE.discord.enabled = false);
 
          // music controls: read whatever this computer is playing (only reads, never presses a button)

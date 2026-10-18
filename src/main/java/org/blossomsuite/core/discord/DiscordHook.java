@@ -5,6 +5,7 @@ import java.util.concurrent.Executors;
 import net.minecraft.client.Minecraft;
 import org.blossomsuite.core.SuiteRuntime;
 import org.blossomsuite.core.chat.ChatOutput;
+import org.blossomsuite.core.chat.VanishState;
 import org.blossomsuite.core.config.FeatureConfig;
 import org.blossomsuite.core.config.SuiteConfig;
 import org.blossomsuite.core.dungeons.DungeonState;
@@ -29,6 +30,8 @@ public final class DiscordHook {
       return t;
    });
    private final DiscordPresence presence = new DiscordPresence(DiscordTransports.system(), this.io, System::currentTimeMillis, DiscordHook::pidToReport);
+
+   private boolean hiddenByVanish = false;
 
    private DiscordHook() {
    }
@@ -74,6 +77,10 @@ public final class DiscordHook {
          return "Off";
       }
 
+      if (VanishState.vanished) {
+         return "Hidden while you are vanished";
+      }
+
       if (effectiveAppId().isEmpty()) {
          return this.presence.status();
       }
@@ -101,6 +108,17 @@ public final class DiscordHook {
          return;
       }
 
+      // staff in vanish must not show up on Discord: take the status down at once (not at the next regular update) and keep it down
+      if (VanishState.vanished) {
+         if (!this.hiddenByVanish) {
+            this.hiddenByVanish = true;
+            this.presence.stop();
+         }
+
+         return;
+      }
+
+      this.hiddenByVanish = false;
       this.presence.tick(effectiveAppId(), this.desired());
    }
 
