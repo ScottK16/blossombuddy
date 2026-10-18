@@ -660,7 +660,7 @@ public final class BuddyTabs {
             FeatureConfig.markDirty();
             screen.rebuildPreserveScroll();
          });
-         y = UiRows.note(screen, x, w, y, "Worked out from how fast the server's clock moves, so it needs a few seconds after joining.");
+         y = UiRows.note(screen, x, w, y, "Uses the TPS line from BlossomCraft's scoreboard when it shows one; otherwise worked out from how fast the server's clock moves.");
          y = UiRows.note(screen, x, w, y, "It is an estimate: a bad connection on your side can nudge it. Green is 18+, yellow 15+, red below.");
          UiRows.note(screen, x, w, y, "Also: /buddy tps");
       }

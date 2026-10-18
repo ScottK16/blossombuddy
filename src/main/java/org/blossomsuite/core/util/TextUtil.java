@@ -57,6 +57,12 @@ public final class TextUtil {
             .replace('\u1d20', 'v')
             .replace('\u1d21', 'w')
             .replace('\u028f', 'y')
+            .replace('\ua730', 'f')
+            .replace('\u0262', 'g')
+            .replace('\u029c', 'h')
+            .replace('\u1d0a', 'j')
+            .replace('\u01eb', 'q')
+            .replace('\u1d22', 'z')
          : "";
    }
 

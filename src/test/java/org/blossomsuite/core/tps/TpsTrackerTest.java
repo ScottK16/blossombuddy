@@ -97,4 +97,32 @@ class TpsTrackerTest {
       assertEquals(2, TpsTracker.grade(9.0));
       assertEquals(-1, TpsTracker.grade(-1.0));
    }
+
+   @Test
+   void theServersOwnFigureIsUsedWhileFreshAndTheEstimateTakesOverAfter() {
+      for (int i = 0; i < 4; i++) {
+         this.tracker.onTimeUpdate(i * 20L, 1_000L + i * 1000L); // an estimate of 20
+      }
+
+      this.tracker.noteReported(15.68, 5_000L);
+      assertEquals(15.68, this.tracker.tps(6_000L), 0.0001);
+      // 25 seconds later the figure is stale; the estimate has gone stale too, so there is nothing to show
+      assertEquals(-1.0, this.tracker.tps(5_000L + TpsTracker.REPORTED_FRESH_MS + 1L), 0.0001);
+   }
+
+   @Test
+   void aReportedFigureAloneIsEnoughAndIsClampedToTwenty() {
+      this.tracker.noteReported(22.0, 1_000L);
+      assertEquals(20.0, this.tracker.tps(2_000L), 0.0001);
+      this.tracker.noteReported(-3.0, 3_000L); // nonsense is ignored
+      assertEquals(20.0, this.tracker.tps(4_000L), 0.0001);
+      assertEquals(-1.0, this.tracker.tps(1_000L + TpsTracker.REPORTED_FRESH_MS + 5_000L), "stale, and no estimate");
+   }
+
+   @Test
+   void leavingAServerForgetsTheReportedFigure() {
+      this.tracker.noteReported(17.0, 1_000L);
+      this.tracker.reset();
+      assertEquals(-1.0, this.tracker.tps(2_000L));
+   }
 }

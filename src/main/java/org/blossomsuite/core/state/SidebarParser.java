@@ -7,6 +7,8 @@ import org.blossomsuite.core.chat.ChatModeProbe;
 import org.blossomsuite.core.chat.ChatOutput;
 import org.blossomsuite.core.chat.PublicChatSendState;
 import org.blossomsuite.core.chat.StaffChatState;
+import org.blossomsuite.core.chat.VanishState;
+import org.blossomsuite.core.tps.TpsTracker;
 import org.blossomsuite.core.config.ConfigIO;
 import org.blossomsuite.core.config.QolConfig;
 import org.blossomsuite.core.config.SuiteConfig;
@@ -59,6 +61,10 @@ public final class SidebarParser {
    static final Pattern SERVER_PATTERN = Pattern.compile("(?i)server:\\s*(\\S+)");
    static final Pattern STAFF_CHAT_PATTERN = Pattern.compile("(?i)staff\\s*chat\\s*:\\s*(on|off)");
    static final Pattern WORLD_PATTERN = Pattern.compile("(?i)world\\s*:\\s*(.+)");
+   /** Staff see "VISIBILITY: Vanished" (or "Visible") on the sidebar: the server's own word on whether they are in vanish. */
+   static final Pattern VISIBILITY_PATTERN = Pattern.compile("(?i)visibility\\s*:\\s*([a-z]+)");
+   /** The sidebar shows "TPS: 15.68", the server's own figure. */
+   static final Pattern TPS_PATTERN = Pattern.compile("(?i)\\btps\\s*:\\s*(\\d{1,2}(?:\\.\\d+)?)");
    private static long lastSidebarParseAtMs = 0L;
 
    private SidebarParser() {
@@ -76,6 +82,8 @@ public final class SidebarParser {
                Integer detectedCurrent = null;
                Integer detectedMax = null;
                Boolean detectedStaffChatEnabled = null;
+               Boolean detectedVanished = null;
+               Double detectedTps = null;
                AltResourceState.ScoreboardParse detectedResources = new AltResourceState.ScoreboardParse(null, null, null);
 
                for (ScoreHolder holder : scoreboard.getTrackedPlayers()) {
@@ -93,6 +101,16 @@ public final class SidebarParser {
                            AltResourceState.ScoreboardParse resources = AltResourceState.parseScoreboardLine(normalized);
                            if (resources.hasAny()) {
                               detectedResources = mergeResourceParse(detectedResources, resources);
+                           }
+
+                           Boolean visibility = parseVisibility(normalized);
+                           if (visibility != null) {
+                              detectedVanished = visibility;
+                           }
+
+                           Double reportedTps = parseTps(normalized);
+                           if (reportedTps != null) {
+                              detectedTps = reportedTps;
                            }
 
                            Matcher staffChatMatcher = STAFF_CHAT_PATTERN.matcher(normalized);
@@ -126,6 +144,14 @@ public final class SidebarParser {
                         }
                      }
                   }
+               }
+
+               if (detectedVanished != null && VanishState.vanished != detectedVanished) {
+                  VanishState.setVanished(detectedVanished); // the scoreboard is the server's own answer, and covers staff who are vanished on every join
+               }
+
+               if (detectedTps != null) {
+                  TpsTracker.INSTANCE.noteReported(detectedTps, now);
                }
 
                if (detectedStaffChatEnabled != null && StaffChatState.trackingEnabled()) {
@@ -179,6 +205,36 @@ public final class SidebarParser {
          }
       }
    
+   }
+
+   /** True for "Visibility: Vanished", false for "Visibility: Visible", null for anything else (so an odd word changes nothing). */
+   static Boolean parseVisibility(String normalized) {
+      Matcher m = VISIBILITY_PATTERN.matcher(normalized == null ? "" : normalized);
+      if (!m.find()) {
+         return null;
+      }
+
+      String word = m.group(1).toLowerCase(java.util.Locale.ROOT);
+      if (word.equals("vanished") || word.equals("vanish") || word.equals("hidden")) {
+         return Boolean.TRUE;
+      }
+
+      return word.equals("visible") || word.equals("shown") ? Boolean.FALSE : null;
+   }
+
+   /** The server's TPS from a sidebar line like "TPS: 15.68" (0 to 20), or null. */
+   static Double parseTps(String normalized) {
+      Matcher m = TPS_PATTERN.matcher(normalized == null ? "" : normalized);
+      if (!m.find()) {
+         return null;
+      }
+
+      try {
+         double v = Double.parseDouble(m.group(1));
+         return v >= 0.0 && v <= 25.0 ? Math.min(20.0, v) : null;
+      } catch (NumberFormatException e) {
+         return null;
+      }
    }
 
    static String normalizeSidebarText(String input) {

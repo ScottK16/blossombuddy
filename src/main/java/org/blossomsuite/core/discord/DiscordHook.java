@@ -32,6 +32,7 @@ public final class DiscordHook {
    private final DiscordPresence presence = new DiscordPresence(DiscordTransports.system(), this.io, System::currentTimeMillis, DiscordHook::pidToReport);
 
    private boolean hiddenByVanish = false;
+   private volatile long settleUntilMs = 0L;
 
    private DiscordHook() {
    }
@@ -119,7 +120,16 @@ public final class DiscordHook {
       }
 
       this.hiddenByVanish = false;
+      if (System.currentTimeMillis() < this.settleUntilMs) {
+         return; // just joined: let the scoreboard (vanish, realm) be read before showing anything
+      }
+
       this.presence.tick(effectiveAppId(), this.desired());
+   }
+
+   /** Joining a server: hold the status back for a few seconds. */
+   public void onJoin() {
+      this.settleUntilMs = System.currentTimeMillis() + 6_000L;
    }
 
    /** Leaving the game takes the status down. */

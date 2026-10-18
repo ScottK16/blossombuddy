@@ -49,6 +49,8 @@ public final class PresenceClient {
       + "Turn it off with /buddy who off, or the button in /buddy who.";
    /** After that notice, wait this long before the first heartbeat so it can be switched off first. */
    static final long NOTICE_GRACE_MS = 60_000L;
+   /** Joining: how long to wait before appearing in the list. */
+   static final long JOIN_SETTLE_MS = 6_000L;
 
    public enum State {
       OFF,
@@ -271,6 +273,11 @@ public final class PresenceClient {
     * Asks for a fresh list soon (used when the player list screen is opened). Opening the screen is the player asking to see
     * the list, so it also ends the short wait after the first-run notice.
     */
+   /** Called on joining a server: wait a few seconds before the first update, so the scoreboard (vanish, realm) has been read first. */
+   public void onJoin() {
+      this.graceUntil = Math.max(this.graceUntil, this.clock.getAsLong() + JOIN_SETTLE_MS);
+   }
+
    public void refreshSoon() {
       this.nextUpdateAt = 0L;
       this.graceUntil = 0L;

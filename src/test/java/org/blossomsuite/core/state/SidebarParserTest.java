@@ -57,4 +57,35 @@ class SidebarParserTest {
    void theWorldLineDoesNotLookLikeARealm() {
       assertFalse(server("WORLD: Overworld").find());
    }
+
+   private static String norm(String line) {
+      return SidebarParser.normalizeSidebarText(line);
+   }
+
+   @Test
+   void theVisibilityLineSaysWhetherAStaffMemberIsVanished() {
+      assertEquals(Boolean.TRUE, SidebarParser.parseVisibility(norm("VISIBILITY: Vanished")));
+      assertEquals(Boolean.FALSE, SidebarParser.parseVisibility(norm("VISIBILITY: Visible")));
+      assertEquals(Boolean.TRUE, SidebarParser.parseVisibility(norm("Visibility:   vanished")));
+      // in the small capitals the scoreboard labels use
+      assertEquals(Boolean.TRUE, SidebarParser.parseVisibility(norm("\u1d20\u026as\u026a\u0299\u026a\u029f\u026a\u1d1b\u028f: \u1d20\u1d00\u0274\u026as\u029c\u1d07\u1d05")));
+   }
+
+   @Test
+   void anOddVisibilityWordChangesNothing() {
+      assertEquals(null, SidebarParser.parseVisibility(norm("VISIBILITY: Mysterious")));
+      assertEquals(null, SidebarParser.parseVisibility(norm("SERVER: Cherry")));
+      assertEquals(null, SidebarParser.parseVisibility(""));
+      assertEquals(null, SidebarParser.parseVisibility(null));
+   }
+
+   @Test
+   void theServersOwnTpsIsReadFromTheSidebar() {
+      assertEquals(15.68, SidebarParser.parseTps(norm("TPS: 15.68")), 0.0001);
+      assertEquals(20.0, SidebarParser.parseTps(norm("TPS: 20")), 0.0001);
+      assertEquals(20.0, SidebarParser.parseTps(norm("TPS: 20.4")), 0.0001, "slightly over is read as 20");
+      assertEquals(null, SidebarParser.parseTps(norm("PING: 127ms")));
+      assertEquals(null, SidebarParser.parseTps(norm("TPS: lots")));
+      assertEquals(null, SidebarParser.parseTps(norm("TPS: 99")));
+   }
 }

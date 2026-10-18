@@ -415,6 +415,8 @@ public final class SuiteClientBootstrap {
                   ChatModeProbe.resetForJoin();
                   VanishState.resetForJoin();
                   org.blossomsuite.core.session.SessionTracker.INSTANCE.begin();
+                  org.blossomsuite.core.presence.PresenceClient.INSTANCE.onJoin();
+                  org.blossomsuite.core.discord.DiscordHook.INSTANCE.onJoin();
                   if (feature(SuiteFeature.JOBS)) {
                      JobsCaptureState.resetForJoin(System.currentTimeMillis());
                   }

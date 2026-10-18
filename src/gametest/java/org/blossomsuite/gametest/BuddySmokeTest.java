@@ -166,6 +166,40 @@ public class BuddySmokeTest implements FabricClientGameTest {
          context.waitTicks(10);
          context.takeScreenshot("48-secondary-back");
 
+         // the staff sidebar: "Visibility: Vanished" is the server's own word on vanish, and "TPS: 12.5" its own TPS.
+         // BlossomCraft draws its lines as team prefixes on blank entries, so that is what is built here.
+         world.getServer().runCommand("team add tv");
+         world.getServer().runCommand("team modify tv prefix {\"text\":\"VISIBILITY: Vanished\"}");
+         world.getServer().runCommand("team join tv visline");
+         world.getServer().runCommand("scoreboard players set visline smoke 2");
+         world.getServer().runCommand("team add tt");
+         world.getServer().runCommand("team modify tt prefix {\"text\":\"TPS: 12.5\"}");
+         world.getServer().runCommand("team join tt tpsline");
+         world.getServer().runCommand("scoreboard players set tpsline smoke 1");
+         context.waitTicks(40);
+         boolean sawVanished = context.computeOnClient(mc -> org.blossomsuite.core.chat.VanishState.vanished);
+         double sawTps = context.computeOnClient(mc -> org.blossomsuite.core.tps.TpsTracker.INSTANCE.tps(System.currentTimeMillis()));
+         System.out.println("[SMOKE] sidebar vanished=" + sawVanished + " tps=" + sawTps);
+         if (!sawVanished) {
+            throw new AssertionError("the sidebar said Vanished but the mod did not notice");
+         }
+
+         if (Math.abs(sawTps - 12.5) > 0.01) {
+            throw new AssertionError("the mod should show the sidebar's TPS of 12.5, not " + sawTps);
+         }
+
+         world.getServer().runCommand("team modify tv prefix {\"text\":\"VISIBILITY: Visible\"}");
+         context.waitTicks(40);
+         boolean stillVanished = context.computeOnClient(mc -> org.blossomsuite.core.chat.VanishState.vanished);
+         if (stillVanished) {
+            throw new AssertionError("the sidebar said Visible but the mod still thinks vanished");
+         }
+
+         world.getServer().runCommand("scoreboard players reset visline smoke");
+         world.getServer().runCommand("scoreboard players reset tpsline smoke");
+         world.getServer().runCommand("team remove tv");
+         world.getServer().runCommand("team remove tt");
+
          // secondary chat has to keep working for someone in spectator mode (staff use it a lot)
          String modeBefore = context.computeOnClient(mc -> mc.gameMode.getPlayerMode().getName());
          world.getServer().runCommand("tellraw @a \"Alice and Bob got married a third time (spectator line)\"");

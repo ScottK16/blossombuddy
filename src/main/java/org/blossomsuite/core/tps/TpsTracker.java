@@ -20,7 +20,12 @@ public final class TpsTracker {
    /** No update for this long and the number is no longer trusted. */
    public static final long STALE_MS = 6_000L;
 
+   /** How long a TPS figure read off the sidebar stays in use. */
+   static final long REPORTED_FRESH_MS = 20_000L;
+
    private final Deque<Double> samples = new ArrayDeque<>();
+   private double reportedTps = -1.0;
+   private long reportedAtMs = 0L;
    private long lastGameTime = -1L;
    private long lastAtMs = 0L;
 
@@ -44,8 +49,25 @@ public final class TpsTracker {
       this.lastAtMs = nowMs;
    }
 
-   /** The recent average, or -1 when there is not enough to say yet (or nothing has arrived for a while). */
+   /** The server's own figure (BlossomCraft shows "TPS: 15.68" on the sidebar): used instead of the estimate while it is fresh. */
+   public synchronized void noteReported(double tps, long nowMs) {
+      if (tps >= 0.0 && tps <= MAX_TPS + 5.0) {
+         this.reportedTps = Math.min(MAX_TPS, tps);
+         this.reportedAtMs = nowMs;
+      }
+   }
+
+   /** The server's own figure while it is fresh, else the recent average; -1 when neither says anything yet. */
    public synchronized double tps(long nowMs) {
+      if (this.reportedTps >= 0.0 && nowMs - this.reportedAtMs <= REPORTED_FRESH_MS) {
+         return this.reportedTps;
+      }
+
+      return this.estimate(nowMs);
+   }
+
+   /** The recent average, or -1 when there is not enough to say yet (or nothing has arrived for a while). */
+   private double estimate(long nowMs) {
       if (this.samples.isEmpty() || nowMs - this.lastAtMs > STALE_MS) {
          return -1.0;
       }
@@ -59,6 +81,7 @@ public final class TpsTracker {
    }
 
    public synchronized void reset() {
+      this.reportedTps = -1.0;
       this.samples.clear();
       this.lastGameTime = -1L;
       this.lastAtMs = 0L;
