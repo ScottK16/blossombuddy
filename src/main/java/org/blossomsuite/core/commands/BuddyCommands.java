@@ -61,7 +61,7 @@ public final class BuddyCommands {
    }
 
    public static List<LiteralArgumentBuilder<FabricClientCommandSource>> subcommands() {
-      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"), dungeon(), chatNotify(), tps(), session(), find(), presence(), music(), profile(), level());
+      return List.of(credit(), xp(), chat(), scoreboard(), share(), xchat(), stats(), who(), emote(), search(), mapart(), privacy(), cooldown(), verify(), keys(), players(), top("top"), top("leaderboard"), dungeon(), chatNotify(), tps(), session(), find(), presence(), music(), profile(), level(), vanish());
    }
 
    public static final String DISCORD_INVITE = "https://discord.gg/EA4WwSdGTj";
@@ -537,6 +537,27 @@ public final class BuddyCommands {
          }))
          .then(ClientCommands.argument("words", StringArgumentType.greedyString()).executes(ctx -> {
             org.blossomsuite.core.finder.ContainerFinder.INSTANCE.report(StringArgumentType.getString(ctx, "words"));
+            return 1;
+         }));
+   }
+
+   /** {@code /buddy vanish [on|off]}: what the mod believes about your vanish, and a way to correct it. */
+   private static LiteralArgumentBuilder<FabricClientCommandSource> vanish() {
+      return ClientCommands.literal("vanish")
+         .executes(ctx -> {
+            ChatOutput.info("The mod thinks you are " + (org.blossomsuite.core.chat.VanishState.vanished ? "VANISHED" : "not vanished")
+               + ". While vanished you are left off the player list and Discord. It follows the server's \"Vanish for ...\" messages and remembers across realms; "
+               + "if it is wrong, set it with /buddy vanish on or /buddy vanish off.");
+            return 1;
+         })
+         .then(ClientCommands.literal("on").executes(ctx -> {
+            org.blossomsuite.core.chat.VanishState.setVanished(true);
+            ChatOutput.info("Marked as vanished: you are hidden from the player list and Discord.");
+            return 1;
+         }))
+         .then(ClientCommands.literal("off").executes(ctx -> {
+            org.blossomsuite.core.chat.VanishState.setVanished(false);
+            ChatOutput.info("Marked as not vanished.");
             return 1;
          }));
    }

@@ -182,6 +182,7 @@ public final class SuiteClientBootstrap {
       hooks.info(profile.displayName() + " client initialized");
       LegacyMigration.run();
       FeatureConfig.init();
+      VanishState.loadFromConfig();
       BuddyKeys.init();
       SuiteState.INSTANCE.init(RemoteConfig.baseUrl(), RemoteConfig.ingestKey());
       SuiteState.INSTANCE.http.setBaseUrl(FeatureConfig.effectiveRelayUrl());

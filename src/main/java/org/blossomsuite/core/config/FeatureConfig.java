@@ -48,6 +48,7 @@ public final class FeatureConfig {
    public Discord discord = new Discord();
    public Music music = new Music();
    public Progress progress = new Progress();
+   public Staff staff = new Staff();
    /** Cooldown rules the player has switched off, by item id (or item name when a rule has no id). */
    public List<String> disabledCooldownItems = new ArrayList<>();
 
@@ -147,6 +148,16 @@ public final class FeatureConfig {
       public int dungeonsFailed = 0;
       public List<String> firsts = new ArrayList<>();
       public boolean showOthersLook = true;
+   }
+
+   /** Things only staff care about. */
+   public static final class Staff {
+      /**
+       * Whether the player was last known to be in /vanish. Kept across realm changes, rejoining and restarts: the server only says so
+       * when vanish is switched, not every time you join, and forgetting would put a vanished staff member back on the player list and
+       * on Discord.
+       */
+      public boolean vanished = false;
    }
 
    /** Discord Rich Presence: "Playing BlossomBuddy - On Cherry Realm" on your Discord profile. Off until the player turns it on. */
@@ -665,6 +676,7 @@ public final class FeatureConfig {
       if (this.discord == null) this.discord = new Discord();
       if (this.music == null) this.music = new Music();
       if (this.progress == null) this.progress = new Progress();
+      if (this.staff == null) this.staff = new Staff();
       if (this.progress.firsts == null) this.progress.firsts = new ArrayList<>();
       if (this.music.panel == null) this.music.panel = new Panel();
       if (this.discord.appId == null) this.discord.appId = "";
