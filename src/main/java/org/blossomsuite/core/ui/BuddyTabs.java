@@ -329,7 +329,7 @@ public final class BuddyTabs {
 
       @Override
       int height(SuiteSettingsScreen screen) {
-         return UiRows.ROW * 15 + 18 * 12 + 24;
+         return UiRows.ROW * 14 + 18 * 12 + 24;
       }
 
       @Override
@@ -363,11 +363,6 @@ public final class BuddyTabs {
                org.blossomsuite.core.chat.VanishState.setVanished(true);
             }
 
-            screen.rebuildPreserveScroll();
-         });
-         y = UiRows.toggle(screen, x, w, y, "Staff: show me while I'm visible", FeatureConfig.INSTANCE.staff.showWhenStaff, "Staff are kept off Discord and this list even when visible, because showing only when not vanished would give vanish away. Turn this on to appear while visible. Off by default.", () -> {
-            FeatureConfig.INSTANCE.staff.showWhenStaff = !FeatureConfig.INSTANCE.staff.showWhenStaff;
-            FeatureConfig.markDirty();
             screen.rebuildPreserveScroll();
          });
          y = UiRows.toggle(screen, x, w, y, "Symbol in the tab list", pl.tabSymbol, "A small flower next to players in the tab list who are using BlossomBuddy.", () -> {

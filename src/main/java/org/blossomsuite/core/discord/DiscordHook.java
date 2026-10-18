@@ -78,8 +78,8 @@ public final class DiscordHook {
          return "Off";
       }
 
-      if (VanishState.hiddenFromLists()) {
-         return VanishState.vanished ? "Hidden while you are vanished" : "Hidden because you are staff (Settings > Cross-Realm Chat to change)";
+      if (VanishState.vanished) {
+         return "Hidden while you are vanished";
       }
 
       if (effectiveAppId().isEmpty()) {
@@ -110,7 +110,7 @@ public final class DiscordHook {
       }
 
       // staff in vanish must not show up on Discord: take the status down at once (not at the next regular update) and keep it down
-      if (VanishState.hiddenFromLists()) {
+      if (VanishState.vanished) {
          if (!this.hiddenByVanish) {
             this.hiddenByVanish = true;
             this.presence.stop();

@@ -106,7 +106,6 @@ public final class SidebarParser {
                            Boolean visibility = parseVisibility(normalized);
                            if (visibility != null) {
                               detectedVanished = visibility;
-                              VanishState.staffSidebar = true; // only staff have this line
                            }
 
                            Double reportedTps = parseTps(normalized);
