@@ -158,6 +158,11 @@ public final class FeatureConfig {
        * on Discord.
        */
       public boolean vanished = false;
+      /**
+       * For staff whose server puts them into vanish every time they join: treat them as vanished from the moment they join, until the
+       * server says "Vanish for X: DISABLED". Off by default, so nobody is hidden who did not ask for it.
+       */
+      public boolean autoVanish = false;
    }
 
    /** Discord Rich Presence: "Playing BlossomBuddy - On Cherry Realm" on your Discord profile. Off until the player turns it on. */

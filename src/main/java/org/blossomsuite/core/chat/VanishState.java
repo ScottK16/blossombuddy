@@ -10,11 +10,17 @@ public final class VanishState {
    }
 
    /**
-    * Joining a server or changing realm does NOT clear it any more: the server only prints "Vanish for X: ENABLED" when vanish is switched,
+    * With "auto-vanish on join" (for staff the server vanishes whenever they join) it is switched ON here instead, so nobody is on the player
+    * list or Discord for the moment before a vanish message arrives, or when none does.
+    *
+    * <p>Joining a server or changing realm does NOT clear it any more: the server only prints "Vanish for X: ENABLED" when vanish is switched,
     * not on every join, so forgetting here put vanished staff back on the player list and on Discord. It only changes when the server says
     * so (or the player corrects it with /buddy vanish). If that ever leaves someone hidden by mistake, that is the safe way to be wrong.
     */
    public static void resetForJoin() {
+      if (org.blossomsuite.core.config.FeatureConfig.INSTANCE.staff.autoVanish) {
+         setVanished(true); // the server vanishes this player on every join, and does not necessarily say so
+      }
    }
 
    /** Reads what was last known from the saved settings (call once the settings are loaded). */

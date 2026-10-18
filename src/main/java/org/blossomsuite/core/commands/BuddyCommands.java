@@ -547,9 +547,24 @@ public final class BuddyCommands {
          .executes(ctx -> {
             ChatOutput.info("The mod thinks you are " + (org.blossomsuite.core.chat.VanishState.vanished ? "VANISHED" : "not vanished")
                + ". While vanished you are left off the player list and Discord. It follows the server's \"Vanish for ...\" messages and remembers across realms; "
-               + "if it is wrong, set it with /buddy vanish on or /buddy vanish off.");
+               + "if it is wrong, set it with /buddy vanish on or /buddy vanish off. Staff who are vanished on every join: /buddy vanish auto on (now "
+               + (FeatureConfig.INSTANCE.staff.autoVanish ? "on" : "off") + ").");
             return 1;
          })
+         .then(ClientCommands.literal("auto")
+            .then(ClientCommands.literal("on").executes(ctx -> {
+               FeatureConfig.INSTANCE.staff.autoVanish = true;
+               FeatureConfig.markDirty();
+               org.blossomsuite.core.chat.VanishState.setVanished(true);
+               ChatOutput.info("Auto-vanish is ON: you count as vanished from the moment you join, until the server says \"Vanish for ...: DISABLED\". You are hidden from the player list and Discord.");
+               return 1;
+            }))
+            .then(ClientCommands.literal("off").executes(ctx -> {
+               FeatureConfig.INSTANCE.staff.autoVanish = false;
+               FeatureConfig.markDirty();
+               ChatOutput.info("Auto-vanish is OFF. The mod follows the server's vanish messages only.");
+               return 1;
+            })))
          .then(ClientCommands.literal("on").executes(ctx -> {
             org.blossomsuite.core.chat.VanishState.setVanished(true);
             ChatOutput.info("Marked as vanished: you are hidden from the player list and Discord.");

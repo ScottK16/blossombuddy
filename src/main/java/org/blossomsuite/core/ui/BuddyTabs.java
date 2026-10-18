@@ -329,7 +329,7 @@ public final class BuddyTabs {
 
       @Override
       int height(SuiteSettingsScreen screen) {
-         return UiRows.ROW * 13 + 18 * 12 + 24;
+         return UiRows.ROW * 14 + 18 * 12 + 24;
       }
 
       @Override
@@ -354,6 +354,15 @@ public final class BuddyTabs {
          FeatureConfig.Presence pl = FeatureConfig.INSTANCE.presence;
          y = UiRows.toggle(screen, x, w, y, "Appear in the player list", pl.enabled, "Shows your name and realm to other players who also chose to appear, and lets you see them. Off until you turn it on.", () -> {
             PresenceClient.INSTANCE.setEnabled(!pl.enabled);
+            screen.rebuildPreserveScroll();
+         });
+         y = UiRows.toggle(screen, x, w, y, "Staff: I'm vanished when I join", FeatureConfig.INSTANCE.staff.autoVanish, "For staff the server puts into vanish on every join: treat me as vanished from the moment I join (hidden from this list and Discord) until the server says vanish is off. Off by default.", () -> {
+            FeatureConfig.INSTANCE.staff.autoVanish = !FeatureConfig.INSTANCE.staff.autoVanish;
+            FeatureConfig.markDirty();
+            if (FeatureConfig.INSTANCE.staff.autoVanish) {
+               org.blossomsuite.core.chat.VanishState.setVanished(true);
+            }
+
             screen.rebuildPreserveScroll();
          });
          y = UiRows.toggle(screen, x, w, y, "Symbol in the tab list", pl.tabSymbol, "A small flower next to players in the tab list who are using BlossomBuddy.", () -> {

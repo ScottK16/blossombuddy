@@ -50,4 +50,24 @@ class VanishStateTest {
       assertFalse(VanishState.vanished);
       assertFalse(FeatureConfig.INSTANCE.staff.vanished);
    }
+
+   @Test
+   void staffWhoAreVanishedOnEveryJoinAreHiddenFromTheMomentTheyJoin() {
+      FeatureConfig.INSTANCE.staff.autoVanish = true;
+      assertFalse(VanishState.vanished);
+      VanishState.resetForJoin(); // joining a realm
+      assertTrue(VanishState.vanished, "hidden before any message from the server");
+
+      VanishState.setVanished(VanishState.parseServerLine("Vanish for BaraGC: DISABLED", "BaraGC"));
+      assertFalse(VanishState.vanished, "the server saying vanish is off still wins");
+      VanishState.resetForJoin(); // and next realm they are vanished again
+      assertTrue(VanishState.vanished);
+   }
+
+   @Test
+   void withoutTheSettingJoiningNeverHidesAnyone() {
+      FeatureConfig.INSTANCE.staff.autoVanish = false;
+      VanishState.resetForJoin();
+      assertFalse(VanishState.vanished);
+   }
 }
