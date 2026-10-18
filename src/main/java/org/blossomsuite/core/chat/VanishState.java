@@ -5,6 +5,8 @@ import java.util.Locale;
 
 public final class VanishState {
    public static volatile boolean vanished = false;
+   /** The sidebar showed a "Visibility" line this session, so this player is staff. Worked out afresh on every join. */
+   public static volatile boolean staffSidebar = false;
 
    private VanishState() {
    }
@@ -18,9 +20,18 @@ public final class VanishState {
     * so (or the player corrects it with /buddy vanish). If that ever leaves someone hidden by mistake, that is the safe way to be wrong.
     */
    public static void resetForJoin() {
+      staffSidebar = false; // learned again from the sidebar of the server joined
       if (org.blossomsuite.core.config.FeatureConfig.INSTANCE.staff.autoVanish) {
          setVanished(true); // the server vanishes this player on every join, and does not necessarily say so
       }
+   }
+
+   /**
+    * Whether this player must be kept off Discord and the player list: vanished, or staff (unless they chose to show while visible). A staff
+    * member who is simply never shown gives nothing away when they toggle vanish.
+    */
+   public static boolean hiddenFromLists() {
+      return vanished || (staffSidebar && !org.blossomsuite.core.config.FeatureConfig.INSTANCE.staff.showWhenStaff);
    }
 
    /** Reads what was last known from the saved settings (call once the settings are loaded). */

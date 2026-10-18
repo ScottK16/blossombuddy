@@ -16,6 +16,7 @@ class VanishStateTest {
    void clean() {
       FeatureConfig.INSTANCE.staff = new FeatureConfig.Staff();
       VanishState.vanished = false;
+      VanishState.staffSidebar = false;
    }
 
    @Test
@@ -69,5 +70,34 @@ class VanishStateTest {
       FeatureConfig.INSTANCE.staff.autoVanish = false;
       VanishState.resetForJoin();
       assertFalse(VanishState.vanished);
+   }
+
+   @Test
+   void staffAreKeptOffTheListsWhetherVanishedOrNotSoTogglingGivesNothingAway() {
+      assertFalse(VanishState.hiddenFromLists(), "an ordinary player is shown");
+
+      VanishState.staffSidebar = true; // their sidebar has a Visibility line
+      VanishState.vanished = false;
+      assertTrue(VanishState.hiddenFromLists(), "staff are hidden even while visible");
+      VanishState.vanished = true;
+      assertTrue(VanishState.hiddenFromLists());
+      VanishState.vanished = false;
+      assertTrue(VanishState.hiddenFromLists(), "going visible changes nothing that others can see");
+   }
+
+   @Test
+   void aStaffMemberCanChooseToShowWhileVisibleButNeverWhileVanished() {
+      VanishState.staffSidebar = true;
+      FeatureConfig.INSTANCE.staff.showWhenStaff = true;
+      assertFalse(VanishState.hiddenFromLists());
+      VanishState.vanished = true;
+      assertTrue(VanishState.hiddenFromLists(), "vanish always wins");
+   }
+
+   @Test
+   void whetherSomeoneIsStaffIsWorkedOutAgainOnEveryJoin() {
+      VanishState.staffSidebar = true;
+      VanishState.resetForJoin();
+      assertFalse(VanishState.staffSidebar, "a player who stopped being staff is not hidden forever");
    }
 }

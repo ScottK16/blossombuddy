@@ -557,7 +557,7 @@ public final class PresenceClient {
 
       @Override
       public boolean vanished() {
-         return VanishState.vanished;
+         return VanishState.hiddenFromLists();
       }
    }
 

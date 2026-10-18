@@ -163,6 +163,11 @@ public final class FeatureConfig {
        * server says "Vanish for X: DISABLED". Off by default, so nobody is hidden who did not ask for it.
        */
       public boolean autoVanish = false;
+      /**
+       * Staff (anyone whose sidebar shows a "Visibility" line) are kept off Discord and the player list whether vanished or not, because a
+       * status that appears and disappears with vanish would give vanish away. This lets a staff member show up anyway while visible.
+       */
+      public boolean showWhenStaff = false;
    }
 
    /** Discord Rich Presence: "Playing BlossomBuddy - On Cherry Realm" on your Discord profile. Off until the player turns it on. */

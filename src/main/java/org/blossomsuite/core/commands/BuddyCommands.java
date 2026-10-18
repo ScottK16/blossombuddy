@@ -102,7 +102,7 @@ public final class BuddyCommands {
       ChatOutput.info(
          Component.literal("Self-hosted by ").withStyle(ChatFormatting.GRAY)
             .append(Component.literal(DEVELOPER).withStyle(ChatFormatting.AQUA))
-            .append(Component.literal(" - no third-party service handles chat, and there's no access to your private or marry messages.").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(" - no third-party service handles chat. The mod reads the chat your game receives, private messages included, on your computer (for the Messages window, chat search, Chat Notify and so on), and none of it is sent anywhere. The only chat that leaves your computer is what you type into cross-realm chat (/xc).").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
          Component.literal("Cross-realm chat, the player list and vote-party sharing are ").withStyle(ChatFormatting.GRAY)

@@ -195,6 +195,21 @@ public class BuddySmokeTest implements FabricClientGameTest {
             throw new AssertionError("the sidebar said Visible but the mod still thinks vanished");
          }
 
+         boolean staffHidden = context.computeOnClient(mc -> org.blossomsuite.core.chat.VanishState.hiddenFromLists());
+         if (!staffHidden) {
+            throw new AssertionError("staff must stay off Discord and the list even while visible");
+         }
+
+         context.runOnClient(mc -> FeatureConfig.INSTANCE.staff.showWhenStaff = true);
+         boolean shownByChoice = context.computeOnClient(mc -> !org.blossomsuite.core.chat.VanishState.hiddenFromLists());
+         if (!shownByChoice) {
+            throw new AssertionError("a staff member who chose to show while visible should be shown");
+         }
+
+         context.runOnClient(mc -> {
+            FeatureConfig.INSTANCE.staff.showWhenStaff = false;
+            org.blossomsuite.core.chat.VanishState.staffSidebar = false;
+         });
          world.getServer().runCommand("scoreboard players reset visline smoke");
          world.getServer().runCommand("scoreboard players reset tpsline smoke");
          world.getServer().runCommand("team remove tv");
