@@ -200,6 +200,13 @@ public class BuddySmokeTest implements FabricClientGameTest {
          world.getServer().runCommand("team remove tv");
          world.getServer().runCommand("team remove tt");
 
+         // a fresh install (no cooldowns.json in the config folder) must still get cooldown items, from the list built into the mod
+         int cooldownItems = context.computeOnClient(mc -> org.blossomsuite.core.cooldowns.CooldownRules.allRuleInfo().size());
+         System.out.println("[SMOKE] cooldown items on a fresh install: " + cooldownItems);
+         if (cooldownItems < 20) {
+            throw new AssertionError("a fresh install should have the built-in cooldown items, found " + cooldownItems);
+         }
+
          // secondary chat has to keep working for someone in spectator mode (staff use it a lot)
          String modeBefore = context.computeOnClient(mc -> mc.gameMode.getPlayerMode().getName());
          world.getServer().runCommand("tellraw @a \"Alice and Bob got married a third time (spectator line)\"");

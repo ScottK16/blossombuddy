@@ -232,30 +232,102 @@ public final class CooldownRules {
       return sb.toString().trim();
    }
 
+   /** The cooldown list that ships inside the mod, so a player who never had one still gets cooldown timers. */
+   static final String BUNDLED_RESOURCE = "/assets/blossombuddy/default-cooldowns.json";
+
+   /** The built-in cooldown list, or null if this build does not carry one. */
+   static String bundledDefaultJson() {
+      try (java.io.InputStream in = CooldownRules.class.getResourceAsStream(BUNDLED_RESOURCE)) {
+         return in == null ? null : new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+      } catch (java.io.IOException e) {
+         return null;
+      }
+   }
+
+   static String versionOf(String json) {
+      try {
+         JsonElement v = JsonParser.parseString(json).getAsJsonObject().get("version");
+         return v == null || v.isJsonNull() ? "" : v.getAsString();
+      } catch (RuntimeException e) {
+         return "";
+      }
+   }
+
+   /** Compares dotted version numbers ("0.5.43" against "0.6.1") number by number; a missing part counts as 0. */
+   static int compareVersions(String a, String b) {
+      String[] x = (a == null ? "" : a).split("[^0-9]+");
+      String[] y = (b == null ? "" : b).split("[^0-9]+");
+      for (int i = 0; i < Math.max(x.length, y.length); i++) {
+         long l = i < x.length && !x[i].isEmpty() ? Long.parseLong(x[i]) : 0L;
+         long r = i < y.length && !y[i].isEmpty() ? Long.parseLong(y[i]) : 0L;
+         if (l != r) {
+            return Long.compare(l, r);
+         }
+      }
+
+      return 0;
+   }
+
    /**
-    * Loads {@code config/<modId>/cooldowns.json}. The rules used to come only from the original developer's
-    * server; reading the local copy keeps the cooldown HUD working with no backend.
+    * Which cooldown list to use: the player's own file in the config folder if there is one (so they can edit it), unless the list built
+    * into the mod is newer, in which case the newer one wins so an old copy does not hide new items. No file at all: the built-in list.
+    */
+   static String chooseJson(String local, String bundled) {
+      if (local == null || local.isBlank()) {
+         return bundled;
+      }
+
+      if (bundled == null) {
+         return local;
+      }
+
+      return compareVersions(versionOf(local), versionOf(bundled)) >= 0 ? local : bundled;
+   }
+
+   /**
+    * Loads the cooldown rules: {@code config/<modId>/cooldowns.json} if there is one, else (or if it is older, or unreadable) the list
+    * built into the mod. The rules used to come only from the original developer's server, which is switched off here.
     *
-    * @return the number of rules in the file, or -1 if there is no readable file
+    * @return the number of rules loaded, or -1 if there are none at all
     */
    public static int loadLocalFile() {
       Path file = FabricLoader.getInstance().getConfigDir().resolve(SuiteRuntime.profile().modId()).resolve("cooldowns.json");
-      if (!Files.isRegularFile(file)) {
-         SuiteLog.logger().info("[cooldowns] no {} - the cooldown HUD has no rules until one is added", file);
-         applyCustomRules(); // still apply the player's own rules even with no cooldowns.json at all
+      String local = null;
+      if (Files.isRegularFile(file)) {
+         try {
+            local = Files.readString(file);
+         } catch (Exception e) {
+            SuiteLog.logger().warn("[cooldowns] could not read {}: {}", file, e.toString());
+         }
+      }
+
+      String bundled = bundledDefaultJson();
+      String json = chooseJson(local, bundled);
+      boolean usedBundled = json != null && json == bundled;
+      if (json == null) {
+         SuiteLog.logger().info("[cooldowns] no {} and no built-in list - the cooldown HUD has no rules until one is added", file);
+         applyCustomRules();
          return -1;
       }
 
       try {
-         String json = Files.readString(file);
          applyFromJson(json);
-         applyCustomRules();
+      } catch (Exception e) {
+         SuiteLog.logger().warn("[cooldowns] could not use {}: {}", usedBundled ? "the built-in list" : file, e.toString());
+         if (!usedBundled && bundled != null) {
+            applyFromJson(bundled); // a damaged file of the player's must not leave them with nothing
+            usedBundled = true;
+            json = bundled;
+         }
+      }
+
+      applyCustomRules();
+      try {
          JsonArray rules = JsonParser.parseString(json).getAsJsonObject().getAsJsonArray("rules");
          int count = rules == null ? 0 : rules.size();
-         SuiteLog.logger().info("[cooldowns] loaded {} rules from {}", count, file.getFileName());
+         SuiteLog.logger().info("[cooldowns] loaded {} rules from {}", count, usedBundled ? "the list built into the mod" : file.getFileName());
          return count;
       } catch (Exception e) {
-         SuiteLog.logger().warn("[cooldowns] could not read {}: {}", file, e.toString());
          return -1;
       }
    }
