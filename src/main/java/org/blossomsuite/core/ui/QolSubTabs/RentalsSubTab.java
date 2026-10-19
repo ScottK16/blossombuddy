@@ -44,23 +44,40 @@ public final class RentalsSubTab implements SuiteSubTab {
          new HoverLabelWidget(x, y + 2, 220, 12, Component.literal("Item Name"), Tooltip.create(Component.literal("What you rented. This can be any text.")))
       );
       y += 16;
-      this.itemField = new EditBox(screen.getFont(), x, y, w, 20, Component.empty());
+      int helperW = 96;
+      this.itemField = new EditBox(screen.getFont(), x, y, w - helperW - 6, 20, Component.empty());
       this.itemField.setMaxLength(64);
       this.itemField.setValue(this.itemDraft);
-      this.itemField.setHint(Component.literal("Item name"));
+      this.itemField.setHint(Component.literal("Item name (blank = item in hand)"));
       this.itemField.setResponder(s -> this.itemDraft = s == null ? "" : s);
       screen.addContentWidget(this.itemField);
+      Button useHeld = StyledButton.of(Component.literal("Use held item"), b -> {
+         String held = heldItemName();
+         if (held != null && this.itemField != null) {
+            this.itemField.setValue(held);
+         }
+      }).dimensions(x + w - helperW, y, helperW, 20).build();
+      useHeld.setTooltip(Tooltip.create(Component.literal("Fills in the name of the item you are holding, the same as /buddy rent does.")));
+      screen.addContentWidget(useHeld);
       y += 28;
       screen.addContentWidget(
          new HoverLabelWidget(x, y + 2, 220, 12, Component.literal("Where Rented"), Tooltip.create(Component.literal("Where you rented it from. This can be any text.")))
       );
       y += 16;
-      this.locationField = new EditBox(screen.getFont(), x, y, w, 20, Component.empty());
+      this.locationField = new EditBox(screen.getFont(), x, y, w - helperW - 6, 20, Component.empty());
       this.locationField.setMaxLength(64);
       this.locationField.setValue(this.locationDraft);
-      this.locationField.setHint(Component.literal("Pw name"));
+      this.locationField.setHint(Component.literal("Pw name (blank = this realm)"));
       this.locationField.setResponder(s -> this.locationDraft = s == null ? "" : s);
       screen.addContentWidget(this.locationField);
+      Button useRealm = StyledButton.of(Component.literal("This realm"), b -> {
+         String realm = org.blossomsuite.core.util.WorldGate.Server;
+         if (realm != null && !realm.isBlank() && this.locationField != null) {
+            this.locationField.setValue(realm);
+         }
+      }).dimensions(x + w - helperW, y, helperW, 20).build();
+      useRealm.setTooltip(Tooltip.create(Component.literal("Fills in the realm you are on.")));
+      screen.addContentWidget(useRealm);
       y += 28;
       screen.addContentWidget(
          new HoverLabelWidget(
@@ -77,16 +94,24 @@ public final class RentalsSubTab implements SuiteSubTab {
       screen.addContentWidget(this.minutesField);
       Button addButton = StyledButton.of(Component.literal("Add"), b -> {
          int minutes = parseMinutes(this.minutesDraft);
-         cfg.addRental(this.itemDraft, this.locationDraft, minutes);
+         // the same defaults as /buddy rent: no name typed means the item in your hand, no place typed means this realm
+         String heldName = heldItemName();
+         String item = org.blossomsuite.core.util.RentalDefaults.itemOrHeld(this.itemDraft, heldName, null, heldName != null);
+         String place = org.blossomsuite.core.util.RentalDefaults.place(this.locationDraft, org.blossomsuite.core.util.WorldGate.Server);
+         cfg.addRental(item, place, minutes);
          this.itemDraft = "";
          this.locationDraft = "";
          this.minutesDraft = "60";
          ConfigIO.saveIfDirty();
          screen.rebuildPreserveScroll();
       }).dimensions(x + w - addW, y, addW, 20).build();
-      addButton.setTooltip(Tooltip.create(Component.literal("Starts tracking this rental.")));
+      addButton.setTooltip(Tooltip.create(Component.literal("Starts tracking this rental. Leave the name blank to use the item in your hand and the place blank to use this realm, like /buddy rent <minutes>.")));
       screen.addContentWidget(addButton);
-      y += 34;
+      y += 30;
+      screen.addContentWidget(
+         new HoverLabelWidget(x, y, w, 12, Component.literal("In chat: /buddy rent <minutes> [place] with the rented item in your hand does the same."), null)
+      );
+      y += 18;
       int halfW = (w - 6) / 2;
       Button pauseAll = StyledButton.of(Component.literal("Pause All"), b -> {
          cfg.pauseAll();
@@ -189,7 +214,7 @@ public final class RentalsSubTab implements SuiteSubTab {
    @Override
    public int contentHeight(SuiteSettingsScreen screen, int contentTopOffset) {
       int rows = SuiteConfig.INSTANCE.RentalsConfig.entries.size();
-      return contentTopOffset + 8 + 24 + 44 + 44 + 50 + 28 + 34 + 16 + (rows == 0 ? 32 : rows * 42) + 24;
+      return contentTopOffset + 8 + 24 + 44 + 44 + 50 + 28 + 34 + 16 + 14 + (rows == 0 ? 32 : rows * 42) + 24;
    }
 
    private int addToggleRow(SuiteSettingsScreen screen, int x, int w, int y, String label, boolean enabled, String tooltip, Runnable onPress) {
@@ -198,6 +223,21 @@ public final class RentalsSubTab implements SuiteSubTab {
       button.setTooltip(Tooltip.create(Component.literal(tooltip)));
       screen.addContentWidget(button);
       return y + 28;
+   }
+
+   /** The name of the item in the player's main hand, or null if they hold nothing. */
+   private static String heldItemName() {
+      net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+      if (mc == null || mc.player == null) {
+         return null;
+      }
+
+      net.minecraft.world.item.ItemStack held = mc.player.getMainHandItem();
+      if (held == null || held.isEmpty()) {
+         return null;
+      }
+
+      return org.blossomsuite.core.util.RentalDefaults.itemName(held.getHoverName().getString(), held.getItemName().getString());
    }
 
    private static int parseMinutes(String raw) {

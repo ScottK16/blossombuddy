@@ -548,19 +548,8 @@ public final class SuiteCommands {
          if (minutes >= 1 && minutes <= 10080) {
             ItemStack held = client.player.getMainHandItem();
             if (held != null && !held.isEmpty()) {
-               String itemName = held.getHoverName().getString();
-               if (itemName == null || itemName.isBlank()) {
-                  itemName = held.getItemName().getString();
-               }
-
-               if (itemName == null || itemName.isBlank()) {
-                  itemName = "Rental";
-               }
-
-               String place = rawPlace == null ? "" : rawPlace.trim();
-               if (place.isEmpty()) {
-                  place = WorldGate.Server != null && !WorldGate.Server.isBlank() ? WorldGate.Server : "Unknown";
-               }
+               String itemName = org.blossomsuite.core.util.RentalDefaults.itemName(held.getHoverName().getString(), held.getItemName().getString());
+               String place = org.blossomsuite.core.util.RentalDefaults.place(rawPlace, WorldGate.Server);
 
                SuiteConfig.INSTANCE.RentalsConfig.addRental(itemName, place, minutes);
                ConfigIO.saveIfDirty();

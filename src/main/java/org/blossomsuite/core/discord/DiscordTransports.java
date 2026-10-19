@@ -19,7 +19,7 @@ final class DiscordTransports {
 
    static DiscordPresence.Transport system() {
       boolean windows = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("win");
-      return windows ? DiscordTransports::openPipe : DiscordTransports::openSocket;
+      return windows ? DiscordTransports::openPipe : () -> openSocket(socketDirs(System::getenv, DiscordTransports::readProcStatus));
    }
 
    // ------------------------------------------------------------------ Windows
@@ -67,20 +67,54 @@ final class DiscordTransports {
 
    // ------------------------------------------------------------------ Linux and macOS
 
-   private static DiscordPresence.Conn openSocket() throws IOException {
-      List<Path> dirs = new ArrayList<>();
+   /** Where Discord (and the Flatpak, Snap and Discord-compatible clients) may keep its socket: the runtime, temp and /run/user folders. */
+   static List<Path> socketDirs(java.util.function.Function<String, String> env, java.util.function.Supplier<String> procStatus) {
+      java.util.LinkedHashSet<Path> dirs = new java.util.LinkedHashSet<>();
       for (String var : new String[]{"XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"}) {
-         String value = System.getenv(var);
+         String value = env.apply(var);
          if (value != null && !value.isBlank()) {
             dirs.add(Path.of(value));
          }
       }
 
+      // the per-user runtime folder is where Linux puts it even when the game was started without XDG_RUNTIME_DIR in its environment
+      String status = procStatus.get();
+      if (status != null) {
+         for (String line : status.split("\\R")) {
+            if (line.startsWith("Uid:")) {
+               String[] parts = line.substring(4).trim().split("\\s+");
+               if (parts.length > 0 && parts[0].matches("\\d{1,10}")) {
+                  dirs.add(Path.of("/run/user/" + parts[0]));
+               }
+
+               break;
+            }
+         }
+      }
+
       dirs.add(Path.of("/tmp"));
+      return new ArrayList<>(dirs);
+   }
+
+   private static String readProcStatus() {
+      try {
+         return Files.readString(Path.of("/proc/self/status"));
+      } catch (IOException | RuntimeException e) {
+         return null; // not Linux (macOS has no /proc)
+      }
+   }
+
+   /** Folders inside those where a sandboxed or alternative Discord keeps the socket. The empty one is the plain, native case. */
+   static final String[] SOCKET_SUBDIRS = {
+      "", "app/com.discordapp.Discord", "app/com.discordapp.DiscordCanary", "app/dev.vencord.Vesktop",
+      "app/io.github.spacingbat3.webcord", "snap.discord", "snap.discord-canary"
+   };
+
+   static DiscordPresence.Conn openSocket(List<Path> dirs) throws IOException {
       IOException last = new IOException("Discord is not running");
       List<Path> candidates = new ArrayList<>();
       for (Path dir : dirs) {
-         for (String sub : new String[]{"", "app/com.discordapp.Discord", "snap.discord"}) { // plain, Flatpak, Snap
+         for (String sub : SOCKET_SUBDIRS) {
             for (int i = 0; i < 10; i++) {
                candidates.add(sub.isEmpty() ? dir.resolve("discord-ipc-" + i) : dir.resolve(sub).resolve("discord-ipc-" + i));
             }
