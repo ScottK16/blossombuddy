@@ -352,7 +352,7 @@ public final class BuddyTabs {
          y = UiRows.note(screen, x, w, y, XChatClient.INSTANCE.status());
 
          FeatureConfig.Presence pl = FeatureConfig.INSTANCE.presence;
-         y = UiRows.toggle(screen, x, w, y, "Appear in the player list", pl.enabled, "Shows your name and realm to other players who also chose to appear, and lets you see them. Off until you turn it on.", () -> {
+         y = UiRows.toggle(screen, x, w, y, "Appear in the player list", pl.enabled, "Shows your name and realm to other players who also appear and in the BlossomBuddy Discord's /online, and lets you see them. On by default.", () -> {
             PresenceClient.INSTANCE.setEnabled(!pl.enabled);
             screen.rebuildPreserveScroll();
          });

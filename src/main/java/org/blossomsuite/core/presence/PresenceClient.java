@@ -42,10 +42,10 @@ public final class PresenceClient {
    private static final long RENEW_BEFORE_EXPIRY_MS = 60_000L;
    private static final Pattern NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
 
-   public static final String ON_NOTICE = "You now appear in the BlossomBuddy player list: your Minecraft name and the realm you are on are shown to other players who also chose to appear (and you can see them). Turn it off any time with /buddy who off.";
+   public static final String ON_NOTICE = "You now appear in the BlossomBuddy player list: your Minecraft name and the realm you are on are shown to other players who also chose to appear (and you can see them) and in the BlossomBuddy Discord's /online. Turn it off any time with /buddy who off.";
    public static final String OFF_NOTICE = "You no longer appear in the BlossomBuddy player list.";
    /** Said once, before anything is sent, because the list is on by default. */
-   public static final String DEFAULT_NOTICE = "You appear in the BlossomBuddy player list: your Minecraft name and the realm you are on are shown to other players who are also in it (and you can see them). "
+   public static final String DEFAULT_NOTICE = "You appear in the BlossomBuddy player list: your Minecraft name and the realm you are on are shown to other players who are also in it (and you can see them) and in the BlossomBuddy Discord's /online. "
       + "Turn it off with /buddy who off, or the button in /buddy who.";
    /** After that notice, wait this long before the first heartbeat so it can be switched off first. */
    static final long NOTICE_GRACE_MS = 60_000L;
