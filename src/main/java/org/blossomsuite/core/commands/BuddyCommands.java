@@ -72,7 +72,7 @@ public final class BuddyCommands {
       ChatOutput.info(
          Component.literal("Acknowledgement to ").withStyle(ChatFormatting.GRAY)
             .append(Component.literal("Zodancy").withStyle(ChatFormatting.AQUA))
-            .append(Component.literal(", who made the original BlossomSuite.").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(", who made BlossomSuite.").withStyle(ChatFormatting.GRAY))
       );
       ChatOutput.info(
          Component.literal("Jobs overflow tracking is based on Jobs Overflow XP by ").withStyle(ChatFormatting.GRAY)

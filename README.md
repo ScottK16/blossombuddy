@@ -1,6 +1,6 @@
 # BlossomBuddy
 
-A Fabric client mod for the BlossomCraft server, continuing on from the still existing BlossomSuite mod, with Jobs Overflow XP tracking folded in as a native feature.
+A Fabric client mod for the BlossomCraft server, with Jobs Overflow XP tracking built in as a native feature.
 
 ## What's in it
 
@@ -19,7 +19,7 @@ A Fabric client mod for the BlossomCraft server, continuing on from the still ex
 - Discord Rich Presence ("Playing BlossomBuddy - On Cherry Realm"), opt-in - `/buddy presence`
 - Music controls: what your computer is playing on a HUD, skip keys, and optional sharing in the player list (Windows and macOS, opt-in) - `/buddy music`
 - A map art tool: turn a picture into a real in-game build, including a Litematica-compatible schematic export
-- Item cooldown tracking, Jobs Overflow XP, inventory slot locks, and the rest of the original BlossomSuite toolkit
+- Item cooldown tracking, Jobs Overflow XP, inventory slot locks and more quality-of-life tools
 - A searchable options screen, and a draggable HUD editor for every panel
 
 ## Building
@@ -38,13 +38,13 @@ Cross-realm chat, the player list, vote sharing and map art all talk to a small 
 
 ## Credits
 
-- Originally built by Zodancy as BlossomSuite (MIT, Copyright Stephen Willis)
+- BlossomSuite by Zodancy (MIT, Copyright Stephen Willis)
 - Jobs Overflow XP tracking based on Mills' Jobs Overflow XP (MIT)
-- Continued and maintained by IrishScotty
+- Developed by IrishScotty
 
 ## License
 
-Source-available, not fully open source: read it, build it, send pull requests - but redistributing, rebranding, or running your own public copy needs permission first. The framework this was built on (the original BlossomSuite and Jobs Overflow XP) stays MIT, since that permission was already granted by their authors. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for the full split.
+Source-available, not fully open source: read it, build it, send pull requests - but redistributing, rebranding, or running your own public copy needs permission first. The parts that come from BlossomSuite and Jobs Overflow XP stay MIT, since those authors already granted that permission. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for the full split.
 
 ## Support
 

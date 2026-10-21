@@ -4,7 +4,7 @@ BlossomBuddy - third-party notices
 BlossomBuddy's own code is source-available under different terms than the
 projects it's built on - see LICENSE for the full split.
 
-BlossomBuddy is a community-maintained continuation of BlossomSuite
+BlossomBuddy includes code from BlossomSuite
 (https://modrinth.com/mod/blossomsuite, author "Zodancy"; MIT, Copyright (c)
 2026 Stephen Willis - see LICENSE). Its source was reconstructed from the
 released 0.9.6 jar because no public source repository exists.
