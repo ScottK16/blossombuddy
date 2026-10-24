@@ -49,3 +49,5 @@ Source-available, not fully open source: read it, build it, send pull requests -
 ## Support
 
 [Discord](https://discord.gg/EA4WwSdGTj)
+
+[Other Projects](https://best-minecraftservers.net)
